@@ -2,7 +2,7 @@ name: Deploy static PWA to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, uat/pages-preview]
   pull_request:
     branches: [main]
   workflow_dispatch:
