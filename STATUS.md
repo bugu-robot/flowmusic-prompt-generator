@@ -20,11 +20,13 @@
 - [x] Unit tests (`npm test`: 28 tests across 6 files)
 - [x] Production build (`npm run build`)
 - [x] GitHub Pages path build (`npm run build -- --mode pages`)
-- [ ] Draft PR review
+- [x] Draft PR #1 created; GitHub Actions PR checks passed
+- [ ] Human code review
 
 ## Pending / limitations
 
 - Browser installation and offline behavior need verification on a target desktop and mobile browser.
+- Confirm GitHub Pages is enabled with GitHub Actions in repository settings before publishing from `main`.
 - Prompt phrasing is deterministic and rule-based; different Flow Music model releases may respond differently.
 - localStorage presets remain on the current browser and are not synchronized.
 - No live generation API is connected by design.
