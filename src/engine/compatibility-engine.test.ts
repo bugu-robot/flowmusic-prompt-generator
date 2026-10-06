@@ -25,6 +25,13 @@ describe('advisory compatibility engine', () => {
     expect(checkCompatibility(configuration).messages.some((item) => item.message.includes('3/4'))).toBe(true);
   });
 
+  it('reports the selected value for a custom meter', () => {
+    const configuration = recommendConfiguration('slow-bossa');
+    configuration.meter = 'custom';
+    configuration.customMeter = '5/4';
+    expect(checkCompatibility(configuration).messages.some((item) => item.message.includes('5/4'))).toBe(true);
+  });
+
   it('returns a bounded reference score and transparent factors', () => {
     const result = checkCompatibility(recommendConfiguration('bebop'));
     expect(result.score).toBeGreaterThanOrEqual(0);

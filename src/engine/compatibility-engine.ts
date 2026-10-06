@@ -32,9 +32,10 @@ export function checkCompatibility(configuration: MusicConfiguration): Compatibi
     });
   }
 
-  const meterOK = style.meters.includes(configuration.meter);
+  const selectedMeter = configuration.meter === 'custom' ? configuration.customMeter ?? '4/4' : configuration.meter;
+  const meterOK = style.meters.includes(selectedMeter);
   factors.push({ label: '拍號', score: meterOK ? 8 : 3, max: 8, reason: meterOK ? '符合風格建議' : '不在常見拍號內' });
-  if (!meterOK) messages.push({ category: 'unusual', message: configuration.meter + ' 拍號較少用於 ' + style.name + '。' });
+  if (!meterOK) messages.push({ category: 'unusual', message: selectedMeter + ' 拍號較少用於 ' + style.name + '。' });
 
   const grooveOK = style.grooves.some((groove) => groove.id === configuration.grooveId);
   factors.push({ label: '律動', score: grooveOK ? 14 : 5, max: 14, reason: grooveOK ? '使用風格建議律動' : '使用風格以外的律動' });
