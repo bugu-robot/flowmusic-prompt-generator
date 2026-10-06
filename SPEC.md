@@ -16,7 +16,7 @@ JazzStyle stores an ID, display names, classification, family, Traditional Chine
 
 Instrument stores bilingual display names, category, supported roles, musical families, atypical families, prompt wording and role-neutral playing-behavior choices. InstrumentPart holds the selected instrument, enabled state, role, prominence and behavior.
 
-MusicConfiguration is the complete editable setup. Presets are versioned JSON objects that contain a configuration snapshot. Input is normalized and bounded when loaded or imported; invalid style IDs and unknown instruments are rejected. Unsupported instrument roles are replaced by a safe role declared by that instrument. Built-in style data, recommendations and variation recipes are covered by referential-integrity tests against their shared catalogs.
+MusicConfiguration is the complete editable setup. Presets are versioned JSON objects that contain a configuration snapshot. Input is normalized and bounded when loaded or imported; invalid style IDs and unknown instruments are rejected. Unsupported instrument roles are replaced by a safe role declared by that instrument. Harmony, mood, production and constraint arrays filter unknown IDs and remove duplicates; an unknown scene falls back to `quiet-cafe`. Invalid dynamics and structure IDs fall back to `stable` and `continuous`; enum selections must be strings, so arrays cannot masquerade as valid IDs. Grooves and tonalities are checked against the complete catalogs rather than just the selected style, preserving valid values retained across style changes. Unknown groove and tonality IDs fall back to `open` and `warm-major`. Built-in style data, recommendations and variation recipes are covered by referential-integrity tests against their shared catalogs.
 
 ## Jazz-style classifications
 
@@ -47,13 +47,15 @@ FLOW_PROMPT_RULES contains versioned output rules. compilePrompt assembles the p
 10. Recording character
 11. Instrumental requirement and a small set of grouped constraints
 
-Compiler rules describe intended sound before exclusions. Instrumental-only is always explicit. Constraint groups are capped to avoid turning the prompt into a long negative list. Compilation is deterministic and local.
+Compiler rules describe intended sound before exclusions. V1 always emits `Instrumental only, no vocals.` and has no vocals mode. The interface displays a non-editable instrumental indication; `vocals` and `scat` are absent from the selectable constraint catalog and are discarded from legacy imports. Every optional constraint uses only its selected catalog wording; grouping never adds an unselected restriction. Selections are combined into at most three optional sentences without dropping selected items. Compilation is deterministic and local.
 
 ## Recommendation and compatibility
 
 The recommendation engine creates a full, editable configuration from the selected style data. The compatibility engine returns a 0–100 reference score plus each factor's contribution: tempo 18, meter 8, groove 14, instruments and roles 26, harmony 10, melody density 8, improvisation 8 and production 8.
 
-This score is a transparent product heuristic, not a music-science measurement. Unusual combinations remain allowed; warnings are advisory. The variation engine uses only curated recipes from the selected style record.
+This score is a transparent product heuristic, not a music-science measurement. Unusual combinations remain allowed; warnings are advisory. Default warning candidates are evaluated against instrument-family compatibility and exclusions, while explicit style-specific lists remain supported. All recommended lead, response, harmony, bass and rhythm IDs are excluded from that style's atypical list. Recommended configurations and alternatives must not receive instrument warnings for their own recommendations.
+
+The variation engine keeps the existing three curated recipes from the selected style record. If a requested instrument is already used, it selects the next unused, role-supported candidate from that style's relevant recommendation list. Harmonic and rhythmic support is retained where candidates are available; each generated ensemble has unique IDs, one primary lead and one bass where the style provides bass. No randomness is used.
 
 ## Localization
 

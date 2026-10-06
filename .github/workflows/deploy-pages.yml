@@ -13,7 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: github-pages
+  group: github-pages-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,12 +25,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.12
+          node-version: 24
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Audit dependencies
+        run: npm audit
       - name: Verify and build for Pages
-        run: npm run typecheck && npm run lint && npm test && npm run build -- --mode pages
+        run: npm run typecheck && npm run lint && npm test && npm run build && npm run build -- --mode pages
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

@@ -91,4 +91,56 @@ describe('local preset serialization', () => {
     expect(normalized?.meter).toBe('4/4');
     expect(normalized?.instruments[0]?.behaviour).not.toContain('中文');
   });
+
+  it('filters and deduplicates shared option IDs from imported JSON', () => {
+    const configuration = {
+      ...recommendConfiguration('slow-bossa'),
+      harmonyIds: ['maj7', 'missing-harmony', 'maj7', 'maj6'],
+      moodIds: ['warm', 'missing-mood', 'warm', 'energetic'],
+      productionIds: ['clean', 'modern-clean', 'clean', 'round-bass'],
+      constraintIds: ['bright-brass', 'vocals', 'scat', 'missing-constraint', 'bright-brass'],
+      sceneId: 'missing-scene',
+    };
+    const preset = savePreset('Canonical import', configuration, new MemoryStorage());
+    const imported = importPresetJson(exportPresetJson(preset), new MemoryStorage());
+    expect(imported?.configuration.harmonyIds).toEqual(['maj7', 'maj6']);
+    expect(imported?.configuration.moodIds).toEqual(['warm', 'energetic']);
+    expect(imported?.configuration.productionIds).toEqual(['clean', 'round-bass']);
+    expect(imported?.configuration.constraintIds).toEqual(['bright-brass']);
+    expect(imported?.configuration.sceneId).toBe('quiet-cafe');
+  });
+
+  it('preserves globally valid grooves, tonalities and custom scenes after a style change', () => {
+    const configuration = { ...recommendConfiguration('slow-bossa'), styleId: 'cool-jazz', tonalityId: 'relative-minor', sceneId: 'custom', customSceneName: 'A quiet studio' };
+    const preset = savePreset('Retained settings', configuration, new MemoryStorage());
+    const imported = importPresetJson(exportPresetJson(preset), new MemoryStorage());
+    expect(imported?.configuration).toEqual(configuration);
+    expect(imported?.configuration.grooveId).toBe('slow-bossa');
+    expect(imported?.configuration.tonalityId).toBe('relative-minor');
+  });
+
+  it('replaces unknown groove, tonality and scene IDs with valid defaults', () => {
+    const normalized = normalizeConfiguration({ ...recommendConfiguration('cozy-jazz'), grooveId: 'missing-groove', tonalityId: 'missing-tonality', sceneId: 'missing-scene' });
+    expect(normalized?.grooveId).toBe('open');
+    expect(normalized?.tonalityId).toBe('warm-major');
+    expect(normalized?.sceneId).toBe('quiet-cafe');
+  });
+
+  it('replaces unknown dynamics and structure IDs with valid defaults', () => {
+    const normalized = normalizeConfiguration({ ...recommendConfiguration('cozy-jazz'), dynamics: 'missing-dynamics', structure: 'missing-structure' });
+    expect(normalized?.dynamics).toBe('stable');
+    expect(normalized?.structure).toBe('continuous');
+  });
+
+  it('rejects non-string selections that stringify to valid option IDs', () => {
+    const normalized = normalizeConfiguration({
+      ...recommendConfiguration('cozy-jazz'), tempoFeelId: ['fast'], foregroundRule: ['collective'],
+      phraseLength: ['long'], breathingSpace: ['low'], melodyComplexity: ['virtuosic'],
+      dynamics: ['dynamic'], structure: ['custom'],
+    });
+    expect(normalized).toMatchObject({
+      tempoFeelId: 'auto', foregroundRule: 'single', phraseLength: 'medium', breathingSpace: 'medium',
+      melodyComplexity: 'moderate', dynamics: 'stable', structure: 'continuous',
+    });
+  });
 });

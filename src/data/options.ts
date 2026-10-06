@@ -93,8 +93,6 @@ export const PRODUCTION: LabeledOption[] = [
 ];
 
 export const CONSTRAINTS: LabeledOption[] = [
-  { id: 'vocals', label: '人聲', prompt: 'vocals' },
-  { id: 'scat', label: 'Scat Singing', prompt: 'scat singing' },
   { id: 'flashy-solos', label: '炫技獨奏', prompt: 'flashy solos' },
   { id: 'virtuosic-runs', label: '炫技快速樂句', prompt: 'virtuosic runs' },
   { id: 'busy-fills', label: '密集過門', prompt: 'busy fills' },
@@ -104,8 +102,8 @@ export const CONSTRAINTS: LabeledOption[] = [
   { id: 'dense-arrangement', label: '編曲過密', prompt: 'a dense arrangement' },
   { id: 'cinematic', label: '電影配樂式管弦編曲', prompt: 'cinematic orchestration' },
   { id: 'electronic', label: '電子樂器', prompt: 'electronic instruments' },
-  { id: 'heavy-bass', label: '過重低音', prompt: 'heavy bass' },
-  { id: 'bright-brass', label: '過亮銅管', prompt: 'bright brass' },
+  { id: 'heavy-bass', label: '過重低音', prompt: 'overly heavy bass' },
+  { id: 'bright-brass', label: '過亮銅管', prompt: 'overly bright brass' },
   { id: 'chromatic-runs', label: '複雜半音樂句', prompt: 'complex chromatic runs' },
 ];
 

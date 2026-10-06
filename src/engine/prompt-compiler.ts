@@ -122,18 +122,13 @@ function arrangementDescription(id: string): string {
 function constraintSentence(configuration: MusicConfiguration): string {
   const selected = unique(configuration.constraintIds)
     .map((id) => CONSTRAINT_BY_ID.get(id)?.prompt)
-    .filter((value): value is string => Boolean(value) && value !== 'vocals' && value !== 'scat singing')
-    .slice(0, 20);
-  const groups = [
-    { ids: ['flashy solos', 'virtuosic runs'], sentence: 'Avoid flashy solos and virtuosic runs.' },
-    { ids: ['busy fills', 'aggressive percussion'], sentence: 'Keep fills and percussion restrained.' },
-    { ids: ['a dramatic climax', 'large crescendos'], sentence: 'Avoid a dramatic climax or large crescendos.' },
-    { ids: ['a dense arrangement', 'cinematic orchestration'], sentence: 'Keep the arrangement uncluttered and non-cinematic.' },
-    { ids: ['electronic instruments', 'heavy bass', 'bright brass', 'complex chromatic runs'], sentence: 'Avoid electronic textures, heavy bass and overly bright brass or chromatic runs.' },
-  ];
-  const selectedSentences = groups.filter((group) => group.ids.some((id) => selected.includes(id)))
-    .slice(0, FLOW_PROMPT_RULES.maxOptionalNegativeConstraints)
-    .map((group) => group.sentence);
+    .filter((value): value is string => Boolean(value));
+  const selectedSentences: string[] = [];
+  // Bound the sentence count without dropping selections or adding sibling restrictions.
+  const groupSize = Math.max(2, Math.ceil(selected.length / FLOW_PROMPT_RULES.maxOptionalNegativeConstraints));
+  for (let index = 0; index < selected.length; index += groupSize) {
+    selectedSentences.push('Avoid ' + asList(selected.slice(index, index + groupSize)) + '.');
+  }
   return ['Instrumental only, no vocals.', ...selectedSentences].join(' ');
 }
 

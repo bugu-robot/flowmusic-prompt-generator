@@ -1,5 +1,5 @@
 import type { JazzStyle, VariationRecipe } from '../models/types';
-import { INSTRUMENT_BY_ID } from './instruments';
+import { INSTRUMENTS, INSTRUMENT_BY_ID } from './instruments';
 
 interface StyleSeed {
   id: string;
@@ -34,6 +34,12 @@ interface StyleSeed {
 }
 
 function makeStyle(seed: StyleSeed): JazzStyle {
+  const harmonyInstruments = seed.harmonyInstruments ?? seed.lead.filter((id) => INSTRUMENT_BY_ID.get(id)?.roles.includes('harmony'));
+  const recommended = new Set([...seed.lead, ...seed.response, ...harmonyInstruments, ...seed.bass, ...seed.rhythm]);
+  const unusualInstruments = seed.unusualInstruments
+    ?? INSTRUMENTS.filter((instrument) => instrument.avoidFamilies?.includes(seed.family)
+      || (['distorted-guitar', 'heavy-rock-drums', 'tuba', 'synth'].includes(instrument.id) && !instrument.families.includes(seed.family)))
+      .map((instrument) => instrument.id);
   const variations: VariationRecipe[] = [
     { label: 'A', lead: seed.lead[0]!, response: seed.response[0], harmony: seed.harmonyInstruments?.[0], bass: seed.bass[0]!, rhythm: seed.rhythm[0] },
     { label: 'B', lead: seed.lead[Math.min(1, seed.lead.length - 1)]!, response: seed.response[Math.min(1, seed.response.length - 1)], harmony: seed.harmonyInstruments?.[1] ?? seed.harmonyInstruments?.[0], bass: seed.bass[0]!, rhythm: seed.rhythm[Math.min(1, seed.rhythm.length - 1)] },
@@ -44,10 +50,10 @@ function makeStyle(seed: StyleSeed): JazzStyle {
     meters: seed.meters ?? ['4/4'],
     grooves: seed.groove.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
     tonalities: seed.tonalities.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
-    harmonyInstruments: seed.harmonyInstruments ?? seed.lead.filter((id) => INSTRUMENT_BY_ID.get(id)?.roles.includes('harmony')),
+    harmonyInstruments,
     variations,
     compatibleStyles: seed.compatibleStyles ?? [],
-    unusualInstruments: seed.unusualInstruments ?? ['distorted-guitar', 'heavy-rock-drums', 'tuba', 'synth'],
+    unusualInstruments: unusualInstruments.filter((id) => !recommended.has(id)),
   };
 }
 
@@ -62,7 +68,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmonyInstruments: ['piano', 'vibraphone'], bass: ['upright-bass'], rhythm: ['brush-drums', 'soft-shaker'],
     moods: ['cozy', 'warm', 'peaceful', 'intimate', 'nostalgic', 'calm'], scenes: ['quiet-cafe', 'library', 'reading-room', 'rain-window', 'fireplace', 'rainy-cafe'],
     melodyDensity: 20, improvisation: 18, energy: 22, dynamics: 'stable', arrangement: 'continuous', production: ['warm', 'intimate', 'acoustic', 'room', 'soft-transients'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos'],
+    constraints: ['flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos'],
     compatibleStyles: ['cool-jazz', 'slow-bossa', 'jazz-ballad'],
     notes: 'Cozy Jazz is presented as a modern mood descriptor, not a historical genre.',
   }),
@@ -75,7 +81,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmonyInstruments: ['piano', 'nylon-guitar'], bass: ['upright-bass'], rhythm: ['soft-shaker', 'brazilian-percussion', 'brush-drums'],
     moods: ['warm', 'peaceful', 'nostalgic', 'romantic', 'intimate', 'calm'], scenes: ['sunset-cafe', 'seaside-cafe', 'rainy-cafe', 'morning-cafe'],
     melodyDensity: 18, improvisation: 16, energy: 20, dynamics: 'stable', arrangement: 'gentle-evolution', production: ['warm', 'intimate', 'acoustic', 'room', 'round-bass', 'smooth-highs'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'dense-arrangement'],
+    constraints: ['flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'dense-arrangement'],
     compatibleStyles: ['bossa-nova', 'cozy-jazz', 'cool-jazz'], unusualInstruments: ['distorted-guitar', 'heavy-rock-drums', 'tuba', 'trumpet', 'synth'],
   }),
   makeStyle({
@@ -86,7 +92,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'sixth', 'add9', 'min9'], lead: ['nylon-guitar', 'piano', 'flugelhorn'], response: ['flugelhorn', 'piano', 'nylon-guitar'],
     bass: ['upright-bass'], rhythm: ['soft-shaker', 'brazilian-percussion', 'brush-drums'], moods: ['warm', 'peaceful', 'romantic', 'cheerful', 'elegant'],
     scenes: ['seaside-cafe', 'sunset-cafe', 'morning-cafe', 'summer'], melodyDensity: 32, improvisation: 28, energy: 38, dynamics: 'gentle-evolution', arrangement: 'gentle-evolution',
-    production: ['warm', 'acoustic', 'room', 'round-bass', 'airy'], constraints: ['vocals', 'scat', 'flashy-solos', 'aggressive-percussion', 'dramatic-climax'],
+    production: ['warm', 'acoustic', 'room', 'round-bass', 'airy'], constraints: ['flashy-solos', 'aggressive-percussion', 'dramatic-climax'],
     compatibleStyles: ['slow-bossa', 'latin-jazz', 'cozy-jazz'], unusualInstruments: ['distorted-guitar', 'heavy-rock-drums', 'tuba', 'synth'],
   }),
   makeStyle({
@@ -97,7 +103,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'sixth', 'add9', 'modal'], lead: ['muted-trumpet', 'alto-sax', 'piano', 'vibraphone'], response: ['piano', 'vibraphone', 'muted-trumpet'],
     bass: ['upright-bass'], rhythm: ['brush-drums'], moods: ['calm', 'reflective', 'elegant', 'intimate', 'mysterious'], scenes: ['reading-room', 'library', 'late-night', 'rain-window'],
     melodyDensity: 34, improvisation: 35, energy: 32, dynamics: 'stable', arrangement: 'continuous', production: ['warm', 'acoustic', 'room', 'soft-transients', 'spacious'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'busy-fills', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['cozy-jazz', 'jazz-ballad', 'west-coast'],
+    constraints: ['flashy-solos', 'busy-fills', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['cozy-jazz', 'jazz-ballad', 'west-coast'],
   }),
   makeStyle({
     id: 'west-coast', name: 'West Coast Jazz', nameZh: '清晰、明亮而講究編曲平衡的西岸爵士', classification: 'historical-style', family: 'cool',
@@ -107,7 +113,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', 'sixth', 'maj9'], lead: ['trumpet', 'alto-sax', 'piano'], response: ['trombone', 'clarinet', 'piano'], harmonyInstruments: ['piano', 'vibraphone'],
     bass: ['upright-bass'], rhythm: ['brush-drums', 'acoustic-drums'], moods: ['elegant', 'cheerful', 'sophisticated', 'calm'], scenes: ['quiet-cafe', 'city-night', 'morning-cafe'],
     melodyDensity: 48, improvisation: 42, energy: 48, dynamics: 'gentle-evolution', arrangement: 'traditional-sections', production: ['clean', 'acoustic', 'spacious', 'polished'],
-    constraints: ['vocals', 'scat', 'large-crescendos', 'dense-arrangement'], compatibleStyles: ['cool-jazz', 'swing-jazz'],
+    constraints: ['large-crescendos', 'dense-arrangement'], compatibleStyles: ['cool-jazz', 'swing-jazz'],
   }),
   makeStyle({
     id: 'soft-swing', name: 'Soft Swing Jazz', nameZh: '輕柔、從容的 Swing 律動', classification: 'modern-descriptor', family: 'swing',
@@ -117,7 +123,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', 'sixth', 'add9'], lead: ['piano', 'muted-trumpet', 'jazz-electric-guitar'], response: ['vibraphone', 'flugelhorn', 'piano'],
     bass: ['upright-bass'], rhythm: ['brush-drums', 'acoustic-drums'], moods: ['cozy', 'cheerful', 'warm', 'playful', 'elegant'], scenes: ['quiet-cafe', 'bakery', 'morning-cafe'],
     melodyDensity: 38, improvisation: 30, energy: 40, dynamics: 'stable', arrangement: 'continuous', production: ['warm', 'acoustic', 'room', 'soft-transients'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'busy-fills', 'dramatic-climax'], compatibleStyles: ['swing-jazz', 'cozy-jazz'],
+    constraints: ['flashy-solos', 'busy-fills', 'dramatic-climax'], compatibleStyles: ['swing-jazz', 'cozy-jazz'],
   }),
   makeStyle({
     id: 'swing-jazz', name: 'Swing Jazz', nameZh: '以 swing 律動和即興互動為核心的爵士', classification: 'historical-style', family: 'swing',
@@ -127,7 +133,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', 'sixth', '13th'], lead: ['trumpet', 'tenor-sax', 'piano', 'clarinet'], response: ['trombone', 'clarinet', 'piano'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums', 'brush-drums'], moods: ['cheerful', 'playful', 'sophisticated', 'warm'], scenes: ['bakery', 'city-night', 'quiet-cafe'],
     melodyDensity: 60, improvisation: 62, energy: 65, dynamics: 'gentle-evolution', arrangement: 'traditional-sections', production: ['acoustic', 'clean', 'room', 'polished'],
-    constraints: ['vocals', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['soft-swing', 'bebop', 'new-orleans'],
+    constraints: ['dramatic-climax', 'dense-arrangement'], compatibleStyles: ['soft-swing', 'bebop', 'new-orleans'],
   }),
   makeStyle({
     id: 'jazz-ballad', name: 'Jazz Ballad', nameZh: '慢速、抒情、重視旋律呼吸的爵士', classification: 'historical-derived-style', family: 'ballad',
@@ -138,7 +144,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'sixth', 'add9', 'min9'], lead: ['flugelhorn', 'muted-trumpet', 'piano', 'tenor-sax'], response: ['piano', 'flugelhorn', 'vibraphone'],
     bass: ['upright-bass'], rhythm: ['brush-drums'], moods: ['romantic', 'melancholic', 'reflective', 'intimate', 'nostalgic'], scenes: ['late-night', 'fireplace', 'rain-window', 'moonlight'],
     melodyDensity: 24, improvisation: 26, energy: 18, dynamics: 'stable', arrangement: 'gentle-evolution', production: ['warm', 'intimate', 'room', 'soft-transients', 'round-bass'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos'], compatibleStyles: ['cozy-jazz', 'cool-jazz', 'slow-bossa'],
+    constraints: ['flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos'], compatibleStyles: ['cozy-jazz', 'cool-jazz', 'slow-bossa'],
   }),
   makeStyle({
     id: 'modal-jazz', name: 'Modal Jazz', nameZh: '以調式色彩和較長和聲停留為特色', classification: 'historical-style', family: 'modal',
@@ -148,7 +154,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['modal', 'sus', 'min7', 'min9', '11th'], lead: ['tenor-sax', 'soprano-sax', 'trumpet', 'piano'], response: ['piano', 'vibraphone', 'soprano-sax'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums', 'brush-drums'], moods: ['mysterious', 'reflective', 'sophisticated', 'calm'], scenes: ['city-night', 'moonlight', 'late-night'],
     melodyDensity: 40, improvisation: 62, energy: 48, dynamics: 'gentle-evolution', arrangement: 'continuous', production: ['acoustic', 'spacious', 'warm', 'room'],
-    constraints: ['vocals', 'scat', 'busy-fills', 'dense-arrangement', 'dramatic-climax'], compatibleStyles: ['post-bop', 'spiritual-jazz', 'cool-jazz'],
+    constraints: ['busy-fills', 'dense-arrangement', 'dramatic-climax'], compatibleStyles: ['post-bop', 'spiritual-jazz', 'cool-jazz'],
   }),
   makeStyle({
     id: 'nordic-chamber', name: 'Nordic / Chamber Jazz', nameZh: '北歐空間感與室內樂式爵士編制', classification: 'modern-descriptor', family: 'chamber',
@@ -158,7 +164,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'add9', 'sus', 'modal'], lead: ['piano', 'violin', 'vibraphone', 'flugelhorn'], response: ['violin', 'vibraphone', 'piano'],
     harmonyInstruments: ['piano', 'violin'], bass: ['upright-bass'], rhythm: ['brush-drums'], moods: ['reflective', 'mysterious', 'dreamy', 'calm', 'intimate'],
     scenes: ['library', 'moonlight', 'winter', 'rain-window', 'reading-room'], melodyDensity: 22, improvisation: 22, energy: 18, dynamics: 'stable', arrangement: 'gentle-evolution',
-    production: ['acoustic', 'spacious', 'airy', 'room', 'soft-transients'], constraints: ['vocals', 'scat', 'flashy-solos', 'aggressive-percussion', 'dramatic-climax', 'dense-arrangement'],
+    production: ['acoustic', 'spacious', 'airy', 'room', 'soft-transients'], constraints: ['flashy-solos', 'aggressive-percussion', 'dramatic-climax', 'dense-arrangement'],
     compatibleStyles: ['cool-jazz', 'jazz-ballad', 'modal-jazz'], unusualInstruments: ['distorted-guitar', 'heavy-rock-drums', 'tuba', 'trumpet', 'synth'],
   }),
   makeStyle({
@@ -169,7 +175,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['modal', 'sus', 'min7', '11th'], lead: ['tenor-sax', 'trumpet', 'soprano-sax', 'piano'], response: ['piano', 'vibraphone', 'tenor-sax'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums', 'congas'], moods: ['reflective', 'hopeful', 'mysterious', 'dreamy'], scenes: ['moonlight', 'late-night', 'city-night'],
     melodyDensity: 44, improvisation: 72, energy: 52, dynamics: 'gradual-build', arrangement: 'gentle-evolution', production: ['warm', 'spacious', 'acoustic', 'airy'],
-    constraints: ['vocals', 'scat', 'dense-arrangement', 'cinematic'], compatibleStyles: ['modal-jazz', 'post-bop'],
+    constraints: ['dense-arrangement', 'cinematic'], compatibleStyles: ['modal-jazz', 'post-bop'],
   }),
   makeStyle({
     id: 'brisk-jazz', name: 'Brisk Jazz', nameZh: '明快、有推進感的現代爵士氛圍', classification: 'modern-descriptor', family: 'swing',
@@ -180,7 +186,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', '13th', 'altered'], lead: ['trumpet', 'alto-sax', 'piano', 'tenor-sax'], response: ['piano', 'tenor-sax', 'trumpet'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums'], moods: ['cheerful', 'playful', 'hopeful', 'sophisticated'], scenes: ['city-night', 'bakery', 'morning-cafe'],
     melodyDensity: 62, improvisation: 64, energy: 74, dynamics: 'gentle-evolution', arrangement: 'traditional-sections', production: ['clean', 'acoustic', 'polished'],
-    constraints: ['vocals', 'dramatic-climax', 'large-crescendos'], compatibleStyles: ['bebop', 'swing-jazz', 'hard-bop'],
+    constraints: ['dramatic-climax', 'large-crescendos'], compatibleStyles: ['bebop', 'swing-jazz', 'hard-bop'],
     notes: 'Brisk Jazz is presented as a modern tempo and energy descriptor, not a historical genre.',
   }),
   makeStyle({
@@ -191,7 +197,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'maj9', 'sixth', 'add9'], lead: ['soprano-sax', 'jazz-electric-guitar', 'flugelhorn', 'rhodes'], response: ['rhodes', 'piano', 'flugelhorn'],
     bass: ['electric-bass', 'upright-bass'], rhythm: ['acoustic-drums', 'soft-shaker'], moods: ['warm', 'elegant', 'peaceful', 'romantic'], scenes: ['sunset-cafe', 'city-night', 'seaside-cafe'],
     melodyDensity: 42, improvisation: 28, energy: 42, dynamics: 'stable', arrangement: 'continuous', production: ['clean', 'polished', 'smooth-highs', 'warm'],
-    constraints: ['vocals', 'scat', 'flashy-solos', 'aggressive-percussion', 'dramatic-climax'], compatibleStyles: ['cozy-jazz', 'jazz-funk', 'bossa-nova'],
+    constraints: ['flashy-solos', 'aggressive-percussion', 'dramatic-climax'], compatibleStyles: ['cozy-jazz', 'jazz-funk', 'bossa-nova'],
   }),
   makeStyle({
     id: 'latin-jazz', name: 'Latin Jazz', nameZh: '拉丁節奏與爵士即興的融合', classification: 'historical-derived-style', family: 'latin',
@@ -201,7 +207,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', 'sixth', 'add9'], lead: ['piano', 'trumpet', 'nylon-guitar', 'vibraphone'], response: ['trumpet', 'piano', 'tenor-sax'],
     bass: ['upright-bass', 'electric-bass'], rhythm: ['congas', 'bongos', 'brazilian-percussion', 'timbales'], moods: ['cheerful', 'playful', 'warm', 'sophisticated'],
     scenes: ['seaside-cafe', 'summer', 'sunset-cafe', 'city-night'], melodyDensity: 54, improvisation: 58, energy: 66, dynamics: 'gentle-evolution', arrangement: 'traditional-sections',
-    production: ['warm', 'acoustic', 'clean', 'spacious'], constraints: ['vocals', 'scat', 'dense-arrangement', 'dramatic-climax'],
+    production: ['warm', 'acoustic', 'clean', 'spacious'], constraints: ['dense-arrangement', 'dramatic-climax'],
     compatibleStyles: ['bossa-nova', 'afro-cuban', 'swing-jazz'],
   }),
   makeStyle({
@@ -212,7 +218,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', '13th', 'altered'], lead: ['trumpet', 'piano', 'tenor-sax'], response: ['piano', 'trumpet', 'trombone'],
     bass: ['upright-bass', 'electric-bass'], rhythm: ['congas', 'bongos', 'timbales'], moods: ['cheerful', 'playful', 'hopeful', 'sophisticated'],
     scenes: ['summer', 'city-night', 'seaside-cafe'], melodyDensity: 62, improvisation: 66, energy: 78, dynamics: 'gradual-build', arrangement: 'traditional-sections',
-    production: ['acoustic', 'clean', 'spacious', 'polished'], constraints: ['vocals', 'scat', 'dramatic-climax'],
+    production: ['acoustic', 'clean', 'spacious', 'polished'], constraints: ['dramatic-climax'],
     compatibleStyles: ['latin-jazz', 'swing-jazz'],
   }),
   makeStyle({
@@ -220,10 +226,10 @@ export const JAZZ_STYLES: JazzStyle[] = [
     descriptionZh: '以木結他、弦樂和推進感強的 swing 節奏為特色，常見快速弦樂獨奏。',
     tempo: { min: 105, max: 230, default: 158 }, groove: [['manouche-swing', 'driving acoustic manouche swing'], ['la-pompe', 'steady la pompe rhythm-guitar pulse']],
     tonalities: [['major', 'bright major tonality'], ['minor', 'minor tonality'], ['modal', 'minor modal colors']],
-    harmony: ['maj6', 'min7', 'dom7', 'sixth', 'dim'], lead: ['manouche-guitar', 'acoustic-guitar', 'jazz-electric-guitar', 'violin'], response: ['violin', 'acoustic-guitar', 'clarinet'],
+    harmony: ['maj6', 'min7', 'dom7', 'dim'], lead: ['manouche-guitar', 'acoustic-guitar', 'jazz-electric-guitar', 'violin'], response: ['violin', 'acoustic-guitar', 'clarinet'],
     bass: ['upright-bass'], rhythm: ['acoustic-guitar'], moods: ['playful', 'cheerful', 'nostalgic', 'sophisticated'], scenes: ['city-night', 'bakery', 'summer'],
     melodyDensity: 70, improvisation: 75, energy: 78, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'close-mic', 'room'],
-    constraints: ['vocals', 'scat', 'cinematic'], compatibleStyles: ['swing-jazz', 'bebop'],
+    constraints: ['cinematic'], compatibleStyles: ['swing-jazz', 'bebop'],
   }),
   makeStyle({
     id: 'soul-jazz', name: 'Soul Jazz', nameZh: 'Blues、Gospel 和 R&B 影響的 groove 爵士', classification: 'historical-derived-style', family: 'soul',
@@ -233,7 +239,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['min7', 'dom7', 'maj7', 'sixth', 'sus'], lead: ['hammond-organ', 'tenor-sax', 'trumpet', 'rhodes'], response: ['tenor-sax', 'trumpet', 'piano'],
     bass: ['upright-bass', 'electric-bass'], rhythm: ['acoustic-drums', 'congas'], moods: ['warm', 'playful', 'hopeful', 'sophisticated'], scenes: ['city-night', 'late-night', 'bakery'],
     melodyDensity: 50, improvisation: 52, energy: 62, dynamics: 'gentle-evolution', arrangement: 'continuous', production: ['warm', 'room', 'analog', 'round-bass'],
-    constraints: ['vocals', 'scat', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['hard-bop', 'jazz-funk', 'swing-jazz'],
+    constraints: ['dramatic-climax', 'dense-arrangement'], compatibleStyles: ['hard-bop', 'jazz-funk', 'swing-jazz'],
   }),
   makeStyle({
     id: 'hard-bop', name: 'Hard Bop', nameZh: '強烈律動、藍調和 Gospel 色彩的現代爵士', classification: 'historical-style', family: 'hard-bop',
@@ -243,7 +249,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['min7', 'dom7', 'maj7', '13th', 'altered'], lead: ['trumpet', 'tenor-sax', 'piano', 'alto-sax'], response: ['piano', 'trombone', 'trumpet'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums'], moods: ['sophisticated', 'playful', 'energetic', 'mysterious'], scenes: ['city-night', 'late-night'],
     melodyDensity: 72, improvisation: 76, energy: 78, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'clean', 'room', 'polished'],
-    constraints: ['vocals', 'scat', 'cinematic'], compatibleStyles: ['bebop', 'soul-jazz', 'post-bop'],
+    constraints: ['cinematic'], compatibleStyles: ['bebop', 'soul-jazz', 'post-bop'],
   }),
   makeStyle({
     id: 'bebop', name: 'Bebop', nameZh: '快速、複雜、以即興和弦變化為核心', classification: 'historical-style', family: 'bebop',
@@ -253,7 +259,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['dom7', 'maj7', 'min7', 'altered', 'chromatic'], lead: ['trumpet', 'alto-sax', 'tenor-sax', 'piano'], response: ['piano', 'trumpet', 'tenor-sax'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums'], moods: ['playful', 'sophisticated', 'energetic', 'mysterious'], scenes: ['city-night', 'late-night'],
     melodyDensity: 88, improvisation: 92, energy: 88, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'clean', 'room'],
-    constraints: ['vocals', 'scat'], compatibleStyles: ['hard-bop', 'swing-jazz', 'brisk-jazz'],
+    constraints: [], compatibleStyles: ['hard-bop', 'swing-jazz', 'brisk-jazz'],
   }),
   makeStyle({
     id: 'post-bop', name: 'Post-Bop', nameZh: '融合 Bebop、Modal 與前衛爵士語彙', classification: 'historical-style', family: 'post-bop',
@@ -263,7 +269,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'dom7', 'altered', 'modal', 'chromatic'], lead: ['tenor-sax', 'trumpet', 'piano', 'alto-sax'], response: ['piano', 'soprano-sax', 'trumpet'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums'], moods: ['reflective', 'mysterious', 'sophisticated', 'hopeful'], scenes: ['city-night', 'moonlight', 'late-night'],
     melodyDensity: 66, improvisation: 78, energy: 65, dynamics: 'dynamic', arrangement: 'gentle-evolution', production: ['acoustic', 'spacious', 'clean', 'room'],
-    constraints: ['vocals', 'scat', 'cinematic'], compatibleStyles: ['modal-jazz', 'hard-bop', 'spiritual-jazz'],
+    constraints: ['cinematic'], compatibleStyles: ['modal-jazz', 'hard-bop', 'spiritual-jazz'],
   }),
   makeStyle({
     id: 'jazz-funk', name: 'Jazz-Funk', nameZh: '爵士和聲、即興與 Funk 律動融合', classification: 'historical-derived-style', family: 'jazz-funk',
@@ -273,7 +279,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['min7', 'dom7', 'sus', 'modal', 'add9'], lead: ['rhodes', 'jazz-electric-guitar', 'trumpet', 'synth'], response: ['rhodes', 'tenor-sax', 'piano'],
     bass: ['electric-bass'], rhythm: ['acoustic-drums', 'congas'], moods: ['playful', 'sophisticated', 'warm', 'energetic'], scenes: ['city-night', 'summer', 'late-night'],
     melodyDensity: 56, improvisation: 58, energy: 72, dynamics: 'gentle-evolution', arrangement: 'continuous', production: ['warm', 'analog', 'clean', 'round-bass'],
-    constraints: ['vocals', 'scat', 'dramatic-climax', 'cinematic'], compatibleStyles: ['soul-jazz', 'smooth-jazz', 'jazz-fusion'],
+    constraints: ['dramatic-climax', 'cinematic'], compatibleStyles: ['soul-jazz', 'smooth-jazz', 'jazz-fusion'],
   }),
   makeStyle({
     id: 'jazz-fusion', name: 'Jazz Fusion', nameZh: '爵士即興與搖滾、Funk 或電子聲響的融合', classification: 'historical-derived-style', family: 'fusion',
@@ -283,7 +289,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'sus', '11th', 'altered', 'modal'], lead: ['jazz-electric-guitar', 'synth', 'rhodes', 'trumpet'], response: ['synth', 'tenor-sax', 'piano'],
     bass: ['electric-bass'], rhythm: ['acoustic-drums'], moods: ['energetic', 'mysterious', 'sophisticated', 'playful'], scenes: ['city-night', 'late-night'],
     melodyDensity: 70, improvisation: 78, energy: 82, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['clean', 'spacious', 'polished'],
-    constraints: ['vocals', 'scat'], compatibleStyles: ['jazz-funk', 'nu-jazz', 'post-bop'],
+    constraints: [], compatibleStyles: ['jazz-funk', 'nu-jazz', 'post-bop'],
   }),
   makeStyle({
     id: 'nu-jazz', name: 'Nu Jazz', nameZh: '融合電子、Hip-Hop 或 Downtempo 質感的現代爵士', classification: 'modern-descriptor', family: 'nu-jazz',
@@ -293,7 +299,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'add9', 'modal', 'sus'], lead: ['rhodes', 'synth', 'jazz-electric-guitar', 'vibraphone'], response: ['piano', 'soprano-sax'],
     bass: ['electric-bass'], rhythm: ['acoustic-drums', 'soft-shaker'], moods: ['dreamy', 'mysterious', 'reflective', 'calm'], scenes: ['city-night', 'rain-window', 'late-night'],
     melodyDensity: 35, improvisation: 40, energy: 38, dynamics: 'stable', arrangement: 'gentle-evolution', production: ['clean', 'spacious', 'airy', 'analog'],
-    constraints: ['vocals', 'scat', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['jazz-fusion', 'jazz-funk', 'cool-jazz'],
+    constraints: ['dramatic-climax', 'dense-arrangement'], compatibleStyles: ['jazz-fusion', 'jazz-funk', 'cool-jazz'],
   }),
   makeStyle({
     id: 'new-orleans', name: 'New Orleans Jazz', nameZh: '早期 New Orleans 合奏與集體即興傳統', classification: 'historical-style', family: 'traditional',
@@ -304,7 +310,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['dom7', 'sixth', 'maj7', 'blues'], lead: ['trumpet', 'clarinet', 'trombone'], response: ['clarinet', 'trombone', 'trumpet'], harmonyInstruments: ['piano'],
     bass: ['tuba', 'upright-bass'], rhythm: ['acoustic-drums'], moods: ['cheerful', 'playful', 'hopeful', 'nostalgic'], scenes: ['city-night', 'bakery', 'summer'],
     melodyDensity: 74, improvisation: 66, energy: 76, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'],
-    constraints: ['vocals', 'scat', 'cinematic'], compatibleStyles: ['dixieland', 'swing-jazz'],
+    constraints: ['cinematic'], compatibleStyles: ['dixieland', 'swing-jazz'],
   }),
   makeStyle({
     id: 'dixieland', name: 'Dixieland', nameZh: 'Dixieland 前線合奏與集體即興', classification: 'historical-style', family: 'traditional',
@@ -314,7 +320,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     tonalities: [['major', 'bright major tonality'], ['blues', 'blues tonality']], harmony: ['dom7', 'sixth', 'maj7', 'blues'],
     lead: ['trumpet', 'clarinet', 'trombone'], response: ['clarinet', 'trombone', 'trumpet'], harmonyInstruments: ['piano'], bass: ['tuba', 'upright-bass'], rhythm: ['acoustic-drums'],
     moods: ['cheerful', 'playful', 'nostalgic', 'hopeful'], scenes: ['bakery', 'summer', 'city-night'], melodyDensity: 78, improvisation: 68, energy: 78,
-    dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'], constraints: ['vocals', 'scat', 'cinematic'],
+    dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'], constraints: ['cinematic'],
     compatibleStyles: ['new-orleans', 'swing-jazz'],
   }),
   makeStyle({
@@ -325,7 +331,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['maj7', 'min7', 'sixth', 'add9'], lead: ['piano', 'nylon-guitar', 'jazz-electric-guitar'], response: ['flugelhorn', 'vibraphone'],
     bass: ['upright-bass'], rhythm: ['brush-drums'], moods: ['warm', 'calm', 'reflective'], scenes: ['quiet-cafe', 'reading-room'],
     melodyDensity: 30, improvisation: 30, energy: 28, dynamics: 'stable', arrangement: 'continuous', production: ['warm', 'acoustic'],
-    constraints: ['vocals', 'scat'], compatibleStyles: [],
+    constraints: [], compatibleStyles: [],
   }),
 ];
 

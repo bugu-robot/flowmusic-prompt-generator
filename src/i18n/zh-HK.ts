@@ -92,6 +92,7 @@ export const zhHK = {
   productionTitle: '製作風格',
   productionHint: '挑選錄音質感；prompt 只會包含已選項目。',
   constraintsTitle: '避免項目',
+  instrumentalOnly: '純音樂（Instrumental）',
   constraintsHint: '精簡列出重要限制，避免負面指示蓋過音樂描述。',
   compatibilityTitle: '風格匹配參考',
   compatibilityNote: '此分數由明確規則計算，只作參考，並非客觀評級。',

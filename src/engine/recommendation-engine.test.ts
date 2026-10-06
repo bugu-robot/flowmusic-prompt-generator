@@ -40,6 +40,13 @@ describe('Jazz style data and recommendations', () => {
     const configuration = recommendConfiguration('gypsy-jazz');
     expect(configuration.instruments.find((part) => part.role === 'lead')?.instrumentId).toBe('manouche-guitar');
     expect(INSTRUMENT_BY_ID.get('manouche-guitar')?.families).toContain('gypsy');
+    expect(configuration.harmonyIds).toContain('maj6');
+    expect(configuration.harmonyIds).not.toContain('sixth');
+  });
+
+  it.each(JAZZ_STYLES)('$name never marks its own recommended instruments unusual', (style) => {
+    const recommended = [...style.lead, ...style.response, ...style.harmonyInstruments, ...style.bass, ...style.rhythm];
+    expect(style.unusualInstruments.filter((id) => recommended.includes(id))).toEqual([]);
   });
 
   it('marks Cozy Jazz and Brisk Jazz as modern descriptors', () => {

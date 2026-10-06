@@ -13,15 +13,18 @@ export function generateVariations(configuration: MusicConfiguration): MusicConf
   if (!recipes.length) return [];
   return recipes.map((recipe) => {
     const parts: InstrumentPart[] = [];
-    const add = (id: string | undefined, role: InstrumentPart['role'], prominence: number) => {
-      if (!id || parts.some((part) => part.instrumentId === id)) return;
+    const add = (preferredId: string | undefined, alternatives: string[], role: InstrumentPart['role'], prominence: number) => {
+      const id = [preferredId, ...alternatives].find((candidate) => candidate
+        && INSTRUMENT_BY_ID.get(candidate)?.roles.includes(role)
+        && !parts.some((part) => part.instrumentId === candidate));
+      if (!id) return;
       parts.push(makePart(id, role, prominence));
     };
-    add(recipe.lead, 'lead', 90);
-    add(recipe.response, 'response', 58);
-    add(recipe.harmony, 'harmony', 42);
-    add(recipe.bass, 'bass', 70);
-    add(recipe.rhythm, 'rhythm', 36);
+    add(recipe.lead, style.lead, 'lead', 90);
+    add(recipe.response, style.response, 'response', 58);
+    add(recipe.harmony, style.harmonyInstruments, 'harmony', 42);
+    add(recipe.bass, style.bass, 'bass', 70);
+    add(recipe.rhythm, style.rhythm, 'rhythm', 36);
     return { ...configuration, instruments: parts };
   });
 }

@@ -1,9 +1,17 @@
-import { STYLE_BY_ID } from '../data/jazz-styles';
+import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import type { InstrumentPart, MusicConfiguration, UserPreset } from '../models/types';
 
 const PRESETS_KEY = 'flowmusic.promptGenerator.presets.v1';
 const CONFIG_KEY = 'flowmusic.promptGenerator.configuration.v1';
+const harmonyIds = new Set(HARMONIES.map((option) => option.id));
+const moodIds = new Set(MOODS.map((option) => option.id));
+const productionIds = new Set(PRODUCTION.map((option) => option.id));
+const constraintIds = new Set(CONSTRAINTS.map((option) => option.id));
+const sceneIds = new Set(SCENES.map((option) => option.id));
+const grooveIds = new Set(JAZZ_STYLES.flatMap((style) => style.grooves.map((option) => option.id)));
+const tonalityIds = new Set([...TONALITIES.map((option) => option.id), ...JAZZ_STYLES.flatMap((style) => style.tonalities.map((option) => option.id))]);
 const volatileValues = new Map<string, string>();
 const volatileStorage: StorageLike = {
   getItem: (key) => volatileValues.get(key) ?? null,
@@ -58,38 +66,41 @@ export function normalizeConfiguration(value: unknown): MusicConfiguration | und
   const numeric = (key: string, fallback: number) => typeof value[key] === 'number' && Number.isFinite(value[key]) ? value[key] as number : fallback;
   const stringValue = (key: string, fallback: string) => typeof value[key] === 'string' ? (value[key] as string).slice(0, 160) : fallback;
   const stringArray = (key: string) => Array.isArray(value[key]) ? (value[key] as unknown[]).filter((item): item is string => typeof item === 'string').slice(0, 40) : [];
+  const optionIds = (key: string, validIds: Set<string>) => [...new Set(stringArray(key).filter((id) => validIds.has(id)))];
+  const enumOption = <T extends string>(key: string, options: readonly T[], fallback: T): T =>
+    typeof value[key] === 'string' && options.includes(value[key] as T) ? value[key] as T : fallback;
   const partList = Array.isArray(value.instruments) ? value.instruments.map(normalizePart).filter((part): part is InstrumentPart => Boolean(part)).slice(0, 30) : [];
-  const foregroundValues = ['single', 'gentle', 'collective'];
-  const phraseValues = ['short', 'medium', 'long'];
-  const spaceValues = ['high', 'medium', 'low'];
-  const complexityValues = ['minimal', 'simple', 'moderate', 'complex', 'virtuosic'];
+  const foregroundValues = ['single', 'gentle', 'collective'] as const;
+  const phraseValues = ['short', 'medium', 'long'] as const;
+  const spaceValues = ['high', 'medium', 'low'] as const;
+  const complexityValues = ['minimal', 'simple', 'moderate', 'complex', 'virtuosic'] as const;
   const rawMeter = stringValue('meter', '4/4').slice(0, 16);
   const meter = rawMeter === 'custom' || isValidMeter(rawMeter) ? rawMeter : '4/4';
   const validKeys = ['auto', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
   return {
     styleId: value.styleId,
     tempo: Math.max(20, Math.min(400, Math.round(numeric('tempo', 80)))),
-    tempoFeelId: ['auto', 'very-slow', 'very-relaxed', 'relaxed', 'moderate', 'brisk', 'fast'].includes(String(value.tempoFeelId)) ? value.tempoFeelId as MusicConfiguration['tempoFeelId'] : 'auto',
+    tempoFeelId: enumOption<MusicConfiguration['tempoFeelId']>('tempoFeelId', ['auto', 'very-slow', 'very-relaxed', 'relaxed', 'moderate', 'brisk', 'fast'], 'auto'),
     meter,
     customMeter: isValidMeter(value.customMeter) ? value.customMeter : '4/4',
-    grooveId: /^[a-z0-9_-]{1,60}$/.test(stringValue('grooveId', 'open')) ? stringValue('grooveId', 'open') : 'open',
-    tonalityId: /^[a-z0-9_-]{1,60}$/.test(stringValue('tonalityId', 'warm-major')) ? stringValue('tonalityId', 'warm-major') : 'warm-major',
+    grooveId: grooveIds.has(stringValue('grooveId', 'open')) ? stringValue('grooveId', 'open') : 'open',
+    tonalityId: tonalityIds.has(stringValue('tonalityId', 'warm-major')) ? stringValue('tonalityId', 'warm-major') : 'warm-major',
     key: validKeys.includes(stringValue('key', 'auto')) ? stringValue('key', 'auto') : 'auto',
-    harmonyIds: stringArray('harmonyIds'),
-    sceneId: stringValue('sceneId', 'quiet-cafe'),
-    moodIds: stringArray('moodIds'),
+    harmonyIds: optionIds('harmonyIds', harmonyIds),
+    sceneId: sceneIds.has(stringValue('sceneId', 'quiet-cafe')) ? stringValue('sceneId', 'quiet-cafe') : 'quiet-cafe',
+    moodIds: optionIds('moodIds', moodIds),
     instruments: partList,
     energy: Math.max(0, Math.min(100, numeric('energy', 30))),
     melodyDensity: Math.max(0, Math.min(100, numeric('melodyDensity', 30))),
     improvisation: Math.max(0, Math.min(100, numeric('improvisation', 30))),
-    foregroundRule: foregroundValues.includes(String(value.foregroundRule)) ? value.foregroundRule as MusicConfiguration['foregroundRule'] : 'single',
-    phraseLength: phraseValues.includes(String(value.phraseLength)) ? value.phraseLength as MusicConfiguration['phraseLength'] : 'medium',
-    breathingSpace: spaceValues.includes(String(value.breathingSpace)) ? value.breathingSpace as MusicConfiguration['breathingSpace'] : 'medium',
-    melodyComplexity: complexityValues.includes(String(value.melodyComplexity)) ? value.melodyComplexity as MusicConfiguration['melodyComplexity'] : 'moderate',
-    dynamics: stringValue('dynamics', 'stable'),
-    structure: stringValue('structure', 'continuous'),
-    productionIds: stringArray('productionIds'),
-    constraintIds: stringArray('constraintIds'),
+    foregroundRule: enumOption('foregroundRule', foregroundValues, 'single'),
+    phraseLength: enumOption('phraseLength', phraseValues, 'medium'),
+    breathingSpace: enumOption('breathingSpace', spaceValues, 'medium'),
+    melodyComplexity: enumOption('melodyComplexity', complexityValues, 'moderate'),
+    dynamics: enumOption('dynamics', ['very-stable', 'stable', 'gentle-evolution', 'gradual-build', 'dynamic'], 'stable'),
+    structure: enumOption('structure', ['continuous', 'gentle-evolution', 'traditional-sections', 'custom'], 'continuous'),
+    productionIds: optionIds('productionIds', productionIds),
+    constraintIds: optionIds('constraintIds', constraintIds),
     ...(typeof value.customStyleName === 'string' ? { customStyleName: value.customStyleName.slice(0, 100) } : {}),
     ...(typeof value.customSceneName === 'string' ? { customSceneName: value.customSceneName.slice(0, 100) } : {}),
     ...(typeof value.secondaryStyleId === 'string' && STYLE_BY_ID.has(value.secondaryStyleId) ? { secondaryStyleId: value.secondaryStyleId } : {}),

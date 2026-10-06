@@ -13,20 +13,23 @@ FlowMusic Prompt Generator is a local-first Progressive Web App for building cle
 
 ## Local development
 
-Requires Node.js 20.19+ or 22.12+. Node.js 22.12+ is recommended.
+Node.js 24 LTS is recommended and used in CI. Node.js 22.13+ is also supported; Node.js 22.0–22.12 is unsupported by the lint toolchain.
 
 ~~~sh
-npm install
+npm ci
 npm run dev
 ~~~
 
 ## Checks and production build
 
 ~~~sh
+npm ci
 npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run build -- --mode pages
+npm audit
 npm run preview
 ~~~
 
@@ -39,7 +42,7 @@ npm run preview
 
 ## GitHub Pages
 
-The deployment workflow builds to /flowmusic-prompt-generator/ and publishes the static dist directory. In the repository settings, set Pages to use GitHub Actions. A push to main deploys the checked and tested build. Pull requests can run the same verification command without publishing.
+The deployment workflow builds to /flowmusic-prompt-generator/ and publishes the static dist directory. In the repository settings, set Pages to use GitHub Actions. A push to main deploys the checked and tested build. Pull requests run dependency audit, verification and both builds without publishing. Concurrency groups are isolated by event and ref so PR verification cannot cancel a main deployment.
 
 ## Install and offline use
 
@@ -71,4 +74,6 @@ scripts/
 vite.config.ts  build identity and emitted dist/sw.js
 ~~~
 
-The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. Add a style to the data catalog and focused engine tests; no UI rewrite or hosted service is needed.
+The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. V1 always compiles `Instrumental only, no vocals.`; the interface shows a fixed instrumental indication, and optional avoidance selections emit only the selected restrictions. Preset imports validate IDs against the shared catalogs while preserving globally valid grooves and tonalities retained after a style change.
+
+All npm packages are development tools, not runtime services. The shipped bundle contains only the browser application; security audit findings in test/build tools still matter because those tools run with developer or CI permissions. See STATUS.md for the audit triage and verification results.

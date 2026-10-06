@@ -19,5 +19,6 @@ describe('Traditional Chinese localization', () => {
     expect(zhHK.roleLead).toBe('主奏');
     expect(zhHK.copyPrompt).toBe('複製 Prompt');
     expect(zhHK.updateAvailable).toBe('有新版本可用');
+    expect(zhHK.instrumentalOnly).toBe('純音樂（Instrumental）');
   });
 });

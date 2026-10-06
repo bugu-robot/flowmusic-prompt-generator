@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compilePrompt } from './prompt-compiler';
 import { recommendConfiguration } from './recommendation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
+import { CONSTRAINTS } from '../data/options';
 import type { MusicConfiguration } from '../models/types';
 
 describe('deterministic English prompt compiler', () => {
@@ -96,13 +97,39 @@ describe('deterministic English prompt compiler', () => {
 
   it('groups and limits negative constraints while always requiring instrumental music', () => {
     const configuration = recommendConfiguration('cozy-jazz');
-    configuration.constraintIds = ['vocals', 'scat', 'flashy-solos', 'virtuosic-runs', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos', 'dense-arrangement'];
+    configuration.constraintIds = CONSTRAINTS.map((option) => option.id);
     const prompt = compilePrompt(configuration);
     const constraints = prompt.split('\n\n').at(-1) ?? '';
     expect(prompt).toContain('Instrumental only, no vocals.');
-    expect(prompt).toContain('Avoid flashy solos and virtuosic runs.');
     expect(constraints.match(/Avoid|Keep/g)?.length).toBe(3);
+    for (const option of CONSTRAINTS) expect(constraints).toContain(option.prompt);
     expect(prompt).not.toContain('scat singing');
+  });
+
+  it.each(CONSTRAINTS)('selecting only $id emits exactly that optional restriction', (option) => {
+    const configuration = recommendConfiguration('cozy-jazz');
+    configuration.constraintIds = [option.id];
+    const constraints = compilePrompt(configuration).split('\n\n').at(-1);
+    expect(constraints).toBe('Instrumental only, no vocals. Avoid ' + option.prompt + '.');
+  });
+
+  it('combines selected constraints without adding their unselected siblings', () => {
+    const configuration = recommendConfiguration('cozy-jazz');
+    configuration.constraintIds = ['electronic', 'bright-brass'];
+    const constraints = compilePrompt(configuration).split('\n\n').at(-1);
+    expect(constraints).toBe('Instrumental only, no vocals. Avoid electronic instruments and overly bright brass.');
+    expect(constraints).not.toContain('heavy bass');
+    expect(constraints).not.toContain('chromatic runs');
+  });
+
+  it('always requires instrumental music and has no optional vocals or scat controls', () => {
+    expect(CONSTRAINTS.some((option) => ['vocals', 'scat'].includes(option.id))).toBe(false);
+    const configuration = recommendConfiguration('cozy-jazz');
+    configuration.constraintIds = [];
+    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals.');
+    // Old preset IDs cannot reintroduce optional vocal controls.
+    configuration.constraintIds = ['vocals', 'scat'];
+    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals.');
   });
 
   it('compiles every built-in style without throwing or leaking UI localization', () => {
