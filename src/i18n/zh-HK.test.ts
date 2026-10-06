@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { zhHK } from './zh-HK';
+import { INSTRUMENT_BEHAVIOUR_ZH_HK, instrumentBehaviourLabelZhHK } from './instrument-behaviour-zh-HK';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENTS } from '../data/instruments';
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES } from '../data/options';
@@ -10,9 +11,19 @@ describe('Traditional Chinese localization', () => {
     const catalogCopy = [
       ...JAZZ_STYLES.flatMap((style) => [style.nameZh, style.descriptionZh]),
       ...INSTRUMENTS.map((instrument) => instrument.nameZh),
+      ...Object.values(INSTRUMENT_BEHAVIOUR_ZH_HK),
       ...[...CONSTRAINTS, ...HARMONIES, ...MOODS, ...PRODUCTION, ...SCENES, ...ROLES].map((item) => item.label),
     ];
     expect([...Object.values(zhHK), ...catalogCopy].join('')).not.toMatch(simplifiedOnly);
+  });
+
+  it('provides Traditional Chinese labels for every instrument behaviour while preserving the English source value', () => {
+    for (const instrument of INSTRUMENTS) {
+      for (const behaviour of instrument.behaviours) {
+        expect(INSTRUMENT_BEHAVIOUR_ZH_HK[behaviour], instrument.id + ': ' + behaviour).toBeTruthy();
+        expect(instrumentBehaviourLabelZhHK(behaviour), instrument.id + ': ' + behaviour).not.toBe(behaviour);
+      }
+    }
   });
 
   it('provides the interface terms required for roles, prompts and updates', () => {
