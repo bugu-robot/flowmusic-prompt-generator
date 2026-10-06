@@ -1,4 +1,5 @@
 import type { JazzStyle, VariationRecipe } from '../models/types';
+import { INSTRUMENT_BY_ID } from './instruments';
 
 interface StyleSeed {
   id: string;
@@ -7,6 +8,7 @@ interface StyleSeed {
   classification: JazzStyle['classification'];
   family: string;
   descriptionZh: string;
+  promptStyle?: string;
   meters?: string[];
   tempo: JazzStyle['tempo'];
   groove: [string, string][];
@@ -42,7 +44,7 @@ function makeStyle(seed: StyleSeed): JazzStyle {
     meters: seed.meters ?? ['4/4'],
     grooves: seed.groove.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
     tonalities: seed.tonalities.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
-    harmonyInstruments: seed.harmonyInstruments ?? seed.lead,
+    harmonyInstruments: seed.harmonyInstruments ?? seed.lead.filter((id) => INSTRUMENT_BY_ID.get(id)?.roles.includes('harmony')),
     variations,
     compatibleStyles: seed.compatibleStyles ?? [],
     unusualInstruments: seed.unusualInstruments ?? ['distorted-guitar', 'heavy-rock-drums', 'tuba', 'synth'],
@@ -53,6 +55,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
   makeStyle({
     id: 'cozy-jazz', name: 'Cozy Jazz', nameZh: '溫馨、輕鬆的現代爵士氛圍', classification: 'modern-descriptor', family: 'cozy',
     descriptionZh: '現代氛圍與情緒描述，並非正式歷史爵士流派；著重溫暖、留白和適合作背景聆聽。',
+    promptStyle: 'Warm, intimate acoustic cozy jazz with a relaxed café character',
     tempo: { min: 48, max: 92, default: 68 }, groove: [['relaxed-swing', 'gentle, relaxed swing'], ['soft-straight', 'soft straight-eighth groove'], ['open', 'free, unhurried phrasing']],
     tonalities: [['warm-major', 'warm major tonality'], ['relative-minor', 'major tonality with relative-minor colors'], ['soft-modal', 'soft modal colors']],
     harmony: ['maj7', 'min7', 'sixth', 'add9'], lead: ['piano', 'nylon-guitar', 'vibraphone', 'flugelhorn'], response: ['flugelhorn', 'vibraphone', 'nylon-guitar'],
@@ -171,6 +174,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
   makeStyle({
     id: 'brisk-jazz', name: 'Brisk Jazz', nameZh: '明快、有推進感的現代爵士氛圍', classification: 'modern-descriptor', family: 'swing',
     descriptionZh: '現代速度與能量描述，並非正式歷史爵士流派；節奏明快但編曲仍保持清晰。',
+    promptStyle: 'Brisk, light acoustic jazz with a buoyant swing feel',
     tempo: { min: 118, max: 210, default: 152 }, groove: [['brisk-swing', 'brisk, buoyant swing'], ['up-tempo', 'up-tempo straight-ahead swing'], ['brisk-straight', 'brisk, lightly syncopated straight feel']],
     tonalities: [['major', 'bright major tonality'], ['minor', 'minor tonality'], ['modal', 'bright modal colors']],
     harmony: ['maj7', 'min7', 'dom7', '13th', 'altered'], lead: ['trumpet', 'alto-sax', 'piano', 'tenor-sax'], response: ['piano', 'tenor-sax', 'trumpet'],
@@ -216,7 +220,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     descriptionZh: '以木結他、弦樂和推進感強的 swing 節奏為特色，常見快速弦樂獨奏。',
     tempo: { min: 105, max: 230, default: 158 }, groove: [['manouche-swing', 'driving acoustic manouche swing'], ['la-pompe', 'steady la pompe rhythm-guitar pulse']],
     tonalities: [['major', 'bright major tonality'], ['minor', 'minor tonality'], ['modal', 'minor modal colors']],
-    harmony: ['maj6', 'min7', 'dom7', 'sixth', 'dim'], lead: ['jazz-electric-guitar', 'acoustic-guitar', 'violin'], response: ['violin', 'acoustic-guitar', 'clarinet'],
+    harmony: ['maj6', 'min7', 'dom7', 'sixth', 'dim'], lead: ['manouche-guitar', 'acoustic-guitar', 'jazz-electric-guitar', 'violin'], response: ['violin', 'acoustic-guitar', 'clarinet'],
     bass: ['upright-bass'], rhythm: ['acoustic-guitar'], moods: ['playful', 'cheerful', 'nostalgic', 'sophisticated'], scenes: ['city-night', 'bakery', 'summer'],
     melodyDensity: 70, improvisation: 75, energy: 78, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'close-mic', 'room'],
     constraints: ['vocals', 'scat', 'cinematic'], compatibleStyles: ['swing-jazz', 'bebop'],
@@ -269,7 +273,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     harmony: ['min7', 'dom7', 'sus', 'modal', 'add9'], lead: ['rhodes', 'jazz-electric-guitar', 'trumpet', 'synth'], response: ['rhodes', 'tenor-sax', 'piano'],
     bass: ['electric-bass'], rhythm: ['acoustic-drums', 'congas'], moods: ['playful', 'sophisticated', 'warm', 'energetic'], scenes: ['city-night', 'summer', 'late-night'],
     melodyDensity: 56, improvisation: 58, energy: 72, dynamics: 'gentle-evolution', arrangement: 'continuous', production: ['warm', 'analog', 'clean', 'round-bass'],
-    constraints: ['vocals', 'scat', 'dramatic-climax', 'cinematic'], compatibleStyles: ['soul-jazz', 'smooth-jazz', 'fusion'],
+    constraints: ['vocals', 'scat', 'dramatic-climax', 'cinematic'], compatibleStyles: ['soul-jazz', 'smooth-jazz', 'jazz-fusion'],
   }),
   makeStyle({
     id: 'jazz-fusion', name: 'Jazz Fusion', nameZh: '爵士即興與搖滾、Funk 或電子聲響的融合', classification: 'historical-derived-style', family: 'fusion',
@@ -286,17 +290,17 @@ export const JAZZ_STYLES: JazzStyle[] = [
     descriptionZh: '現代爵士與電子、Hip-Hop 或 Downtempo 製作質感交會，保留即興與聲響探索。',
     tempo: { min: 65, max: 140, default: 96 }, groove: [['downtempo', 'relaxed downtempo groove'], ['broken-beat', 'subtle broken-beat rhythm'], ['soft-straight', 'laid-back straight-eighth pulse']],
     tonalities: [['modal', 'modal colors'], ['minor', 'warm minor tonality'], ['major', 'soft major tonality']],
-    harmony: ['maj7', 'min7', 'add9', 'modal', 'sus'], lead: ['rhodes', 'synth', 'jazz-electric-guitar', 'vibraphone'], response: ['ambient-pads', 'piano', 'soprano-sax'],
+    harmony: ['maj7', 'min7', 'add9', 'modal', 'sus'], lead: ['rhodes', 'synth', 'jazz-electric-guitar', 'vibraphone'], response: ['piano', 'soprano-sax'],
     bass: ['electric-bass'], rhythm: ['acoustic-drums', 'soft-shaker'], moods: ['dreamy', 'mysterious', 'reflective', 'calm'], scenes: ['city-night', 'rain-window', 'late-night'],
-    melodyDensity: 35, improvisation: 40, energy: 38, dynamics: 'stable', arrangement: 'gentle-evolution', production: ['modern-clean', 'spacious', 'airy', 'analog'],
-    constraints: ['vocals', 'scat', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['fusion', 'jazz-funk', 'cool-jazz'],
+    melodyDensity: 35, improvisation: 40, energy: 38, dynamics: 'stable', arrangement: 'gentle-evolution', production: ['clean', 'spacious', 'airy', 'analog'],
+    constraints: ['vocals', 'scat', 'dramatic-climax', 'dense-arrangement'], compatibleStyles: ['jazz-fusion', 'jazz-funk', 'cool-jazz'],
   }),
   makeStyle({
     id: 'new-orleans', name: 'New Orleans Jazz', nameZh: '早期 New Orleans 合奏與集體即興傳統', classification: 'historical-style', family: 'traditional',
     meters: ['4/4', '2/4'],
     descriptionZh: '早期爵士合奏、前線銅管與木管的集體即興、強烈節拍和藍調語彙。',
     tempo: { min: 95, max: 210, default: 142 }, groove: [['two-beat', 'buoyant two-beat traditional jazz pulse'], ['march', 'lively, lightly marching pulse'], ['swing', 'early jazz swing feel']],
-    tonalities: [['major', 'bright major tonality'], ['blues', 'blues tonality'], ['major', 'warm major tonality']],
+    tonalities: [['major', 'bright major tonality'], ['blues', 'blues tonality'], ['warm-major', 'warm major tonality']],
     harmony: ['dom7', 'sixth', 'maj7', 'blues'], lead: ['trumpet', 'clarinet', 'trombone'], response: ['clarinet', 'trombone', 'trumpet'], harmonyInstruments: ['piano'],
     bass: ['tuba', 'upright-bass'], rhythm: ['acoustic-drums'], moods: ['cheerful', 'playful', 'hopeful', 'nostalgic'], scenes: ['city-night', 'bakery', 'summer'],
     melodyDensity: 74, improvisation: 66, energy: 76, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'],

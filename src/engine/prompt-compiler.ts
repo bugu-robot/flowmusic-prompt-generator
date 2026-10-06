@@ -19,6 +19,12 @@ function clean(text: string): string {
   return text.replace(/\s+/g, ' ').replace(/[. ]+$/g, '').trim();
 }
 
+function addModifiers(base: string, modifiers: string[]): string {
+  const words = new Set(base.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? []);
+  const missing = modifiers.filter((modifier) => !modifier.toLocaleLowerCase().split(/\s+/).every((word) => words.has(word)));
+  return [...missing, base].filter(Boolean).join(' ');
+}
+
 function isEnglish(value: string): boolean {
   return !/[\u3400-\u9fff]/u.test(value);
 }
@@ -142,9 +148,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const influence = configuration.secondaryStyleId ? getStyle(configuration.secondaryStyleId).name : '';
   const opening = configuration.styleId === 'custom'
     ? (configuration.customStyleName && isEnglish(configuration.customStyleName) ? clean(configuration.customStyleName) : 'User-defined jazz') + (influence ? ' with a subtle ' + influence + ' influence.' : ' with a relaxed jazz character.')
-    : style.classification === 'modern-descriptor'
-      ? style.name + ' as a modern mood and tempo descriptor' + (influence ? ', with a subtle ' + influence + ' influence.' : '.')
-      : style.name + (influence ? ' with a subtle ' + influence + ' influence.' : '.');
+    : clean(style.promptStyle ?? style.name) + (influence ? ' with a subtle ' + influence + ' influence.' : '.');
 
   const groove = style.grooves.find((item) => item.id === configuration.grooveId)?.prompt
     ?? JAZZ_STYLES.flatMap((candidate) => candidate.grooves).find((item) => item.id === configuration.grooveId)?.prompt
@@ -194,7 +198,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const bassWord = bassId ? INSTRUMENT_BY_ID.get(bassId)?.wording : undefined;
   const useRoundBass = productionIds.includes('round-bass');
   const bassPhrase = bassWord
-    ? (useRoundBass ? 'round ' : '') + bassWord
+    ? addModifiers(bassWord, useRoundBass ? ['round'] : [])
     : useRoundBass ? 'a round, restrained bass foundation' : 'a restrained low-end foundation';
   const highPhrase = productionIds.includes('smooth-highs') ? 'smooth high frequencies' : 'balanced high frequencies';
   const details = [...production, bassPhrase, highPhrase];

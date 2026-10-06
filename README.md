@@ -13,7 +13,7 @@ FlowMusic Prompt Generator is a local-first Progressive Web App for building cle
 
 ## Local development
 
-Requires Node.js 22 or later.
+Requires Node.js 20.19+ or 22.12+. Node.js 22.12+ is recommended.
 
 ~~~sh
 npm install
@@ -43,7 +43,7 @@ The deployment workflow builds to /flowmusic-prompt-generator/ and publishes the
 
 ## Install and offline use
 
-Serve the site over HTTPS (or localhost), open it once while connected, then use the browser's install action. The service worker caches the app shell and same-origin assets as they are requested. Configuration and saved presets stay in localStorage on the current browser. A waiting update is offered with an in-app reload action.
+Serve the site over HTTPS (or localhost), open it once while connected, then use the browser's install action. The service worker precaches the app shell, generated bundles, manifest and manifest icons. Each build receives a deterministic cache identity derived from the app version and production inputs; activation removes older FlowMusic caches. Configuration and saved presets stay in localStorage on the current browser. A waiting update is offered with an in-app reload action and is not activated until the user chooses to reload.
 
 The PWA shell and prompt compiler work without a network connection after the first successful load. Browser installation and offline behavior depend on the browser and device and should be verified on the target device.
 
@@ -58,8 +58,17 @@ src/
   storage/    localStorage and JSON preset serialization
   ui/         responsive browser interface
 public/
+  apple-touch-icon.png
   manifest.webmanifest
-  sw.js
+  icon-192.png
+  icon-512.png
+  icon-maskable-192.png
+  icon-maskable-512.png
+  icon.svg
+  icon-maskable.svg
+scripts/
+  service-worker.template.js
+vite.config.ts  build identity and emitted dist/sw.js
 ~~~
 
-The style and instrument catalogs contain musical recommendations. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. Add a style to the data catalog and focused engine tests; no UI rewrite or hosted service is needed.
+The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. Add a style to the data catalog and focused engine tests; no UI rewrite or hosted service is needed.

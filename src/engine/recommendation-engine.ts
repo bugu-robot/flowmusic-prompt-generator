@@ -11,7 +11,8 @@ function part(instrumentId: string, role: InstrumentPart['role'], prominence: nu
 function uniqueParts(style: JazzStyle): InstrumentPart[] {
   const parts: InstrumentPart[] = [];
   const add = (id: string | undefined, role: InstrumentPart['role'], prominence: number) => {
-    if (id && !parts.some((item) => item.instrumentId === id)) parts.push(part(id, role, prominence));
+    const instrument = id ? INSTRUMENT_BY_ID.get(id) : undefined;
+    if (id && instrument?.roles.includes(role) && !parts.some((item) => item.instrumentId === id)) parts.push(part(id, role, prominence));
   };
   add(style.lead[0], 'lead', 90);
   add(style.response.find((id) => id !== style.lead[0]), 'response', 58);

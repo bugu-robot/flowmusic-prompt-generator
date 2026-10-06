@@ -14,7 +14,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['public/sw.js'],
+    files: ['scripts/service-worker.template.js'],
     languageOptions: {
       globals: {
         self: 'readonly',

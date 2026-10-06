@@ -49,6 +49,18 @@ describe('local preset serialization', () => {
     expect(normalized?.instruments[0]?.prominence).toBe(50);
   });
 
+  it('normalizes unsupported imported roles to a supported instrument role', () => {
+    const configuration = recommendConfiguration('cozy-jazz');
+    const normalized = normalizeConfiguration({
+      ...configuration,
+      instruments: [
+        { instrumentId: 'soft-shaker', enabled: true, role: 'lead', prominence: 80, behaviour: 'a soft, even rhythmic texture' },
+        { instrumentId: 'upright-bass', enabled: true, role: 'countermelody', prominence: 50, behaviour: 'a soft, even walking pulse' },
+      ],
+    });
+    expect(normalized?.instruments.map((part) => part.role)).toEqual(['rhythm', 'bass']);
+  });
+
   it('replaces zero numerator or denominator in meter values', () => {
     const configuration = recommendConfiguration('slow-bossa');
     const normalized = normalizeConfiguration({ ...configuration, meter: '0/4', customMeter: '4/0' });

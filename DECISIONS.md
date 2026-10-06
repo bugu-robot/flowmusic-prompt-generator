@@ -35,3 +35,7 @@ Unusual instrument combinations are not blocked. The numeric score exposes its r
 ## D-009 — No automatic reset when changing styles
 
 Selecting a new style preserves the current musical choices. Applying the new style's recommendations is a separate explicit action.
+
+## D-010 — Build-derived service-worker cache identity
+
+Vite hashes the app version, lockfile, HTML, source modules, public assets, Vite build config, service-worker template, build mode and base path to create a deterministic cache identity. The build emits the service worker from a checked-in template without adding a PWA dependency. Activation removes older caches with the FlowMusic prefix, while the existing in-app action keeps updates user-controlled.

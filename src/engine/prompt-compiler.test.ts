@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compilePrompt } from './prompt-compiler';
 import { recommendConfiguration } from './recommendation-engine';
+import { JAZZ_STYLES } from '../data/jazz-styles';
 import type { MusicConfiguration } from '../models/types';
 
 describe('deterministic English prompt compiler', () => {
@@ -17,15 +18,17 @@ describe('deterministic English prompt compiler', () => {
     expect(prompt).not.toMatch(/[\u3400-\u9fff]/u);
   });
 
-  it('labels Cozy Jazz as a modern descriptor rather than a historical genre', () => {
+  it('opens Cozy Jazz with music wording without taxonomy meta-text', () => {
     const prompt = compilePrompt(recommendConfiguration('cozy-jazz'));
-    expect(prompt).toContain('Cozy Jazz as a modern mood and tempo descriptor');
+    expect(prompt.startsWith('Warm, intimate acoustic cozy jazz with a relaxed café character.')).toBe(true);
+    expect(prompt).not.toContain('modern mood and tempo descriptor');
     expect(prompt).toContain('Instrumental only, no vocals.');
   });
 
-  it('labels Brisk Jazz as a modern descriptor', () => {
+  it('opens Brisk Jazz with music wording without classification explanation', () => {
     const prompt = compilePrompt(recommendConfiguration('brisk-jazz'));
-    expect(prompt).toContain('Brisk Jazz as a modern mood and tempo descriptor');
+    expect(prompt.startsWith('Brisk, light acoustic jazz with a buoyant swing feel.')).toBe(true);
+    expect(prompt).not.toContain('modern mood and tempo descriptor');
   });
 
   it('keeps only the most prominent enabled lead as the foreground voice', () => {
@@ -54,7 +57,7 @@ describe('deterministic English prompt compiler', () => {
     const incomplete = compilePrompt({ styleId: 'slow-bossa', tempo: 0 } as Partial<MusicConfiguration>);
     const invalid = compilePrompt({ styleId: 'not-a-style' } as Partial<MusicConfiguration>);
     expect(incomplete).toContain('BPM,');
-    expect(invalid).toContain('Cozy Jazz');
+    expect(invalid).toContain('Warm, intimate acoustic cozy jazz');
     expect(invalid).toContain('Instrumental only, no vocals.');
   });
 
@@ -82,6 +85,15 @@ describe('deterministic English prompt compiler', () => {
     expect(prompt).toContain('Warm major tonality with occasional relative-minor colors.');
   });
 
+  it('does not duplicate a production modifier already present in instrument wording', () => {
+    const configuration = recommendConfiguration('nu-jazz');
+    configuration.instruments = [{ instrumentId: 'electric-bass', enabled: true, role: 'bass', prominence: 75, behaviour: 'a warm, restrained bass foundation' }];
+    configuration.productionIds = ['round-bass'];
+    const prompt = compilePrompt(configuration);
+    expect(prompt.toLowerCase()).not.toContain('round round');
+    expect(prompt).toContain('round electric bass');
+  });
+
   it('groups and limits negative constraints while always requiring instrumental music', () => {
     const configuration = recommendConfiguration('cozy-jazz');
     configuration.constraintIds = ['vocals', 'scat', 'flashy-solos', 'virtuosic-runs', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos', 'dense-arrangement'];
@@ -94,10 +106,11 @@ describe('deterministic English prompt compiler', () => {
   });
 
   it('compiles every built-in style without throwing or leaking UI localization', () => {
-    for (const styleId of ['cozy-jazz', 'slow-bossa', 'bossa-nova', 'cool-jazz', 'west-coast', 'soft-swing', 'swing-jazz', 'jazz-ballad', 'modal-jazz', 'nordic-chamber', 'spiritual-jazz', 'brisk-jazz', 'smooth-jazz', 'latin-jazz', 'afro-cuban', 'gypsy-jazz', 'soul-jazz', 'hard-bop', 'bebop', 'post-bop', 'jazz-funk', 'jazz-fusion', 'nu-jazz', 'new-orleans', 'dixieland', 'custom']) {
-      const prompt = compilePrompt(recommendConfiguration(styleId));
+    for (const style of JAZZ_STYLES) {
+      const prompt = compilePrompt(recommendConfiguration(style.id));
       expect(prompt).toContain('Instrumental only, no vocals.');
       expect(prompt).not.toMatch(/[\u3400-\u9fff]/u);
+      expect(prompt).not.toContain('modern mood and tempo descriptor');
     }
   });
 });

@@ -56,6 +56,7 @@ export interface JazzStyle {
   classification: Classification;
   family: string;
   descriptionZh: string;
+  promptStyle?: string;
   tempo: { min: number; max: number; default: number };
   meters: string[];
   grooves: { id: string; label: string; prompt: string }[];

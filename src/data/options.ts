@@ -6,6 +6,7 @@ export interface LabeledOption {
 
 export const HARMONIES: LabeledOption[] = [
   { id: 'maj7', label: 'Major 7th', prompt: 'major 7th' },
+  { id: 'maj6', label: 'Major 6th (Maj6)', prompt: 'major 6th' },
   { id: 'min7', label: 'Minor 7th', prompt: 'minor 7th' },
   { id: 'dom7', label: 'Dominant 7th', prompt: 'dominant 7th' },
   { id: 'sixth', label: '6th', prompt: '6th' },
@@ -18,6 +19,8 @@ export const HARMONIES: LabeledOption[] = [
   { id: 'altered', label: 'Altered Dominant', prompt: 'altered dominant chords' },
   { id: 'sus', label: 'Suspended', prompt: 'suspended harmony' },
   { id: 'modal', label: 'Modal Harmony', prompt: 'modal harmony' },
+  { id: 'dim', label: 'Diminished', prompt: 'diminished passing chords' },
+  { id: 'blues', label: 'Blues Harmony', prompt: 'blues harmony' },
   { id: 'chromatic', label: 'Chromatic Passing Harmony', prompt: 'subtle chromatic passing harmony' },
 ];
 
@@ -30,6 +33,7 @@ export const MOODS: LabeledOption[] = [
   { id: 'dreamy', label: '夢幻 Dreamy', prompt: 'dreamy' },
   { id: 'melancholic', label: '憂鬱 Melancholic', prompt: 'melancholic' },
   { id: 'cheerful', label: '愉快 Cheerful', prompt: 'cheerful' },
+  { id: 'energetic', label: '充滿活力 Energetic', prompt: 'energetic' },
   { id: 'elegant', label: '優雅 Elegant', prompt: 'elegant' },
   { id: 'intimate', label: '親密 Intimate', prompt: 'intimate' },
   { id: 'reflective', label: '沉思 Reflective', prompt: 'reflective' },

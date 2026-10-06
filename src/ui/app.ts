@@ -76,7 +76,7 @@ function renderRecommendation(style: JazzStyle): string {
 function renderInstrument(part: InstrumentPart, index: number): string {
   const instrument = INSTRUMENT_BY_ID.get(part.instrumentId);
   if (!instrument) return '';
-  const roles = ROLES.map((role) => ({ id: role.id, label: ROLE_LABEL[role.id] }));
+  const roles = ROLES.filter((role) => instrument.roles.includes(role.id)).map((role) => ({ id: role.id, label: ROLE_LABEL[role.id] }));
   return '<article class="instrument-row' + (part.enabled ? '' : ' is-disabled') + '"><div class="instrument-title"><div><strong>' + escapeHtml(instrument.nameZh) + '</strong><span>' + escapeHtml(instrument.name) + '</span></div><div class="instrument-title-actions"><label class="instrument-enabled"><input type="checkbox" data-part-index="' + index + '" data-part-field="enabled"' + (part.enabled ? ' checked' : '') + '><span>' + t.includeInstrument + '</span></label><button type="button" class="icon-button" data-action="remove-instrument" data-index="' + index + '" aria-label="' + t.remove + ' ' + escapeHtml(instrument.nameZh) + '">×</button></div></div>'
     + '<div class="instrument-fields"><label><span>' + t.role + '</span><select data-part-index="' + index + '" data-part-field="role">' + selectOptions(roles, part.role) + '</select></label>'
     + '<label><span>' + t.prominence + ' · ' + part.prominence + '</span><input type="range" min="0" max="100" value="' + part.prominence + '" data-part-index="' + index + '" data-part-field="prominence" aria-label="' + t.prominence + ' ' + escapeHtml(instrument.nameZh) + '"></label></div>'
@@ -291,7 +291,11 @@ function handleChange(event: Event): void {
     const part = appState.configuration.instruments[Number(target.dataset.partIndex)]; if (!part) return;
     const field = target.dataset.partField;
     if (field === 'enabled' && target instanceof HTMLInputElement) part.enabled = target.checked;
-    else if (field === 'role') part.role = target.value as InstrumentRole;
+    else if (field === 'role') {
+      const supportedRoles = INSTRUMENT_BY_ID.get(part.instrumentId)?.roles ?? [];
+      part.role = supportedRoles.includes(target.value as InstrumentRole) ? target.value as InstrumentRole : supportedRoles[0] ?? part.role;
+      target.value = part.role;
+    }
     else if (field === 'prominence') part.prominence = Number(target.value);
     else if (field === 'behaviour') part.behaviour = INSTRUMENT_BY_ID.get(part.instrumentId)?.behaviours[Number(target.value)] ?? '';
     persist();
@@ -303,7 +307,8 @@ function handleChange(event: Event): void {
   if (target.id === 'instrument-picker' && target.value) {
     const instrument = INSTRUMENT_BY_ID.get(target.value);
     if (instrument) {
-      const role: InstrumentRole = instrument.roles.includes('lead') ? 'lead' : instrument.roles.includes('bass') ? 'bass' : instrument.roles.includes('rhythm') ? 'rhythm' : 'harmony';
+      const rolePriority: InstrumentRole[] = ['lead', 'bass', 'rhythm', 'response', 'harmony', 'countermelody', 'texture'];
+      const role = rolePriority.find((candidate) => instrument.roles.includes(candidate)) ?? instrument.roles[0] ?? 'texture';
       appState.configuration.instruments.push({ instrumentId: instrument.id, enabled: true, role, prominence: role === 'lead' ? 60 : 40, behaviour: instrument.behaviours[0] ?? '' });
       persist(); render();
     }
@@ -371,7 +376,12 @@ function registerPwa(): void {
     const banner = document.querySelector<HTMLElement>('#update-banner');
     const showUpdate = () => { if (registration.waiting && navigator.serviceWorker.controller && banner) banner.hidden = false; };
     showUpdate();
-    registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', () => { if (registration.installing?.state === 'installed') showUpdate(); }));
+    registration.addEventListener('updatefound', () => {
+      const installingWorker = registration.installing;
+      installingWorker?.addEventListener('statechange', () => {
+        if (installingWorker.state === 'installed') showUpdate();
+      });
+    });
   }).catch(() => { if (status) status.textContent = t.offlineUnavailable; });
 }
 registerPwa();

@@ -37,9 +37,10 @@ export function isValidMeter(value: unknown): value is string {
 
 function normalizePart(value: unknown): InstrumentPart | undefined {
   if (!isRecord(value) || typeof value.instrumentId !== 'string' || !INSTRUMENT_BY_ID.has(value.instrumentId)) return undefined;
-  const roles = ['lead', 'response', 'harmony', 'bass', 'rhythm', 'texture', 'countermelody'];
-  const role = typeof value.role === 'string' && roles.includes(value.role) ? value.role as InstrumentPart['role'] : 'harmony';
   const instrument = INSTRUMENT_BY_ID.get(value.instrumentId)!;
+  const role = typeof value.role === 'string' && instrument.roles.includes(value.role as InstrumentPart['role'])
+    ? value.role as InstrumentPart['role']
+    : instrument.roles[0] ?? 'texture';
   const behaviour = typeof value.behaviour === 'string' && instrument.behaviours.includes(value.behaviour) ? value.behaviour : instrument.behaviours[0] ?? '';
   return {
     instrumentId: value.instrumentId,

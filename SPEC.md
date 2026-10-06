@@ -12,11 +12,11 @@
 
 ## Data model
 
-JazzStyle stores an ID, display names, classification, family, Traditional Chinese description, tempo range, meters, grooves, tonalities, harmony, recommended instruments by role, moods, scenes, density, improvisation, energy, dynamics, arrangement, production, constraints, compatible styles, atypical instruments and three curated variation recipes.
+JazzStyle stores an ID, display names, classification, family, Traditional Chinese description, an optional English `promptStyle` opening, tempo range, meters, grooves, tonalities, harmony, recommended instruments by role, moods, scenes, density, improvisation, energy, dynamics, arrangement, production, constraints, compatible styles, atypical instruments and three curated variation recipes. `promptStyle` describes the sound directly; historical versus modern-descriptor classification remains metadata for the Traditional Chinese interface and documentation.
 
 Instrument stores bilingual display names, category, supported roles, musical families, atypical families, prompt wording and role-neutral playing-behavior choices. InstrumentPart holds the selected instrument, enabled state, role, prominence and behavior.
 
-MusicConfiguration is the complete editable setup. Presets are versioned JSON objects that contain a configuration snapshot. Input is normalized and bounded when loaded or imported; invalid style IDs and unknown instruments are rejected.
+MusicConfiguration is the complete editable setup. Presets are versioned JSON objects that contain a configuration snapshot. Input is normalized and bounded when loaded or imported; invalid style IDs and unknown instruments are rejected. Unsupported instrument roles are replaced by a safe role declared by that instrument. Built-in style data, recommendations and variation recipes are covered by referential-integrity tests against their shared catalogs.
 
 ## Jazz-style classifications
 
@@ -57,8 +57,8 @@ This score is a transparent product heuristic, not a music-science measurement. 
 
 ## Localization
 
-The application document and user-facing controls use Traditional Chinese for Hong Kong (zh-HK). English remains for common Jazz and production terminology, and selected controls use bilingual terminology where helpful. Generated prompts remain English. UI copy belongs in src/i18n/zh-HK.ts; the style and instrument data hold their domain-specific bilingual names and descriptions.
+The application document and user-facing controls use Traditional Chinese for Hong Kong (zh-HK). English remains for common Jazz and production terminology, and selected controls use bilingual terminology where helpful. Generated prompts remain English. UI copy belongs in src/i18n/zh-HK.ts; the style and instrument data hold their domain-specific bilingual names and descriptions. Instrument role selectors expose only the roles listed in each instrument's supported-role catalog during normal editing.
 
 ## Offline and deployment
 
-Vite builds static assets. The PWA manifest uses relative scope and start URL; the service worker caches the app entry and requested same-origin assets. GitHub Pages builds with the repository path /flowmusic-prompt-generator/. There is no runtime server, cloud database or inference API.
+Vite builds static assets. The PWA manifest uses relative scope and start URL and includes install-size PNG icons, maskable PNG icons, an SVG icon and an Apple touch icon. A Vite build plugin hashes the app version, lockfile, source, public assets, HTML and service-worker template into a deterministic cache identity and emits `dist/sw.js`. The service worker precaches the app shell and manifest icons, removes prior FlowMusic caches on activation and waits for user action before activating an update. GitHub Pages builds with the repository path /flowmusic-prompt-generator/. There is no runtime server, cloud database or inference API.
