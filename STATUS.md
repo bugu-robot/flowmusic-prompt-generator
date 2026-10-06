@@ -10,10 +10,13 @@
 - [x] Imported shared option IDs are validated and deduplicated; unknown scene, dynamics and structure IDs fall back safely. Non-string enum selections are rejected. Globally valid retained grooves/tonalities survive a style change.
 - [x] Gypsy Jazz keeps `maj6` without the redundant `sixth` recommendation.
 - [x] Recommendation, compatibility, deterministic prompt compilation, role normalization and local preset serialization covered by unit tests.
+- [x] Style-specific recommended part behaviors remain deterministic and editable through the existing instrument behavior controls; styles without overrides use the existing fallback.
+- [x] New Orleans Jazz and Dixieland defaults use trumpet/cornet, clarinet and the catalog's trombone for overlapping but coherent collective front-line improvisation.
+- [x] All 25 fixed-style default prompts generated and checked against their style-specific semantic requirements; Custom remains separate and user-defined.
 - [x] `npm ci` passes with the regenerated lockfile on Node.js 24.19.0, without EBADENGINE or an ESLint deprecation warning.
 - [x] `npm run typecheck` passes.
 - [x] `npm run lint` passes.
-- [x] `npm test` passes: 137 tests across 6 files.
+- [x] `npm test` passes: 155 tests across 6 files.
 - [x] `npm run build` passes.
 - [x] `npm run build -- --mode pages` passes.
 - [x] GitHub Pages output checked for `/flowmusic-prompt-generator/` paths, manifest, worker registration, Apple touch icon and every manifest icon.
@@ -24,7 +27,7 @@
 - [x] CI audits dependencies and verifies both normal and Pages builds. Event/ref-specific concurrency prevents PR verification from cancelling a main deployment.
 - [x] This correction pass targets the existing open Draft PR #1 on `feat/initial-pwa`; it remains unmerged.
 
-Recovery verification on 2026-10-06: the interrupted session's unpushed changes were recovered from its local files; GitHub still pointed to `049f03aff3ecddf77b854c518ce03bd513421c77`. The complete seven-command sequence was rerun on Node.js 24.19.0 after recovery, and both build outputs were inspected. These are local automated results. The correction commit's actual GitHub Actions run and log result will be recorded in Draft PR #1 after the push; dependency install, audit, checks, both builds and successful Pages artifact upload are required before moving to UAT.
+Focused Jazz semantic correction verified locally on 2026-10-06 with Node.js 24.19.0: `npm ci`, typecheck, lint, 155 tests across 6 files, normal build, Pages build and `npm audit` all pass; audit reports 0 vulnerabilities. Both build outputs contain the manifest, service worker, Apple touch icon and every manifest icon. The Pages bundle uses `/flowmusic-prompt-generator/`, and the normal and Pages worker cache identities differ. Prompt/style semantics only are verified; no generated audio has been assessed. The correction commit's GitHub Actions run is the final automated verification gate before manual UAT.
 
 ## Security audit triage
 
@@ -50,6 +53,8 @@ No browser, installation, offline-reopen or update behavior has been manually ve
 - Style selection, explicit recommendation application, instrument roles, prompt quality, copy action and compatibility feedback.
 - Curated variations, local preset save/load, and JSON import/export.
 - PWA installation, closing and reopening offline, and the user-controlled update prompt.
+
+No actual Flow Music audio quality is claimed as verified; audio UAT remains the next step after this semantic correction.
 
 ## Known limitations and next steps
 

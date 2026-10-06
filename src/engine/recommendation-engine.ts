@@ -9,6 +9,22 @@ function part(instrumentId: string, role: InstrumentPart['role'], prominence: nu
 }
 
 function uniqueParts(style: JazzStyle): InstrumentPart[] {
+  if (style.recommendedParts) {
+    const used = new Set<string>();
+    return style.recommendedParts.flatMap((recommendation) => {
+      const instrument = INSTRUMENT_BY_ID.get(recommendation.instrumentId);
+      if (!instrument?.roles.includes(recommendation.role) || used.has(recommendation.instrumentId)) return [];
+      used.add(recommendation.instrumentId);
+      return [{
+        instrumentId: recommendation.instrumentId,
+        enabled: true,
+        role: recommendation.role,
+        prominence: recommendation.prominence,
+        behaviour: instrument.behaviours.includes(recommendation.behaviour) ? recommendation.behaviour : instrument.behaviours[0] ?? '',
+      }];
+    });
+  }
+
   const parts: InstrumentPart[] = [];
   const add = (id: string | undefined, role: InstrumentPart['role'], prominence: number) => {
     const instrument = id ? INSTRUMENT_BY_ID.get(id) : undefined;
@@ -46,7 +62,7 @@ export function recommendConfiguration(styleId: string): MusicConfiguration {
     energy: style.energy,
     melodyDensity: style.melodyDensity,
     improvisation: style.improvisation,
-    foregroundRule: 'single',
+    foregroundRule: style.foregroundRule ?? 'single',
     phraseLength: style.melodyDensity < 35 ? 'short' : 'medium',
     breathingSpace: style.melodyDensity < 35 ? 'high' : 'medium',
     melodyComplexity: style.melodyDensity < 25 ? 'simple' : style.melodyDensity > 75 ? 'complex' : 'moderate',

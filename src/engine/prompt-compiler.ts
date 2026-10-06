@@ -4,7 +4,7 @@ import { JAZZ_STYLES } from '../data/jazz-styles';
 import { getStyle, recommendConfiguration } from './recommendation-engine';
 import { FLOW_PROMPT_RULES } from './prompt-rules';
 import { normalizeConfiguration } from '../storage/local-storage';
-import type { InstrumentPart, MusicConfiguration } from '../models/types';
+import type { InstrumentPart, JazzStyle, MusicConfiguration } from '../models/types';
 
 const MOOD_BY_ID = OPTION_BY_ID(MOODS);
 const SCENE_BY_ID = OPTION_BY_ID(SCENES);
@@ -34,7 +34,7 @@ function roleOrder(part: InstrumentPart): number {
   return order[part.role];
 }
 
-function describePart(part: InstrumentPart, isAdditionalLead: boolean): string | undefined {
+function describePart(part: InstrumentPart, isAdditionalLead: boolean, allowCollective: boolean): string | undefined {
   const instrument = INSTRUMENT_BY_ID.get(part.instrumentId);
   if (!instrument || !part.enabled) return undefined;
   const name = instrument.wording;
@@ -46,21 +46,26 @@ function describePart(part: InstrumentPart, isAdditionalLead: boolean): string |
     case 'lead':
       return name[0]!.toUpperCase() + name.slice(1) + ' carries the main melodic voice with ' + (behaviour || 'clear, measured phrases') + '.';
     case 'response':
+      if (allowCollective) return plainName[0]!.toUpperCase() + plainName.slice(1) + ' joins the collective front line with ' + (behaviour || 'a distinct answering phrase') + '.';
       return (restrained ? 'A very soft ' : 'A soft ') + plainName + ' enters occasionally with ' + (behaviour || 'short, gentle responses') + ', never competing with the lead.';
     case 'countermelody':
+      if (allowCollective) return plainName[0]!.toUpperCase() + plainName.slice(1) + ' weaves ' + (behaviour || 'an active counterline that overlaps coherently with the other front-line voices') + '.';
       return name[0]!.toUpperCase() + name.slice(1) + ' offers a restrained countermelody between lead phrases.';
     case 'harmony':
       return name[0]!.toUpperCase() + name.slice(1) + ' supports the harmony with ' + (behaviour || 'soft, spacious voicings') + '.';
     case 'bass':
       return name[0]!.toUpperCase() + name.slice(1) + ' provides ' + (behaviour || 'a warm, restrained foundation') + '.';
     case 'rhythm':
+      if (['congas', 'bongos', 'timbales'].includes(plainName)) {
+        return (restrained ? 'Soft ' : 'Light ') + plainName + ' play ' + (behaviour || 'a subtle, steady rhythmic texture') + '.';
+      }
       return (restrained ? 'A very soft ' : 'A light ') + plainName + ' maintains ' + (behaviour || 'a subtle, steady pulse') + '.';
     case 'texture':
       return (restrained ? 'A barely audible ' : 'A subtle ') + name + ' adds gentle background colour without obscuring the ensemble.';
   }
 }
 
-function melodyDescription(configuration: MusicConfiguration): string {
+function melodyDescription(configuration: MusicConfiguration, style: JazzStyle): string {
   const density = clamp(configuration.melodyDensity, 0, 100);
   const densityText = density <= 20 ? 'very sparse' : density <= 40 ? 'sparse and understated' : density <= 65 ? 'moderately spacious' : density <= 82 ? 'active' : 'busy';
   const phrase = { short: 'short motifs', medium: 'balanced phrases', long: 'long, flowing phrases' }[configuration.phraseLength];
@@ -74,7 +79,7 @@ function melodyDescription(configuration: MusicConfiguration): string {
   const interaction = configuration.foregroundRule === 'gentle'
     ? 'Allow gentle call-and-response between instruments, leaving space around each phrase.'
     : configuration.foregroundRule === 'collective'
-      ? 'Allow restrained ensemble interaction while keeping each part distinct.'
+      ? style.interactionPrompt ?? 'Allow overlapping but coherent collective improvisation while keeping each ensemble line distinct.'
       : 'Only one foreground melodic voice at a time.';
   return line + ' ' + interaction;
 }
@@ -172,15 +177,15 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const additionalLeadIds = new Set(sortedLead.slice(1).map((part) => part.instrumentId));
   const instrumentSentences = enabledParts
     .filter((part) => part !== lead)
-    .map((part) => describePart(part, additionalLeadIds.has(part.instrumentId)))
+    .map((part) => describePart(part, additionalLeadIds.has(part.instrumentId), configuration.foregroundRule === 'collective'))
     .filter((sentence): sentence is string => Boolean(sentence));
-  if (lead) instrumentSentences.unshift(describePart(lead, false)!);
+  if (lead) instrumentSentences.unshift(describePart(lead, false, configuration.foregroundRule === 'collective')!);
 
   const harmonyNames = unique(configuration.harmonyIds).map((id) => HARMONY_BY_ID.get(id)?.prompt).filter((value): value is string => Boolean(value));
   const harmonySentence = harmonyNames.length
     ? 'Use ' + asList(harmonyNames.slice(0, 6)) + ' harmony, with smooth voice leading and restrained tension.'
     : 'Use restrained jazz harmony with smooth voice leading and gentle tension.';
-  const melody = melodyDescription(configuration);
+  const melody = melodyDescription(configuration, style);
   const dynamics = dynamicsDescription(configuration.dynamics, configuration.energy);
   const arrangement = arrangementDescription(configuration.structure);
   const productionIds = unique(configuration.productionIds).filter((id) => PRODUCTION_BY_ID.has(id));

@@ -12,7 +12,7 @@
 
 ## Data model
 
-JazzStyle stores an ID, display names, classification, family, Traditional Chinese description, an optional English `promptStyle` opening, tempo range, meters, grooves, tonalities, harmony, recommended instruments by role, moods, scenes, density, improvisation, energy, dynamics, arrangement, production, constraints, compatible styles, atypical instruments and three curated variation recipes. `promptStyle` describes the sound directly; historical versus modern-descriptor classification remains metadata for the Traditional Chinese interface and documentation.
+JazzStyle stores an ID, display names, classification, family, Traditional Chinese description, an optional English `promptStyle` opening, tempo range, meters, grooves, tonalities, harmony, recommended instruments by role, moods, scenes, density, improvisation, energy, dynamics, arrangement, production, constraints, compatible styles, atypical instruments and three curated variation recipes. A style may specify deterministic role-specific recommended parts with a selected instrument behavior, plus an appropriate default foreground interaction. If it does not, recommendations use the instrument's existing default behavior and single-foreground rule. `promptStyle` describes the sound directly; historical versus modern-descriptor classification remains metadata for the Traditional Chinese interface and documentation.
 
 Instrument stores bilingual display names, category, supported roles, musical families, atypical families, prompt wording and role-neutral playing-behavior choices. InstrumentPart holds the selected instrument, enabled state, role, prominence and behavior.
 

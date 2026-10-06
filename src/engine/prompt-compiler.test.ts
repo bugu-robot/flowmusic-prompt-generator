@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compilePrompt } from './prompt-compiler';
 import { recommendConfiguration } from './recommendation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
+import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { CONSTRAINTS } from '../data/options';
 import type { MusicConfiguration } from '../models/types';
 
@@ -139,5 +140,60 @@ describe('deterministic English prompt compiler', () => {
       expect(prompt).not.toMatch(/[\u3400-\u9fff]/u);
       expect(prompt).not.toContain('modern mood and tempo descriptor');
     }
+  });
+
+  const semanticChecks: Array<{ styleId: string; includes: string[]; excludes?: string[] }> = [
+    { styleId: 'swing-jazz', includes: ['138 BPM', 'clear swing eighths', 'walking bass line', 'ride-cymbal swing'] },
+    { styleId: 'modal-jazz', includes: ['modal tonality', 'long modal harmonies', 'pedal tone', 'quartal voicings'] },
+    { styleId: 'spiritual-jazz', includes: ['repeating modal motif', 'repeating modal ostinato', 'gradual ensemble intensification', 'gradually introduce the ensemble', 'hand-percussion'] },
+    { styleId: 'smooth-jazz', includes: ['straight-eighth groove', 'straight-eighth backbeat'], excludes: ['swing time'] },
+    { styleId: 'latin-jazz', includes: ['clave-informed Latin groove', 'montuno-style', 'Light congas play', 'Soft timbales play', 'interlocking timbales'] },
+    { styleId: 'afro-cuban', includes: ['2-3 clave', 'tumbao-style', 'piano montuno', 'Light congas play', 'Soft timbales play', 'jazz improvisation'] },
+    { styleId: 'gypsy-jazz', includes: ['Selmer-style Manouche acoustic guitar carries the main melodic voice', 'acoustic guitar maintains steady la pompe rhythm-guitar chords'] },
+    { styleId: 'soul-jazz', includes: ['Hammond B3 organ', 'tenor saxophone', 'blues- and gospel-inflected comping', 'blues shuffle', 'soulful backbeat'] },
+    { styleId: 'hard-bop', includes: ['walking bass line', 'blues- and gospel-inflected comping', 'hard-bop accents', 'ride-cymbal time'] },
+    { styleId: 'jazz-funk', includes: ['straight-16th funk pocket', 'syncopated electric-bass line', 'Jazz-Funk'], excludes: ['swing time'] },
+    { styleId: 'jazz-fusion', includes: ['straight funk-rock fusion drive', 'asymmetrical accents', 'Jazz improvisation'], excludes: ['swing time'] },
+    { styleId: 'nu-jazz', includes: ['downtempo broken-beat pulse', 'hybrid electronic/live', 'subtle programming', 'light acoustic percussion', 'without an EDM-style drop'], excludes: ['swing time'] },
+    { styleId: 'new-orleans', includes: ['trumpet or cornet', 'clarinet', 'trombone', 'tailgate-style', 'collective front-line improvisation', 'overlapping but coherent'], excludes: ['Only one foreground melodic voice at a time.'] },
+    { styleId: 'dixieland', includes: ['trumpet or cornet', 'clarinet', 'trombone', 'tailgate-style', 'collective front-line improvisation', 'overlapping but coherent'], excludes: ['Only one foreground melodic voice at a time.'] },
+  ];
+
+  it.each(semanticChecks)('$styleId default prompt matches its benchmark identity', ({ styleId, includes, excludes = [] }) => {
+    const prompt = compilePrompt(recommendConfiguration(styleId));
+    for (const phrase of includes) expect(prompt.toLowerCase()).toContain(phrase.toLowerCase());
+    for (const phrase of excludes) expect(prompt.toLowerCase()).not.toContain(phrase.toLowerCase());
+  });
+
+  it('checks every fixed style default for unique supported parts, deterministic English and instrumental output', () => {
+    const fixedStyles = JAZZ_STYLES.filter((style) => style.classification !== 'custom');
+    expect(fixedStyles).toHaveLength(25);
+    for (const style of fixedStyles) {
+      const configuration = recommendConfiguration(style.id);
+      const ids = configuration.instruments.map((part) => part.instrumentId);
+      expect(new Set(ids).size, style.id).toBe(ids.length);
+      for (const part of configuration.instruments) {
+        const instrument = INSTRUMENT_BY_ID.get(part.instrumentId);
+        expect(instrument?.roles, style.id + ': ' + part.instrumentId).toContain(part.role);
+        expect(instrument?.behaviours, style.id + ': ' + part.instrumentId).toContain(part.behaviour);
+      }
+      const prompt = compilePrompt(configuration);
+      expect(prompt, style.id).toBe(compilePrompt(configuration));
+      expect(prompt, style.id).toContain('Instrumental only, no vocals.');
+      expect(prompt, style.id).not.toMatch(/[\u3400-\u9fff]/u);
+      if (['smooth-jazz', 'jazz-funk', 'jazz-fusion', 'nu-jazz'].includes(style.id)) {
+        expect(prompt.toLowerCase(), style.id).not.toContain('swing time');
+      }
+      if (['new-orleans', 'dixieland'].includes(style.id)) {
+        expect(configuration.foregroundRule, style.id).toBe('collective');
+        expect(prompt, style.id).not.toContain('Only one foreground melodic voice at a time.');
+      }
+    }
+  });
+
+  it('does not give Custom any fixed-style rhythmic or collective-interplay defaults', () => {
+    const prompt = compilePrompt(recommendConfiguration('custom')).toLowerCase();
+    expect(prompt).toContain('user-defined jazz');
+    expect(prompt).not.toMatch(/2-3 clave|tumbao|montuno|la pompe|collective front-line improvisation/);
   });
 });

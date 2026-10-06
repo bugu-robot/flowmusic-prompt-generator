@@ -67,6 +67,9 @@ export interface JazzStyle {
   harmonyInstruments: string[];
   bass: string[];
   rhythm: string[];
+  recommendedParts?: Array<Pick<InstrumentPart, 'instrumentId' | 'role' | 'prominence' | 'behaviour'>>;
+  foregroundRule?: MusicConfiguration['foregroundRule'];
+  interactionPrompt?: string;
   moods: string[];
   scenes: string[];
   melodyDensity: number;

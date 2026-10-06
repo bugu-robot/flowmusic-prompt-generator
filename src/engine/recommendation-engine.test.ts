@@ -127,7 +127,31 @@ describe('Jazz style data and recommendations', () => {
       for (const part of configuration.instruments) {
         expect(instrumentIds.has(part.instrumentId)).toBe(true);
         expect(INSTRUMENT_BY_ID.get(part.instrumentId)?.roles).toContain(part.role);
+        expect(INSTRUMENT_BY_ID.get(part.instrumentId)?.behaviours).toContain(part.behaviour);
       }
     }
+  });
+
+  it('keeps each default ensemble unique with supported roles and one lead, except collective-front-line styles', () => {
+    for (const style of JAZZ_STYLES) {
+      const configuration = recommendConfiguration(style.id);
+      const ids = configuration.instruments.map((part) => part.instrumentId);
+      const leads = configuration.instruments.filter((part) => part.role === 'lead');
+      expect(new Set(ids).size, style.id).toBe(ids.length);
+      for (const item of configuration.instruments) expect(INSTRUMENT_BY_ID.get(item.instrumentId)?.roles, style.id).toContain(item.role);
+      if (style.foregroundRule === 'collective') {
+        expect(configuration.foregroundRule, style.id).toBe('collective');
+        expect(leads.length, style.id).toBeGreaterThan(0);
+      } else {
+        expect(leads, style.id).toHaveLength(1);
+      }
+    }
+  });
+
+  it('keeps Custom user-defined and uses the existing default instrument behaviours', () => {
+    const configuration = recommendConfiguration('custom');
+    expect(configuration.foregroundRule).toBe('single');
+    expect(configuration.instruments.find((part) => part.role === 'lead')?.instrumentId).toBe('piano');
+    expect(configuration.instruments.find((part) => part.role === 'lead')?.behaviour).toBe(INSTRUMENT_BY_ID.get('piano')?.behaviours[0]);
   });
 });
