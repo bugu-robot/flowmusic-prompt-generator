@@ -40,6 +40,22 @@ describe('local preset serialization', () => {
     expect(config?.energy).toBe(0);
   });
 
+  it('replaces non-finite instrument prominence with a safe default', () => {
+    const configuration = recommendConfiguration('cool-jazz');
+    const normalized = normalizeConfiguration({
+      ...configuration,
+      instruments: [{ ...configuration.instruments[0], prominence: Number.NaN }],
+    });
+    expect(normalized?.instruments[0]?.prominence).toBe(50);
+  });
+
+  it('replaces zero numerator or denominator in meter values', () => {
+    const configuration = recommendConfiguration('slow-bossa');
+    const normalized = normalizeConfiguration({ ...configuration, meter: '0/4', customMeter: '4/0' });
+    expect(normalized?.meter).toBe('4/4');
+    expect(normalized?.customMeter).toBe('4/4');
+  });
+
   it('renames an existing preset and removes it by ID', () => {
     const storage = new MemoryStorage();
     const saved = savePreset('Before', recommendConfiguration('cozy-jazz'), storage);

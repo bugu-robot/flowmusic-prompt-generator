@@ -1,5 +1,6 @@
 import { CONSTRAINTS, HARMONY_BY_ID, MOODS, OPTION_BY_ID, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { JAZZ_STYLES } from '../data/jazz-styles';
 import { getStyle, recommendConfiguration } from './recommendation-engine';
 import { FLOW_PROMPT_RULES } from './prompt-rules';
 import { normalizeConfiguration } from '../storage/local-storage';
@@ -132,9 +133,11 @@ function constraintSentence(configuration: MusicConfiguration): string {
 
 export function compilePrompt(input: MusicConfiguration | Partial<MusicConfiguration> | null | undefined): string {
   const normalized = normalizeConfiguration(input);
+  const recommendation = recommendConfiguration(normalized?.styleId ?? 'cozy-jazz');
+  const hasExplicitInstrumentList = typeof input === 'object' && input !== null && Array.isArray(input.instruments);
   const configuration = normalized
-    ? { ...recommendConfiguration(normalized.styleId), ...normalized, instruments: normalized.instruments }
-    : recommendConfiguration('cozy-jazz');
+    ? { ...recommendation, ...normalized, instruments: hasExplicitInstrumentList ? normalized.instruments : recommendation.instruments }
+    : recommendation;
   const style = getStyle(configuration.styleId);
   const influence = configuration.secondaryStyleId ? getStyle(configuration.secondaryStyleId).name : '';
   const opening = configuration.styleId === 'custom'
@@ -144,6 +147,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
       : style.name + (influence ? ' with a subtle ' + influence + ' influence.' : '.');
 
   const groove = style.grooves.find((item) => item.id === configuration.grooveId)?.prompt
+    ?? JAZZ_STYLES.flatMap((candidate) => candidate.grooves).find((item) => item.id === configuration.grooveId)?.prompt
     ?? (configuration.grooveId ? configuration.grooveId.replace(/[-_]/g, ' ') + ' groove' : style.grooves[0]?.prompt ?? 'relaxed, open phrasing');
   const tempo = clamp(Math.round(configuration.tempo), 20, 400);
   const meter = configuration.meter === 'custom' ? configuration.customMeter ?? '4/4' : (configuration.meter || '4/4');
@@ -153,7 +157,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const keyText = configuration.key && configuration.key !== 'auto' ? ' in ' + configuration.key : '';
   const feel = tempoFeel(configuration);
   const grooveCore = groove.startsWith(feel + ' ') ? groove.slice(feel.length + 1) : groove;
-  const tempoSentence = tempo + ' BPM, ' + meter + ', at a ' + feel + ' pace with a ' + grooveCore + '.';
+  const tempoSentence = tempo + ' BPM, ' + meter + ', at ' + (feel.startsWith('extremely') ? 'an ' : 'a ') + feel + ' pace with a ' + grooveCore + '.';
   const tonalitySentence = tonality[0]!.toUpperCase() + tonality.slice(1) + keyText + '.';
 
   const scene = configuration.sceneId === 'custom' && configuration.customSceneName && isEnglish(configuration.customSceneName)
@@ -172,7 +176,6 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
     .map((part) => describePart(part, additionalLeadIds.has(part.instrumentId)))
     .filter((sentence): sentence is string => Boolean(sentence));
   if (lead) instrumentSentences.unshift(describePart(lead, false)!);
-  else instrumentSentences.unshift('A restrained piano carries the main melodic voice with gentle, measured phrases.');
 
   const harmonyNames = unique(configuration.harmonyIds).map((id) => HARMONY_BY_ID.get(id)?.prompt).filter((value): value is string => Boolean(value));
   const harmonySentence = harmonyNames.length
@@ -182,7 +185,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const dynamics = dynamicsDescription(configuration.dynamics, configuration.energy);
   const arrangement = arrangementDescription(configuration.structure);
   const productionIds = unique(configuration.productionIds).filter((id) => PRODUCTION_BY_ID.has(id));
-  const productionDescriptors = productionIds.filter((id) => !['warm', 'intimate', 'acoustic', 'clean', 'spacious', 'dark', 'airy', 'close-mic'].includes(id));
+  const productionDescriptors = productionIds.filter((id) => !['warm', 'intimate', 'acoustic', 'clean', 'spacious', 'dark', 'airy', 'close-mic', 'round-bass', 'smooth-highs'].includes(id));
   const recordingCharacter = productionIds.filter((id) => ['warm', 'intimate', 'acoustic', 'clean', 'spacious', 'dark', 'airy', 'close-mic'].includes(id))
     .map((id) => PRODUCTION_BY_ID.get(id)!.prompt).slice(0, 3);
   if (!recordingCharacter.length) recordingCharacter.push('natural');

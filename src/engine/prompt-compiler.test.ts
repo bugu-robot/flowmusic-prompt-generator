@@ -42,6 +42,14 @@ describe('deterministic English prompt compiler', () => {
     expect(compilePrompt(configuration)).not.toContain('flugelhorn');
   });
 
+  it('does not invent instruments when the user explicitly clears the ensemble', () => {
+    const configuration = recommendConfiguration('cozy-jazz');
+    configuration.instruments = [];
+    const prompt = compilePrompt(configuration);
+    expect(prompt).not.toContain('piano carries the main melodic voice');
+    expect(prompt).toContain('Instrumental only, no vocals.');
+  });
+
   it('handles incomplete and invalid input by returning a usable default prompt', () => {
     const incomplete = compilePrompt({ styleId: 'slow-bossa', tempo: 0 } as Partial<MusicConfiguration>);
     const invalid = compilePrompt({ styleId: 'not-a-style' } as Partial<MusicConfiguration>);
@@ -62,6 +70,16 @@ describe('deterministic English prompt compiler', () => {
     const prompt = compilePrompt(configuration);
     expect(prompt).toContain('5/4');
     expect(prompt).not.toMatch(/[\u3400-\u9fff]/u);
+  });
+
+  it('keeps a selected groove and tonality readable after changing style', () => {
+    const configuration = recommendConfiguration('slow-bossa');
+    configuration.styleId = 'cool-jazz';
+    configuration.grooveId = 'slow-bossa';
+    configuration.tonalityId = 'relative-minor';
+    const prompt = compilePrompt(configuration);
+    expect(prompt).toContain('straight-eighth bossa groove, gently behind the beat');
+    expect(prompt).toContain('Warm major tonality with occasional relative-minor colors.');
   });
 
   it('groups and limits negative constraints while always requiring instrumental music', () => {

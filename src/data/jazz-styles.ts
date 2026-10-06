@@ -7,6 +7,7 @@ interface StyleSeed {
   classification: JazzStyle['classification'];
   family: string;
   descriptionZh: string;
+  meters?: string[];
   tempo: JazzStyle['tempo'];
   groove: [string, string][];
   tonalities: [string, string][];
@@ -38,7 +39,7 @@ function makeStyle(seed: StyleSeed): JazzStyle {
   ];
   return {
     ...seed,
-    meters: seed.id === 'waltz-ballad' ? ['3/4', '4/4'] : ['4/4', '3/4', '6/8'],
+    meters: seed.meters ?? ['4/4'],
     grooves: seed.groove.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
     tonalities: seed.tonalities.map(([id, prompt]) => ({ id, label: prompt[0]!.toUpperCase() + prompt.slice(1), prompt })),
     harmonyInstruments: seed.harmonyInstruments ?? seed.lead,
@@ -127,6 +128,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
   }),
   makeStyle({
     id: 'jazz-ballad', name: 'Jazz Ballad', nameZh: '慢速、抒情、重視旋律呼吸的爵士', classification: 'historical-derived-style', family: 'ballad',
+    meters: ['4/4', '3/4'],
     descriptionZh: '慢速抒情演奏，留意長音、句尾空間和溫柔的和聲推進。',
     tempo: { min: 38, max: 88, default: 62 }, groove: [['slow-ballad', 'slow, spacious ballad pulse'], ['free', 'rubato-inspired, unhurried phrasing'], ['soft-swing', 'very gentle slow swing']],
     tonalities: [['warm-major', 'warm major tonality'], ['minor', 'tender minor tonality'], ['relative-minor', 'major with gentle relative-minor colors']],
@@ -291,6 +293,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
   }),
   makeStyle({
     id: 'new-orleans', name: 'New Orleans Jazz', nameZh: '早期 New Orleans 合奏與集體即興傳統', classification: 'historical-style', family: 'traditional',
+    meters: ['4/4', '2/4'],
     descriptionZh: '早期爵士合奏、前線銅管與木管的集體即興、強烈節拍和藍調語彙。',
     tempo: { min: 95, max: 210, default: 142 }, groove: [['two-beat', 'buoyant two-beat traditional jazz pulse'], ['march', 'lively, lightly marching pulse'], ['swing', 'early jazz swing feel']],
     tonalities: [['major', 'bright major tonality'], ['blues', 'blues tonality'], ['major', 'warm major tonality']],
@@ -301,6 +304,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
   }),
   makeStyle({
     id: 'dixieland', name: 'Dixieland', nameZh: 'Dixieland 前線合奏與集體即興', classification: 'historical-style', family: 'traditional',
+    meters: ['4/4', '2/4'],
     descriptionZh: '以小型合奏、銅管與木管的複調對話及活潑節奏為特色。',
     tempo: { min: 100, max: 220, default: 150 }, groove: [['two-beat', 'buoyant two-beat pulse'], ['swing', 'brisk traditional swing']],
     tonalities: [['major', 'bright major tonality'], ['blues', 'blues tonality']], harmony: ['dom7', 'sixth', 'maj7', 'blues'],

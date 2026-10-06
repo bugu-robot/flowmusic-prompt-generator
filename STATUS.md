@@ -17,7 +17,7 @@
 
 - [x] TypeScript typecheck (`npm run typecheck`)
 - [x] ESLint (`npm run lint`)
-- [x] Unit tests (`npm test`: 28 tests across 6 files)
+- [x] Unit tests (`npm test`: 34 tests across 6 files)
 - [x] Production build (`npm run build`)
 - [x] GitHub Pages path build (`npm run build -- --mode pages`)
 - [x] Draft PR #1 created; GitHub Actions PR checks passed

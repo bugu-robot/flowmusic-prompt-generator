@@ -19,6 +19,12 @@ describe('advisory compatibility engine', () => {
     expect(result.factors.find((factor) => factor.label === '速度')?.score).toBeLessThan(18);
   });
 
+  it('advises when a common meter is unusual for the selected style', () => {
+    const configuration = recommendConfiguration('slow-bossa');
+    configuration.meter = '3/4';
+    expect(checkCompatibility(configuration).messages.some((item) => item.message.includes('3/4'))).toBe(true);
+  });
+
   it('returns a bounded reference score and transparent factors', () => {
     const result = checkCompatibility(recommendConfiguration('bebop'));
     expect(result.score).toBeGreaterThanOrEqual(0);

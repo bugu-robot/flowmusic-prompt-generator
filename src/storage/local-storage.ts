@@ -29,6 +29,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+export function isValidMeter(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{1,2}\/\d{1,2}$/.test(value)) return false;
+  const slash = value.indexOf('/');
+  return Number(value.slice(0, slash)) > 0 && Number(value.slice(slash + 1)) > 0;
+}
+
 function normalizePart(value: unknown): InstrumentPart | undefined {
   if (!isRecord(value) || typeof value.instrumentId !== 'string' || !INSTRUMENT_BY_ID.has(value.instrumentId)) return undefined;
   const roles = ['lead', 'response', 'harmony', 'bass', 'rhythm', 'texture', 'countermelody'];
@@ -39,7 +45,9 @@ function normalizePart(value: unknown): InstrumentPart | undefined {
     instrumentId: value.instrumentId,
     enabled: value.enabled !== false,
     role,
-    prominence: typeof value.prominence === 'number' ? Math.max(0, Math.min(100, value.prominence)) : 50,
+    prominence: typeof value.prominence === 'number' && Number.isFinite(value.prominence)
+      ? Math.max(0, Math.min(100, value.prominence))
+      : 50,
     behaviour,
   };
 }
@@ -55,14 +63,14 @@ export function normalizeConfiguration(value: unknown): MusicConfiguration | und
   const spaceValues = ['high', 'medium', 'low'];
   const complexityValues = ['minimal', 'simple', 'moderate', 'complex', 'virtuosic'];
   const rawMeter = stringValue('meter', '4/4').slice(0, 16);
-  const meter = rawMeter === 'custom' || /^\d{1,2}\/\d{1,2}$/.test(rawMeter) ? rawMeter : '4/4';
+  const meter = rawMeter === 'custom' || isValidMeter(rawMeter) ? rawMeter : '4/4';
   const validKeys = ['auto', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
   return {
     styleId: value.styleId,
     tempo: Math.max(20, Math.min(400, Math.round(numeric('tempo', 80)))),
     tempoFeelId: ['auto', 'very-slow', 'very-relaxed', 'relaxed', 'moderate', 'brisk', 'fast'].includes(String(value.tempoFeelId)) ? value.tempoFeelId as MusicConfiguration['tempoFeelId'] : 'auto',
     meter,
-    customMeter: typeof value.customMeter === 'string' && /^\d{1,2}\/\d{1,2}$/.test(value.customMeter) ? value.customMeter : '4/4',
+    customMeter: isValidMeter(value.customMeter) ? value.customMeter : '4/4',
     grooveId: /^[a-z0-9_-]{1,60}$/.test(stringValue('grooveId', 'open')) ? stringValue('grooveId', 'open') : 'open',
     tonalityId: /^[a-z0-9_-]{1,60}$/.test(stringValue('tonalityId', 'warm-major')) ? stringValue('tonalityId', 'warm-major') : 'warm-major',
     key: validKeys.includes(stringValue('key', 'auto')) ? stringValue('key', 'auto') : 'auto',

@@ -1,11 +1,11 @@
-import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES } from '../data/options';
+import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES, TONALITIES } from '../data/options';
 import { INSTRUMENTS, INSTRUMENT_BY_ID } from '../data/instruments';
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { recommendConfiguration } from '../engine/recommendation-engine';
 import { generateVariations } from '../engine/variation-engine';
-import { deletePreset, exportPresetJson, importPresetJson, listPresets, loadCurrentConfiguration, saveCurrentConfiguration, savePreset } from '../storage/local-storage';
+import { deletePreset, exportPresetJson, importPresetJson, isValidMeter, listPresets, loadCurrentConfiguration, saveCurrentConfiguration, savePreset } from '../storage/local-storage';
 import type { InstrumentPart, InstrumentRole, JazzStyle, MusicConfiguration, UserPreset } from '../models/types';
 import { zhHK as t } from '../i18n/zh-HK';
 
@@ -23,6 +23,14 @@ const TEMPO_FEELS = [
   ['auto', t.tempoAuto], ['very-slow', t.feelVerySlow], ['very-relaxed', t.feelRelaxed], ['relaxed', t.feelEasy],
   ['moderate', t.feelModerate], ['brisk', t.feelBrisk], ['fast', t.feelFast],
 ];
+const COMMON_METERS = ['4/4', '3/4', '6/8', '2/4'];
+const CHIP_GROUP_LABEL: Record<string, string> = {
+  harmonyIds: t.recommendedHarmony,
+  foregroundRule: t.foreground,
+  moodIds: t.moods,
+  productionIds: t.productionTitle,
+  constraintIds: t.constraintsTitle,
+};
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
@@ -37,8 +45,11 @@ function tempoFeelLabel(configuration: MusicConfiguration): string {
   }
   return configuration.tempo < 48 ? t.feelVerySlow : configuration.tempo < 70 ? t.feelRelaxed : configuration.tempo < 100 ? t.feelEasy : configuration.tempo < 138 ? t.feelModerate : configuration.tempo < 180 ? t.feelBrisk : t.feelFast;
 }
+function meterLabel(configuration: MusicConfiguration): string {
+  return configuration.meter === 'custom' ? configuration.customMeter ?? '4/4' : configuration.meter;
+}
 function chipGroup(group: string, items: { id: string; label: string }[], selected: string[], className = ''): string {
-  return '<div class="chips ' + className + '" role="group">' + items.map((item) => {
+  return '<div class="chips ' + className + '" role="group" aria-label="' + escapeHtml(CHIP_GROUP_LABEL[group] ?? group) + '">' + items.map((item) => {
     const active = selected.includes(item.id);
     return '<button type="button" class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
   }).join('') + '</div>';
@@ -108,9 +119,15 @@ function render(): void {
   const style = STYLE_BY_ID.get(configuration.styleId) ?? STYLE_BY_ID.get('cozy-jazz')!;
   const grooveOptions = style.grooves.map(({ id, label }) => ({ id, label }));
   const tonalityOptions = style.tonalities.map(({ id, label }) => ({ id, label }));
-  if (!grooveOptions.some((item) => item.id === configuration.grooveId)) grooveOptions.push({ id: configuration.grooveId, label: configuration.grooveId + ' · ' + t.retainedOtherStyle });
-  if (!tonalityOptions.some((item) => item.id === configuration.tonalityId)) tonalityOptions.push({ id: configuration.tonalityId, label: configuration.tonalityId + ' · ' + t.retainedOtherStyle });
-  const meterOptions = style.meters.map((item) => ({ id: item, label: item }));
+  if (!grooveOptions.some((item) => item.id === configuration.grooveId)) {
+    const retained = JAZZ_STYLES.flatMap((candidate) => candidate.grooves).find((item) => item.id === configuration.grooveId);
+    grooveOptions.push({ id: configuration.grooveId, label: (retained?.label ?? configuration.grooveId) + ' · ' + t.retainedOtherStyle });
+  }
+  if (!tonalityOptions.some((item) => item.id === configuration.tonalityId)) {
+    const retained = TONALITIES.find((item) => item.id === configuration.tonalityId);
+    tonalityOptions.push({ id: configuration.tonalityId, label: (retained?.label ?? configuration.tonalityId) + ' · ' + t.retainedOtherStyle });
+  }
+  const meterOptions = [...new Set([...style.meters, ...COMMON_METERS])].map((item) => ({ id: item, label: style.meters.includes(item) ? item : item + ' · ' + t.meterUnusual }));
   if (configuration.meter === 'custom') meterOptions.push({ id: 'custom', label: t.customMeter + ' (' + (configuration.customMeter ?? '4/4') + ')' });
   else if (!style.meters.includes(configuration.meter)) meterOptions.push({ id: configuration.meter, label: configuration.meter + ' · ' + t.retainedOtherStyle });
   if (!meterOptions.some((item) => item.id === 'custom')) meterOptions.push({ id: 'custom', label: t.customMeter });
@@ -120,15 +137,15 @@ function render(): void {
   }
   const categories = [...new Set(INSTRUMENTS.map((instrument) => instrument.category))];
   const categoryLabels: Record<string, string> = { guitar: 'Guitar', keyboard: 'Piano / Keyboard', brass: 'Brass', woodwind: 'Woodwind', strings: 'Strings', bass: 'Bass', percussion: 'Percussion', electronic: 'Electronic', texture: 'Texture' };
-  root.innerHTML = '<div class="app-shell"><header class="site-header"><a class="brand" href="#" aria-label="' + t.appName + '"><span class="brand-mark" aria-hidden="true">♪</span><span><strong>' + t.appName + '</strong><small>' + t.eyebrow + '</small></span></a><div class="header-pills"><span><i class="status-dot"></i>' + t.offlineReady + '</span><span>' + t.noApi + '</span></div></header>'
+  root.innerHTML = '<div class="app-shell"><header class="site-header"><a class="brand" href="#" aria-label="' + t.appName + '"><span class="brand-mark" aria-hidden="true">♪</span><span><strong>' + t.appName + '</strong><small>' + t.eyebrow + '</small></span></a><div class="header-pills"><span><i class="status-dot"></i><span id="offline-status" aria-live="polite">' + t.offlinePreparing + '</span></span><span>' + t.noApi + '</span></div></header>'
     + '<main class="page"><section class="hero"><div><p class="eyebrow">A LOCAL MUSIC TOOL</p><h1>把音樂想法，寫成清晰的 Flow Music prompt。</h1><p>' + t.subtitle + '</p></div><span class="hero-note" aria-hidden="true"><i>♬</i><span>STYLE<br>·<br>SPACE<br>·<br>SOUND</span></span></section>'
     + '<div class="studio-layout"><div class="configuration-column"><section class="panel style-panel" aria-labelledby="style-heading"><div class="panel-heading"><div><p class="eyebrow">01 · STYLE</p><h2 id="style-heading">' + t.styleTitle + '</h2><p class="section-help">' + t.styleHint + '</p></div></div>'
-    + '<label class="search-field"><span aria-hidden="true">⌕</span><input id="style-search" type="search" placeholder="' + t.searchStyle + '" autocomplete="off"></label><div class="style-grid" id="style-grid">' + renderStyleCards('') + '</div>'
+    + '<label class="search-field"><span aria-hidden="true">⌕</span><input id="style-search" type="search" aria-label="' + t.searchStyle + '" placeholder="' + t.searchStyle + '" autocomplete="off"></label><div class="style-grid" id="style-grid">' + renderStyleCards('') + '</div>'
     + (style.id === 'custom' ? '<label class="custom-name-field"><span>' + t.customStyleName + '</span><input type="text" data-field="customStyleName" value="' + escapeHtml(configuration.customStyleName ?? '') + '" placeholder="' + t.customStylePlaceholder + '"></label>' : '') + '</section>'
     + renderRecommendation(style)
     + '<section class="panel" aria-labelledby="instruments-heading"><div class="panel-heading"><div><p class="eyebrow">02 · ENSEMBLE</p><h2 id="instruments-heading">' + t.instrumentTitle + '</h2><p class="section-help">' + t.instrumentHint + '</p></div></div><div class="instrument-list">' + (configuration.instruments.length ? configuration.instruments.map(renderInstrument).join('') : '<p class="empty-inline">' + t.noneSelected + '</p>') + '</div>'
     + '<div class="add-instrument-row"><label for="instrument-picker">' + t.addInstrument + '</label><select id="instrument-picker"><option value="">' + t.chooseInstrument + '</option>' + categories.map((category) => '<optgroup label="' + escapeHtml(categoryLabels[category] ?? category) + '">' + INSTRUMENTS.filter((item) => item.category === category && !configuration.instruments.some((part) => part.instrumentId === item.id)).map((instrument) => '<option value="' + escapeHtml(instrument.id) + '">' + escapeHtml(instrument.nameZh + ' (' + instrument.name + ')') + '</option>').join('') + '</optgroup>').join('') + '</select></div></section>'
-    + '<section class="panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow">03 · MUSIC</p><h2 id="music-heading">' + t.basicTitle + '</h2></div></div><div class="control-grid"><div class="tempo-control"><div class="label-line"><label for="tempo-number">' + t.tempo + '</label><span>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + '</span></div><div class="tempo-inputs"><input id="tempo-range" type="range" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo"><input id="tempo-number" class="number-input" type="number" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><span>BPM</span></div><small class="tempo-feel" id="tempo-feel">' + tempoFeelLabel(configuration) + '</small></div>'
+    + '<section class="panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow">03 · MUSIC</p><h2 id="music-heading">' + t.basicTitle + '</h2></div></div><div class="control-grid"><div class="tempo-control"><div class="label-line"><label for="tempo-number">' + t.tempo + '</label><span>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + '</span></div><div class="tempo-inputs"><input id="tempo-range" type="range" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><input id="tempo-number" class="number-input" type="number" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><span>BPM</span></div><small class="tempo-feel" id="tempo-feel">' + tempoFeelLabel(configuration) + '</small></div>'
     + '<label><span>' + t.tempoFeel + '</span><select data-field="tempoFeelId">' + selectOptions(TEMPO_FEELS.map(([id, label]) => ({ id: id as string, label: label as string })), configuration.tempoFeelId) + '</select></label>'
     + '<label><span>' + t.groove + '</span><select data-field="grooveId">' + selectOptions(grooveOptions, configuration.grooveId) + '</select></label><label><span>' + t.energy + '</span><div class="range-labels"><small>' + t.energyLow + '</small><small>' + t.energyHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.energy + '" data-field="energy" aria-label="' + t.energy + '"></label>'
     + '<label><span>' + t.melodyDensity + '</span><div class="range-labels"><small>' + t.densityLow + '</small><small>' + t.densityHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.melodyDensity + '" data-field="melodyDensity" aria-label="' + t.melodyDensity + '"></label><label><span>' + t.improvisation + '</span><div class="range-labels"><small>' + t.improvLow + '</small><small>' + t.improvHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.improvisation + '" data-field="improvisation" aria-label="' + t.improvisation + '"></label></div>'
@@ -144,7 +161,7 @@ function render(): void {
     + renderCompatibility(configuration)
     + '<section class="panel" aria-labelledby="variation-heading"><div class="panel-heading"><div><p class="eyebrow">08 · EXPLORE</p><h2 id="variation-heading">' + t.variationsTitle + '</h2></div><button class="button button-secondary" type="button" data-action="generate-variations">' + t.generateVariations + '</button></div>' + renderVariations() + '</section>'
     + renderPresets() + '<footer class="site-footer">' + t.footer + '</footer></div>'
-    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">FLOW MUSIC · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p><label class="visually-hidden" for="prompt-output">Generated English Flow Music prompt</label><textarea id="prompt-output" readonly spellcheck="false">' + escapeHtml(compilePrompt(configuration)) + '</textarea><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + configuration.meter + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>音樂描述先行。只保留少量必要限制，令 Flow Music 更容易掌握整體方向。</p></div></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
+    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">FLOW MUSIC · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p><label class="visually-hidden" for="prompt-output">Generated English Flow Music prompt</label><textarea id="prompt-output" readonly spellcheck="false">' + escapeHtml(compilePrompt(configuration)) + '</textarea><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>音樂描述先行。只保留少量必要限制，令 Flow Music 更容易掌握整體方向。</p></div></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
   const advanced = root.querySelector<HTMLDetailsElement>('.advanced-controls');
   if (advanced && advancedWasOpen) advanced.open = true;
   if (previousFocus) {
@@ -172,7 +189,7 @@ function refreshDynamicAreas(): void {
   const compatibility = document.querySelector<HTMLElement>('#compatibility-panel');
   if (compatibility) { const wrapper = document.createElement('div'); wrapper.innerHTML = renderCompatibility(appState.configuration); compatibility.replaceWith(wrapper.firstElementChild!); }
   const previewMeta = document.querySelector<HTMLElement>('.preview-metadata');
-  if (previewMeta) previewMeta.innerHTML = '<span>' + escapeHtml(STYLE_BY_ID.get(appState.configuration.styleId)?.name ?? '') + '</span><span>·</span><span>' + appState.configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(appState.configuration.meter) + '</span>';
+  if (previewMeta) previewMeta.innerHTML = '<span>' + escapeHtml(STYLE_BY_ID.get(appState.configuration.styleId)?.name ?? '') + '</span><span>·</span><span>' + appState.configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(appState.configuration)) + '</span>';
   const feel = document.querySelector<HTMLElement>('#tempo-feel');
   if (feel) feel.textContent = tempoFeelLabel(appState.configuration);
 }
@@ -222,7 +239,9 @@ function toggleValue(group: string, value: string): void {
 function downloadJson(name: string, json: string): void {
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
   const anchor = document.createElement('a'); anchor.href = url;
-  anchor.download = name.replace(/[^a-z0-9-_]+/gi, '-').replace(/^-|-$/g, '') + '.json'; anchor.click(); URL.revokeObjectURL(url);
+  const safeName = Array.from(name.normalize('NFC').trim(), (char) => char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/u.test(char) ? '-' : char)
+    .join('').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^[.-]+|[. -]+$/g, '').slice(0, 80);
+  anchor.download = (safeName || 'flowmusic-preset') + '.json'; anchor.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function findPreset(id: string): UserPreset | undefined { return listPresets().find((preset) => preset.id === id); }
 function handleClick(event: MouseEvent): void {
@@ -256,7 +275,7 @@ function handleClick(event: MouseEvent): void {
     if (name?.trim()) { savePreset(name, preset.configuration, undefined, preset.id); render(); }
   } else if (action === 'duplicate-preset') {
     const preset = findPreset(id); if (!preset) return;
-    savePreset(preset.name + ' copy', preset.configuration); render(); notify(t.presetSaved);
+    savePreset(preset.name + ' (' + t.presetCopySuffix + ')', preset.configuration); render(); notify(t.presetSaved);
   } else if (action === 'delete-preset') {
     if (window.confirm(t.confirmDelete)) { deletePreset(id); render(); notify(t.presetDeleted); }
   } else if (action === 'export-preset') { const preset = findPreset(id); if (preset) downloadJson(preset.name, exportPresetJson(preset)); }
@@ -295,40 +314,64 @@ function handleChange(event: Event): void {
     target.value = ''; return;
   }
   const field = target.dataset.field;
-  if (field === 'customMeter' && !/^\d{1,2}\/\d{1,2}$/.test(target.value)) {
+  if (field === 'customMeter' && !isValidMeter(target.value)) {
     target.value = appState.configuration.customMeter ?? '4/4';
     notify(t.invalidMeter);
     return;
   }
   if (field) {
     updateConfiguration(field, target.value);
+    if (field === 'tempo') {
+      const value = String(appState.configuration.tempo);
+      const number = document.querySelector<HTMLInputElement>('#tempo-number');
+      const range = document.querySelector<HTMLInputElement>('#tempo-range');
+      if (number) number.value = value;
+      if (range) range.value = value;
+    }
     if (field === 'meter' || field === 'sceneId') render();
   }
 }
 function handleInput(event: Event): void {
   const target = event.target as HTMLInputElement;
   if (target.id === 'style-search') { const grid = document.querySelector<HTMLElement>('#style-grid'); if (grid) grid.innerHTML = renderStyleCards(target.value); return; }
+  if (target.matches('[data-part-index][data-part-field="prominence"]')) {
+    const part = appState.configuration.instruments[Number(target.dataset.partIndex)];
+    if (part) {
+      part.prominence = Number(target.value);
+      const label = target.closest('label')?.querySelector('span');
+      if (label) label.textContent = t.prominence + ' · ' + part.prominence;
+      persist(); refreshDynamicAreas();
+    }
+    return;
+  }
   const field = target.dataset.field;
   if (field && (target.type === 'range' || field === 'tempo' || field === 'customStyleName' || field === 'customSceneName' || field === 'customMeter')) {
-    if (field === 'customMeter' && !/^\d{1,2}\/\d{1,2}$/.test(target.value)) return;
+    if (field === 'customMeter' && !isValidMeter(target.value)) return;
     updateConfiguration(field, target.value);
     if (field === 'tempo') {
       const number = document.querySelector<HTMLInputElement>('#tempo-number'); const slider = document.querySelector<HTMLInputElement>('#tempo-range');
-      if (number && target !== number) number.value = target.value;
-      if (slider && target !== slider) slider.value = String(Math.min(400, Number(target.value)));
+      if (target.id === 'tempo-range' && number) number.value = String(appState.configuration.tempo);
+      if (target.id === 'tempo-number' && slider) slider.value = String(appState.configuration.tempo);
     }
   }
 }
 root.addEventListener('click', handleClick); root.addEventListener('change', handleChange); root.addEventListener('input', handleInput);
 render();
 function registerPwa(): void {
-  if (!('serviceWorker' in navigator)) return;
+  const status = document.querySelector<HTMLElement>('#offline-status');
+  if (!('serviceWorker' in navigator)) {
+    if (status) status.textContent = t.offlineUnavailable;
+    return;
+  }
   const base = import.meta.env.BASE_URL;
   navigator.serviceWorker.register(base + 'sw.js', { scope: base }).then((registration) => {
+    const markReady = () => { if (status) status.textContent = t.offlineReady; };
+    if (registration.active) markReady();
+    else navigator.serviceWorker.ready.then(markReady).catch(() => { if (status) status.textContent = t.offlineUnavailable; });
     const banner = document.querySelector<HTMLElement>('#update-banner');
     const showUpdate = () => { if (registration.waiting && navigator.serviceWorker.controller && banner) banner.hidden = false; };
     showUpdate();
     registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', () => { if (registration.installing?.state === 'installed') showUpdate(); }));
-  }).catch(() => undefined);
+  }).catch(() => { if (status) status.textContent = t.offlineUnavailable; });
 }
 registerPwa();

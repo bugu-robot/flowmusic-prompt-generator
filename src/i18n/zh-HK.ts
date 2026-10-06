@@ -2,7 +2,9 @@ export const zhHK = {
   appName: 'FlowMusic Prompt Generator',
   eyebrow: 'LOCAL-FIRST · JAZZ PROMPT STUDIO',
   subtitle: '用繁體中文整理音樂想法，生成可直接貼到 Flow Music 的英文 prompt。',
-  offlineReady: '離線可用',
+  offlineReady: '離線支援就緒',
+  offlinePreparing: '離線支援載入中',
+  offlineUnavailable: '離線支援未能啟用',
   noApi: '不需 AI API',
   styleTitle: 'Jazz 風格',
   styleHint: '選擇主風格。轉換風格時會保留你已調整的音樂設定。',
@@ -117,6 +119,7 @@ export const zhHK = {
   loadPreset: '載入',
   renamePreset: '重新命名',
   duplicatePreset: '複製',
+  presetCopySuffix: '副本',
   deletePreset: '刪除',
   exportPreset: '匯出 JSON',
   importPreset: '匯入 JSON',
@@ -162,9 +165,10 @@ export const zhHK = {
   startupHint: '已載入 Cozy Jazz 建議設定；按「複製 Prompt」即可開始。',
   customMeter: '自訂拍號',
   customMeterValue: '輸入拍號，例如 5/4',
+  meterUnusual: '較少見',
   recommendedApplied: '已套用風格建議設定',
   retainedOtherStyle: '目前保留（非風格建議）',
-  invalidMeter: '拍號請使用數字格式，例如 5/4 或 7/8。',
+  invalidMeter: '拍號分子和分母須大於零，例如 5/4 或 7/8。',
 } as const;
 
 export type TranslationKey = keyof typeof zhHK;
