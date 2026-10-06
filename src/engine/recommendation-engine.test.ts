@@ -22,6 +22,10 @@ describe('Jazz style data and recommendations', () => {
     expect(STYLE_BY_ID.get('jazz-ballad')?.meters).toContain('3/4');
     expect(STYLE_BY_ID.get('jazz-waltz')?.meters[0]).toBe('3/4');
     expect(recommendConfiguration('jazz-waltz').meter).toBe('3/4');
+    expect(STYLE_BY_ID.get('samba-jazz')?.meters).toEqual(['4/4', '2/4']);
+    expect(recommendConfiguration('samba-jazz').meter).toBe('4/4');
+    expect(STYLE_BY_ID.get('third-stream')?.meters).toEqual(['4/4', '3/4']);
+    expect(recommendConfiguration('third-stream').meter).toBe('4/4');
     expect(STYLE_BY_ID.get('new-orleans')?.meters).toContain('2/4');
   });
 

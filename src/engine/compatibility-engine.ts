@@ -45,7 +45,7 @@ export function checkCompatibility(configuration: MusicConfiguration): Compatibi
   const enabled = configuration.instruments.filter((part) => part.enabled);
   if (enabled.length === 0) instrumentScore -= 15;
   const seenLead = enabled.filter((part) => part.role === 'lead');
-  if (seenLead.length > 1) {
+  if (seenLead.length > 1 && style.foregroundRule !== 'collective') {
     instrumentScore -= Math.min(9, (seenLead.length - 1) * 4);
     messages.push({ category: 'unusual', message: '目前有多個樂器設為主奏；prompt 會按 prominence 選出一個主要旋律聲部。' });
   }

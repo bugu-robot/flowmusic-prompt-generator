@@ -71,6 +71,7 @@ export interface JazzStyle {
   recommendedParts?: Array<Pick<InstrumentPart, 'instrumentId' | 'role' | 'prominence' | 'behaviour'>>;
   foregroundRule?: MusicConfiguration['foregroundRule'];
   interactionPrompt?: string;
+  harmonyGuidance?: string;
   moods: string[];
   scenes: string[];
   melodyDensity: number;

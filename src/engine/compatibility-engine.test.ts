@@ -66,4 +66,26 @@ describe('advisory compatibility engine', () => {
     expect(result.score).toBeLessThanOrEqual(100);
     expect(result.factors.reduce((total, factor) => total + factor.max, 0)).toBe(100);
   });
+
+  it('does not penalize intentional collective lead roles but still warns for ordinary styles', () => {
+    for (const styleId of ['free-jazz', 'new-orleans', 'dixieland']) {
+      const configuration = recommendConfiguration(styleId);
+      const additionalLead = configuration.instruments.find((part) => part.role === 'lead');
+      expect(additionalLead, styleId).toBeDefined();
+      configuration.instruments.push({ ...additionalLead!, instrumentId: styleId === 'free-jazz' ? 'trumpet' : 'clarinet', role: 'lead', prominence: 40 });
+      const result = checkCompatibility(configuration);
+      expect(result.messages.some((item) => item.message.includes('多個樂器設為主奏')), styleId).toBe(false);
+    }
+
+    const ordinary = recommendConfiguration('cool-jazz');
+    ordinary.instruments.push({ instrumentId: 'tenor-sax', enabled: true, role: 'lead', prominence: 40, behaviour: 'measured melodic improvisation' });
+    const ordinaryResult = checkCompatibility(ordinary);
+    expect(ordinaryResult.messages.some((item) => item.message.includes('多個樂器設為主奏'))).toBe(true);
+  });
+
+  it('gives the recommended Free Jazz collective configuration full compatibility without a lead warning', () => {
+    const result = checkCompatibility(recommendConfiguration('free-jazz'));
+    expect(result.score).toBe(100);
+    expect(result.messages.some((item) => item.message.includes('多個樂器設為主奏'))).toBe(false);
+  });
 });

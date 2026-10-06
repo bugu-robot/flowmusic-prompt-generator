@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { compilePrompt } from './prompt-compiler';
 import { recommendConfiguration } from './recommendation-engine';
+import { generateVariations } from './variation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { CONSTRAINTS } from '../data/options';
@@ -67,6 +68,11 @@ describe('deterministic English prompt compiler', () => {
   it('is stable across repeated recompilation', () => {
     const configuration = recommendConfiguration('cool-jazz');
     expect(compilePrompt(configuration)).toBe(compilePrompt(configuration));
+  });
+
+  it('keeps the Custom default prompt byte-for-byte stable', () => {
+    const prompt = compilePrompt(recommendConfiguration('custom'));
+    expect(createHash('sha256').update(prompt).digest('hex')).toBe('aa3f2be9702a71f12329391230808681f625b6074f7720f3dca6fd3d8875ca1d');
   });
 
   it('supports explicit custom meters while keeping the output English', () => {
@@ -159,13 +165,13 @@ describe('deterministic English prompt compiler', () => {
     { styleId: 'new-orleans', includes: ['trumpet or cornet', 'clarinet', 'trombone', 'tailgate-style', 'collective front-line improvisation', 'overlapping but coherent'], excludes: ['Only one foreground melodic voice at a time.'] },
     { styleId: 'dixieland', includes: ['trumpet or cornet', 'clarinet', 'trombone', 'tailgate-style', 'collective front-line improvisation', 'overlapping but coherent'], excludes: ['Only one foreground melodic voice at a time.'] },
     { styleId: 'lofi-jazz', includes: ['Lo-fi Jazz / Chill Jazz', '78 BPM', 'slightly behind-the-beat hip-hop-influenced pocket', 'major 7th', 'minor 9th', 'tenor saxophone', 'very low information density'], excludes: ['trap', 'EDM'] },
-    { styleId: 'acid-jazz', includes: ['Acid Jazz', '112 BPM', 'straight-16th funk-soul pocket', 'syncopated electric-bass line', 'live jazz improvisation', 'dominant 13th'], excludes: ['swing time', 'four-on-the-floor', 'heavy rock guitar'] },
-    { styleId: 'big-band', includes: ['Big Band Jazz', '150 BPM', 'swing', 'walking bass line', 'ride-cymbal', 'saxophone, trumpet and trombone sections', 'arranged ensemble', 'sectional call-and-response', 'shout chorus'] },
+    { styleId: 'acid-jazz', includes: ['Acid Jazz', '112 BPM', 'straight-16th funk-soul pocket', 'syncopated electric-bass line', 'live jazz improvisation', 'dominant 13th', 'Rhodes electric piano', 'electric bass', 'clean jazz electric guitar'], excludes: ['swing time', 'four-on-the-floor', 'heavy rock guitar', 'avoid electronic instruments'] },
+    { styleId: 'big-band', includes: ['Big Band Jazz', '150 BPM', 'swing', 'walking bass line', 'ride-cymbal', 'saxophone, trumpet and trombone sections', 'arranged ensemble', 'sectional call-and-response', 'shout chorus'], excludes: ['collective front line'] },
     { styleId: 'samba-jazz', includes: ['Samba Jazz', '132 BPM', 'driving Brazilian samba pulse', 'Brazilian percussion', 'pandeiro-like', 'measured melodic improvisation'], excludes: ['bossa', 'clave', 'tumbao', 'montuno'] },
     { styleId: 'jazz-waltz', includes: ['Jazz Waltz', '126 BPM', '3/4', 'phrasing in three', 'across all three beats', 'jazz brush pulse'], excludes: ['6/8'] },
     { styleId: 'piano-cafe-jazz', includes: ['café piano jazz', '76 BPM', 'Piano carries the main melodic voice', 'upright bass', 'jazz brush pulse', 'quiet café', 'very low information density'], excludes: ['saxophone carries the main melodic voice', 'virtuosic solo density'] },
     { styleId: 'contemporary-jazz', includes: ['Contemporary Jazz', '118 BPM', 'interactive modern phrasing', 'quartal voicings', 'modal interchange', 'asymmetrical accents', 'altered dominant chords'] },
-    { styleId: 'free-jazz', includes: ['Free Jazz / Avant-Garde Jazz', 'variable time', 'no fixed backbeat', 'collective improvisation', 'fragmented motifs', 'nonfunctional pedal fields', 'expand and contract'], excludes: ['Only one foreground melodic voice at a time.', 'ii-V-I loop'] },
+    { styleId: 'free-jazz', includes: ['Free Jazz / Avant-Garde Jazz', 'variable time', 'no fixed backbeat', 'collective improvisation', 'fragmented motifs', 'nonfunctional chromatic and modal clusters', 'pedal fields', 'dissonant extended intervals', 'no permanent lead hierarchy', 'expand and contract'], excludes: ['Only one foreground melodic voice at a time.', 'carries the main melodic voice', 'minor 7th harmony', 'smooth conventional voice leading', 'ii-V-I loop'] },
     { styleId: 'jazz-hop', includes: ['Jazz-Hop / Hip-Hop Jazz', '88 BPM', 'Boom-Bap', 'kick-snare relationship', 'lightly humanized hats', 'Jazz'], excludes: ['trap', 'vinyl hiss', 'EDM'] },
     { styleId: 'neo-soul-jazz', includes: ['Neo-Soul Jazz', '86 BPM', 'behind-the-beat', '16th-note pocket', 'Rhodes', 'maj9', 'min9', '11th and 13th chords', 'slash voicings', 'chromatic voice leading', 'ghost notes'], excludes: ['swing ride', 'trap'] },
     { styleId: 'dark-jazz', includes: ['Dark Jazz / Noir Jazz', '64 BPM', 'Dark modal tonality', 'negative space', 'Muted trumpet', 'deep low-register notes', 'intimate nocturnal space'], excludes: ['cinematic orchestral score', 'giant string swells', 'bright major jazz'] },
@@ -176,6 +182,33 @@ describe('deterministic English prompt compiler', () => {
     const prompt = compilePrompt(recommendConfiguration(styleId));
     for (const phrase of includes) expect(prompt.toLowerCase()).toContain(phrase.toLowerCase());
     for (const phrase of excludes) expect(prompt.toLowerCase()).not.toContain(phrase.toLowerCase());
+  });
+
+  it('keeps Free Jazz collective across A/B/C without a fixed melodic leader or conventional harmony', () => {
+    for (const [index, variation] of generateVariations(recommendConfiguration('free-jazz')).entries()) {
+      const prompt = compilePrompt(variation).toLowerCase();
+      expect(prompt, 'variation ' + ['A', 'B', 'C'][index]).toContain('collective improvisation');
+      expect(prompt, 'variation ' + ['A', 'B', 'C'][index]).toContain('no permanent lead hierarchy');
+      expect(prompt).not.toContain('carries the main melodic voice');
+      expect(prompt).not.toContain('only one foreground melodic voice at a time');
+      expect(prompt).not.toContain('minor 7th harmony');
+      expect(prompt).not.toContain('smooth conventional voice leading');
+    }
+  });
+
+  it('keeps Big Band sectional wording and a single featured soloist in every variation', () => {
+    const style = JAZZ_STYLES.find((candidate) => candidate.id === 'big-band')!;
+    for (const [index, variation] of generateVariations(recommendConfiguration('big-band')).entries()) {
+      const prompt = compilePrompt(variation).toLowerCase();
+      expect(prompt, 'variation ' + ['A', 'B', 'C'][index]).not.toContain('collective front line');
+      expect(prompt).toContain('walking bass line');
+      expect(prompt).toContain('ride-cymbal swing');
+      expect(prompt).toContain('saxophone-section');
+      expect(prompt).toContain('trumpet section');
+      expect(prompt).toContain('trombone-section');
+      expect(variation.instruments.filter((part) => part.behaviour.includes('featured solo'))).toHaveLength(1);
+      expect(style.variations[index]?.ensemble?.length).toBeGreaterThanOrEqual(8);
+    }
   });
 
   it('uses the requested taxonomy for all 12 added styles', () => {

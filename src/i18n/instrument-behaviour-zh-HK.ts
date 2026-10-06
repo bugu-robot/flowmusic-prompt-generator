@@ -115,6 +115,8 @@ export const INSTRUMENT_BEHAVIOUR_ZH_HK: Record<string, string> = {
   'short, subtle synthesized responses': '短促細膩的合成器回應',
   'a very quiet sustained background texture': '非常安靜而持續的背景質感',
   'composed contrapuntal voicings with extended jazz harmony': '結合延伸爵士和聲的室內樂對位配置',
+  'restrained jazz improvisation within a composed chamber texture': '在編排式室內樂質感中進行克制爵士即興',
+  'fragmented chromatic and modal cluster gestures with no fixed chord function': '以零碎半音與調式音簇自由發揮，不依附固定和弦功能',
   'low-register minor voicings with long spaces between sparse changes': '低音域小調和弦配置，疏落變化之間保留長時間留白',
   'warm Rhodes voicings with maj9, min9 and slash chords linked by smooth chromatic voice leading': '溫暖 Rhodes 和弦配置，加入 Maj9、Min9 與 Slash Chord，並以流暢半音聲部連接',
   'a concise featured solo framed by arranged big-band passages': '置於編排大型樂隊段落之中的精簡主奏',

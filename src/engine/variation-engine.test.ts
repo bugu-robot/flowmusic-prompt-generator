@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
-import { generateVariations } from './variation-engine';
+import { generateVariations, isRoleAppropriateBehaviour } from './variation-engine';
 import { recommendConfiguration } from './recommendation-engine';
 import { compilePrompt } from './prompt-compiler';
 
@@ -73,6 +73,7 @@ describe('curated arrangement variations', () => {
     const style = JAZZ_STYLES.find((candidate) => candidate.id === styleId)!;
     for (const variation of generateVariations(recommendConfiguration(styleId))) {
       for (const part of variation.instruments) {
+        expect(isRoleAppropriateBehaviour(part.role, part.behaviour), styleId + ': ' + part.instrumentId + ' as ' + part.role + ' → ' + part.behaviour).toBe(true);
         const recommended = style.recommendedParts?.find((candidate) => candidate.instrumentId === part.instrumentId && candidate.role === part.role);
         if (recommended) expect(part.behaviour, styleId + ': ' + part.instrumentId).toBe(recommended.behaviour);
       }
@@ -101,6 +102,30 @@ describe('curated arrangement variations', () => {
         expect(variation.instruments.map((part) => part.instrumentId)).toContain('piano');
         expect(variation.instruments.some((part) => ['clarinet', 'violin'].includes(part.instrumentId))).toBe(true);
       }
+    }
+  });
+
+  it('selects role-appropriate style variation behaviours for the reviewed cases', () => {
+    const waltzB = generateVariations(recommendConfiguration('jazz-waltz'))[1]!;
+    expect(waltzB.instruments.find((part) => part.instrumentId === 'piano' && part.role === 'harmony')?.behaviour).toBe('soft, spacious chord voicings');
+
+    const neoSoulB = generateVariations(recommendConfiguration('neo-soul-jazz'))[1]!;
+    const guitarHarmony = neoSoulB.instruments.find((part) => part.instrumentId === 'jazz-electric-guitar' && part.role === 'harmony');
+    expect(guitarHarmony?.behaviour).toContain('voicings');
+    expect(guitarHarmony?.behaviour).not.toBe('rounded single-note phrases');
+
+    for (const variation of generateVariations(recommendConfiguration('third-stream'))) {
+      const prompt = compilePrompt(variation).toLowerCase();
+      expect(prompt).toContain('composed chamber counterline');
+      expect(prompt).toContain('jazz improvisation');
+      expect(variation.instruments.some((part) => ['clarinet', 'violin'].includes(part.instrumentId))).toBe(true);
+    }
+
+    for (const variation of generateVariations(recommendConfiguration('contemporary-jazz'))) {
+      const prompt = compilePrompt(variation).toLowerCase();
+      expect(prompt).toContain('quartal voicings');
+      expect(prompt).toContain('suspended harmony');
+      expect(prompt).toContain('modal interchange');
     }
   });
 });

@@ -23,6 +23,7 @@ interface StyleSeed {
   variations?: VariationRecipe[];
   foregroundRule?: JazzStyle['foregroundRule'];
   interactionPrompt?: string;
+  harmonyGuidance?: string;
   moods: string[];
   scenes: string[];
   melodyDensity: number;
@@ -489,7 +490,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     ],
     foregroundRule: 'gentle', moods: ['energetic', 'sophisticated', 'warm', 'playful'], scenes: ['city-night', 'summer', 'sunset-cafe'],
     melodyDensity: 48, improvisation: 52, energy: 70, dynamics: 'gentle-evolution', arrangement: 'traditional-sections',
-    production: ['warm', 'clean', 'polished', 'room'], constraints: ['electronic', 'virtuosic-runs', 'dramatic-climax'],
+    production: ['warm', 'clean', 'polished', 'room'], constraints: ['virtuosic-runs', 'dramatic-climax'],
     compatibleStyles: ['jazz-funk', 'soul-jazz', 'jazz-fusion'],
   }),
   makeStyle({
@@ -513,7 +514,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 52, behaviour: 'ride-cymbal swing with clear swing eighths' },
     ],
     foregroundRule: 'collective',
-    interactionPrompt: 'Keep the large arranged ensemble present: saxophone, trumpet and trombone sections use coordinated voicings, rhythmic punches and sectional call-and-response around one concise featured soloist, then return to the arranged horns for a controlled shout chorus.',
+    interactionPrompt: 'Keep the large arranged ensemble present: the saxophone section, trumpet section and trombone section use coordinated voicings, rhythmic punches and sectional call-and-response around one concise featured soloist, then return to arranged horns for a controlled shout chorus.',
     moods: ['cheerful', 'energetic', 'elegant', 'sophisticated'], scenes: ['city-night', 'summer'],
     melodyDensity: 58, improvisation: 48, energy: 76, dynamics: 'dynamic', arrangement: 'traditional-sections',
     production: ['warm', 'clean', 'room', 'polished'], constraints: ['electronic'],
@@ -530,7 +531,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       ] },
       { label: 'B', lead: 'trumpet', response: 'tenor-sax', harmony: 'trombone', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
         { instrumentId: 'trumpet', role: 'lead', prominence: 90, behaviour: 'a concise featured solo framed by arranged big-band passages' },
-        { instrumentId: 'tenor-sax', role: 'response', prominence: 60, behaviour: 'a concise featured solo framed by arranged big-band passages' },
+        { instrumentId: 'tenor-sax', role: 'response', prominence: 60, behaviour: 'a coordinated saxophone-section line in tight arranged voicings' },
         { instrumentId: 'alto-sax', role: 'countermelody', prominence: 68, behaviour: 'a coordinated saxophone-section line in tight arranged voicings' },
         { instrumentId: 'trombone', role: 'response', prominence: 56, behaviour: 'low trombone-section answers with arranged ensemble punches' },
         { instrumentId: 'bari-sax', role: 'harmony', prominence: 42, behaviour: 'restrained ensemble voicings' },
@@ -540,7 +541,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       ] },
       { label: 'C', lead: 'alto-sax', response: 'trumpet', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
         { instrumentId: 'alto-sax', role: 'lead', prominence: 90, behaviour: 'a concise featured solo framed by arranged big-band passages' },
-        { instrumentId: 'tenor-sax', role: 'response', prominence: 60, behaviour: 'a concise featured solo framed by arranged big-band passages' },
+        { instrumentId: 'tenor-sax', role: 'response', prominence: 60, behaviour: 'a coordinated saxophone-section line in tight arranged voicings' },
         { instrumentId: 'trumpet', role: 'response', prominence: 64, behaviour: 'short trumpet-section stabs with tight arranged voicings and ensemble punches' },
         { instrumentId: 'trombone', role: 'response', prominence: 56, behaviour: 'low trombone-section answers with arranged ensemble punches' },
         { instrumentId: 'bari-sax', role: 'harmony', prominence: 42, behaviour: 'restrained ensemble voicings' },
@@ -555,6 +556,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     id: 'samba-jazz', name: 'Samba Jazz', nameZh: '巴西 Samba 脈動上的爵士和聲與即興', classification: 'historical-derived-style', family: 'samba-jazz',
     descriptionZh: '以巴西 Samba 節奏為核心的爵士衍生風格；比 Bossa Nova 更活躍、更具推進感，保留爵士和聲與即興。',
     promptStyle: 'Lively Samba Jazz with a driving Brazilian pulse, active syncopation and clear jazz improvisation',
+    meters: ['4/4', '2/4'],
     tempo: { min: 105, max: 155, default: 132 },
     groove: [['samba-drive', 'driving Brazilian samba pulse with syncopated percussion, active bass and clear forward motion'], ['samba-accented', 'lively samba-derived jazz pulse with buoyant syncopated comping']],
     tonalities: [['major', 'bright major tonality'], ['warm-major', 'warm major tonality'], ['modal', 'bright modal colors']],
@@ -620,11 +622,12 @@ export const JAZZ_STYLES: JazzStyle[] = [
   makeStyle({
     id: 'contemporary-jazz', name: 'Contemporary Jazz', nameZh: '靈活律動與現代和聲互動的當代 Jazz 描述', classification: 'modern-descriptor', family: 'contemporary-jazz',
     descriptionZh: '現代爵士的廣泛描述，並非單一歷史流派；重視互動式節奏、延伸和聲與原聲／電聲合奏的靈活配搭。',
-    promptStyle: 'Contemporary Jazz with interactive modern phrasing, quartal voicings and modal interchange',
+    promptStyle: 'Contemporary Jazz with interactive modern phrasing, quartal voicings, suspended chords and modal interchange',
     tempo: { min: 85, max: 145, default: 118 },
     groove: [['contemporary-flex', 'flexible straight-eighth pulse with occasional asymmetrical accents and responsive ensemble phrasing'], ['contemporary-light-swing', 'light swing blended with open modern rhythmic accents']],
     tonalities: [['modal', 'modern modal tonality'], ['minor', 'contemporary minor colors'], ['warm-major', 'warm major tonality']],
-    harmony: ['maj9', 'min9', 'altered'],
+    harmony: ['maj9', 'min9', 'sus', 'altered'],
+    harmonyGuidance: 'Blend quartal voicings, modal interchange and suspended chords with selective altered dominants; avoid constant functional ii–V cycling.',
     lead: ['tenor-sax', 'piano', 'trumpet'], response: ['piano', 'trumpet', 'jazz-electric-guitar'], harmonyInstruments: ['piano', 'rhodes'],
     bass: ['upright-bass', 'electric-bass'], rhythm: ['acoustic-drums'],
     recommendedParts: [
@@ -646,13 +649,14 @@ export const JAZZ_STYLES: JazzStyle[] = [
     tempo: { min: 60, max: 160, default: 110 },
     groove: [['free-time', 'free and variable time with an occasional loose 4/4 reference pulse and no fixed backbeat'], ['open-free', 'flexible acoustic pulse that can appear and dissolve during collective improvisation']],
     tonalities: [['dark-modal', 'open modal colors without a fixed tonal center'], ['modal', 'modal tonality'], ['minor', 'open minor colors']],
-    harmony: ['min7'],
+    harmony: ['modal', 'chromatic'],
+    harmonyGuidance: 'Favor nonfunctional chromatic and modal clusters, shifting pedal fields, dissonant extended intervals and independently moving lines; let tonal centers remain unstable or absent rather than following predictable functional cycles.',
     lead: ['alto-sax', 'trumpet', 'piano', 'tenor-sax'], response: ['trumpet', 'piano', 'tenor-sax'], harmonyInstruments: ['piano'],
     bass: ['upright-bass'], rhythm: ['acoustic-drums'],
     recommendedParts: [
       { instrumentId: 'alto-sax', role: 'lead', prominence: 88, behaviour: 'lyrical, measured improvisation' },
       { instrumentId: 'trumpet', role: 'lead', prominence: 72, behaviour: 'measured melodic improvisation' },
-      { instrumentId: 'piano', role: 'lead', prominence: 58, behaviour: 'soft, spacious chord voicings' },
+      { instrumentId: 'piano', role: 'lead', prominence: 58, behaviour: 'fragmented chromatic and modal cluster gestures with no fixed chord function' },
       { instrumentId: 'upright-bass', role: 'bass', prominence: 70, behaviour: 'free arco and pizzicato responses around a shifting pedal field' },
       { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 38, behaviour: 'free-time cymbal and tom colors with no fixed backbeat' },
     ],
@@ -665,19 +669,19 @@ export const JAZZ_STYLES: JazzStyle[] = [
       { label: 'A', lead: 'alto-sax', response: 'trumpet', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
         { instrumentId: 'alto-sax', role: 'lead', prominence: 90, behaviour: 'lyrical, measured improvisation' },
         { instrumentId: 'trumpet', role: 'lead', prominence: 72, behaviour: 'measured melodic improvisation' },
-        { instrumentId: 'piano', role: 'lead', prominence: 58, behaviour: 'soft, spacious chord voicings' },
+        { instrumentId: 'piano', role: 'lead', prominence: 58, behaviour: 'fragmented chromatic and modal cluster gestures with no fixed chord function' },
         { instrumentId: 'upright-bass', role: 'bass', prominence: 70, behaviour: 'free arco and pizzicato responses around a shifting pedal field' },
         { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 38, behaviour: 'free-time cymbal and tom colors with no fixed backbeat' },
       ] },
       { label: 'B', lead: 'trumpet', response: 'piano', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
         { instrumentId: 'trumpet', role: 'lead', prominence: 90, behaviour: 'measured melodic improvisation' },
-        { instrumentId: 'piano', role: 'lead', prominence: 72, behaviour: 'soft, spacious chord voicings' },
+        { instrumentId: 'piano', role: 'lead', prominence: 72, behaviour: 'fragmented chromatic and modal cluster gestures with no fixed chord function' },
         { instrumentId: 'tenor-sax', role: 'lead', prominence: 58, behaviour: 'warm, breathy phrases' },
         { instrumentId: 'upright-bass', role: 'bass', prominence: 70, behaviour: 'free arco and pizzicato responses around a shifting pedal field' },
         { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 38, behaviour: 'free-time cymbal and tom colors with no fixed backbeat' },
       ] },
       { label: 'C', lead: 'piano', response: 'tenor-sax', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
-        { instrumentId: 'piano', role: 'lead', prominence: 90, behaviour: 'soft, spacious chord voicings' },
+        { instrumentId: 'piano', role: 'lead', prominence: 90, behaviour: 'fragmented chromatic and modal cluster gestures with no fixed chord function' },
         { instrumentId: 'tenor-sax', role: 'lead', prominence: 72, behaviour: 'warm, breathy phrases' },
         { instrumentId: 'alto-sax', role: 'lead', prominence: 58, behaviour: 'lyrical, measured improvisation' },
         { instrumentId: 'upright-bass', role: 'bass', prominence: 70, behaviour: 'free arco and pizzicato responses around a shifting pedal field' },
@@ -756,6 +760,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
     id: 'third-stream', name: 'Third Stream Jazz', nameZh: '爵士即興與室內樂對位結構結合的衍生風格', classification: 'historical-derived-style', family: 'third-stream',
     descriptionZh: '爵士與古典室內樂語言結合的衍生風格；保留爵士節奏和即興，同時採用編寫式對位與古典聲部進行。',
     promptStyle: 'Third Stream Jazz combining composed chamber counterpoint with restrained jazz improvisation',
+    meters: ['4/4', '3/4'],
     tempo: { min: 60, max: 120, default: 88 },
     groove: [['third-stream-pulse', 'subtle jazz pulse beneath composed chamber passages with room for written rubato'], ['third-stream-light', 'light acoustic jazz pulse alternating with chamber-like phrasing']],
     tonalities: [['modal', 'modal colors with classical voice leading'], ['warm-major', 'warm major tonality'], ['minor', 'reflective minor colors']],
@@ -773,6 +778,32 @@ export const JAZZ_STYLES: JazzStyle[] = [
     foregroundRule: 'gentle', moods: ['reflective', 'elegant', 'sophisticated', 'calm'], scenes: ['library', 'reading-room', 'winter'],
     melodyDensity: 34, improvisation: 32, energy: 30, dynamics: 'gentle-evolution', arrangement: 'traditional-sections',
     production: ['warm', 'spacious', 'room', 'clean'], constraints: ['cinematic', 'dramatic-climax', 'large-crescendos'],
+    variations: [
+      { label: 'A', lead: 'tenor-sax', response: 'clarinet', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
+        { instrumentId: 'tenor-sax', role: 'lead', prominence: 82, behaviour: 'measured melodic improvisation' },
+        { instrumentId: 'clarinet', role: 'response', prominence: 54, behaviour: 'a composed chamber counterline alternating with restrained jazz improvisation' },
+        { instrumentId: 'piano', role: 'harmony', prominence: 52, behaviour: 'composed contrapuntal voicings with extended jazz harmony' },
+        { instrumentId: 'violin', role: 'response', prominence: 42, behaviour: 'a composed chamber counterline with restrained jazz phrasing' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 60, behaviour: 'a soft, even walking pulse' },
+        { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 22, behaviour: 'a feather-light jazz brush pulse with minimal fills and no strong backbeat' },
+      ] },
+      { label: 'B', lead: 'piano', response: 'clarinet', harmony: 'violin', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
+        { instrumentId: 'piano', role: 'lead', prominence: 82, behaviour: 'restrained jazz improvisation within a composed chamber texture' },
+        { instrumentId: 'clarinet', role: 'response', prominence: 54, behaviour: 'a composed chamber counterline alternating with restrained jazz improvisation' },
+        { instrumentId: 'violin', role: 'harmony', prominence: 42, behaviour: 'a composed chamber counterline with restrained jazz phrasing' },
+        { instrumentId: 'tenor-sax', role: 'response', prominence: 38, behaviour: 'measured melodic improvisation' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 60, behaviour: 'a soft, even walking pulse' },
+        { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 22, behaviour: 'a feather-light jazz brush pulse with minimal fills and no strong backbeat' },
+      ] },
+      { label: 'C', lead: 'clarinet', response: 'violin', harmony: 'piano', bass: 'upright-bass', rhythm: 'acoustic-drums', ensemble: [
+        { instrumentId: 'clarinet', role: 'lead', prominence: 82, behaviour: 'light, nimble melodic phrases' },
+        { instrumentId: 'violin', role: 'response', prominence: 54, behaviour: 'a composed chamber counterline with restrained jazz phrasing' },
+        { instrumentId: 'piano', role: 'harmony', prominence: 52, behaviour: 'composed contrapuntal voicings with extended jazz harmony' },
+        { instrumentId: 'tenor-sax', role: 'response', prominence: 38, behaviour: 'measured melodic improvisation' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 60, behaviour: 'a soft, even walking pulse' },
+        { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 22, behaviour: 'a feather-light jazz brush pulse with minimal fills and no strong backbeat' },
+      ] },
+    ],
     compatibleStyles: ['nordic-chamber', 'cool-jazz', 'modal-jazz'],
   }),
   makeStyle({
