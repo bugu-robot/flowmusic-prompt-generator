@@ -7,6 +7,7 @@ import { recommendConfiguration } from '../engine/recommendation-engine';
 import { generateVariations } from '../engine/variation-engine';
 import { deletePreset, exportPresetJson, importPresetJson, isValidMeter, listPresets, loadCurrentConfiguration, saveCurrentConfiguration, savePreset } from '../storage/local-storage';
 import type { InstrumentPart, InstrumentRole, JazzStyle, MusicConfiguration, UserPreset } from '../models/types';
+import { instrumentBehaviourLabelZhHK } from '../i18n/instrument-behaviour-zh-HK';
 import { zhHK as t } from '../i18n/zh-HK';
 
 const STYLE_CLASS: Record<JazzStyle['classification'], string> = {
@@ -80,7 +81,7 @@ function renderInstrument(part: InstrumentPart, index: number): string {
   return '<article class="instrument-row' + (part.enabled ? '' : ' is-disabled') + '"><div class="instrument-title"><div><strong>' + escapeHtml(instrument.nameZh) + '</strong><span>' + escapeHtml(instrument.name) + '</span></div><div class="instrument-title-actions"><label class="instrument-enabled"><input type="checkbox" data-part-index="' + index + '" data-part-field="enabled"' + (part.enabled ? ' checked' : '') + '><span>' + t.includeInstrument + '</span></label><button type="button" class="icon-button" data-action="remove-instrument" data-index="' + index + '" aria-label="' + t.remove + ' ' + escapeHtml(instrument.nameZh) + '">×</button></div></div>'
     + '<div class="instrument-fields"><label><span>' + t.role + '</span><select data-part-index="' + index + '" data-part-field="role">' + selectOptions(roles, part.role) + '</select></label>'
     + '<label><span>' + t.prominence + ' · ' + part.prominence + '</span><input type="range" min="0" max="100" value="' + part.prominence + '" data-part-index="' + index + '" data-part-field="prominence" aria-label="' + t.prominence + ' ' + escapeHtml(instrument.nameZh) + '"></label></div>'
-    + '<label class="behaviour-field"><span>' + t.behaviour + '</span><select data-part-index="' + index + '" data-part-field="behaviour">' + selectOptions(instrument.behaviours.map((behaviour, i) => ({ id: String(i), label: behaviour })), String(Math.max(0, instrument.behaviours.indexOf(part.behaviour)))) + '</select></label></article>';
+    + '<label class="behaviour-field"><span>' + t.behaviour + '</span><select data-part-index="' + index + '" data-part-field="behaviour">' + selectOptions(instrument.behaviours.map((behaviour, i) => ({ id: String(i), label: instrumentBehaviourLabelZhHK(behaviour) })), String(Math.max(0, instrument.behaviours.indexOf(part.behaviour)))) + '</select></label></article>';
 }
 function renderCompatibility(configuration: MusicConfiguration): string {
   const result = checkCompatibility(configuration);
