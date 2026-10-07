@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "renderer": "FluidSynth 2.x + FluidR3_GM SoundFont; deterministic MIDI event renderer",
+  "soundSource": "FluidR3_GM.sf2 (MIT)",
+  "counts": {
+    "instruments": {
+      "expected": 32,
+      "mapped": 32
+    },
+    "behaviours": {
+      "uniqueExpected": 142,
+      "behaviourPairsExpected": 146,
+      "mapped": 146
+    },
+    "grooves": {
+      "expected": 64,
+      "mapped": 64
+    },
+    "reusablePatterns": 38
+  },
+  "technical": {
+    "checked": 242,
+    "passed": 242,
+    "failed": 0,
+    "sha256Checked": 242,
+    "missingHashes": [],
+    "missing": [],
+    "orphan": [],
+    "failedAssets": [],
+    "silent": [],
+    "clipping": [],
+    "loudness": [],
+    "duration": [],
+    "manifestErrors": 0,
+    "totalBytes": 24480786,
+    "averageBytes": 101160,
+    "largestBytes": 209756,
+    "loudnessPolicy": {
+      "standardTargetLufs": -18,
+      "percussionOnlyTargetLufs": -22.5,
+      "standardToleranceLufs": 2,
+      "percussionOnlyToleranceLufs": 2.5,
+      "targetTruePeakDbtp": -2.8
+    },
+    "maxInitialSilenceSeconds": 0.25
+  },
+  "musicRules": {
+    "checked": 1492,
+    "failed": 0,
+    "failures": []
+  },
+  "coverage": {
+    "instruments": {
+      "expected": 32,
+      "mapped": 32
+    },
+    "behaviours": {
+      "uniqueExpected": 142,
+      "behaviourPairsExpected": 146,
+      "mapped": 146
+    },
+    "grooves": {
+      "expected": 64,
+      "mapped": 64
+    }
+  },
+  "representativeCount": 20
+}

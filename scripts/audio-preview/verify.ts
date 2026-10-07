@@ -1,0 +1,102 @@
+import { readFile, readdir, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { buildPreviewCatalog, makeRuntimeIndex, type PreviewEntry, type PreviewManifest } from '../../src/audio-preview/catalog';
+import { previewRuntimeIndex } from '../../src/audio-preview/generated-index';
+import { flattenEntries, inspectAudio, type TechnicalResult } from '../../src/audio-preview/qc';
+import process from 'node:process';
+
+async function files(dir: string): Promise<string[]> {
+  let all: string[] = [];
+  for (const item of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, item.name);
+    if (item.isDirectory()) all = all.concat(await files(path));
+    else all.push(path);
+  }
+  return all;
+}
+
+function assert(ok: boolean, message: string): asserts ok {
+  if (!ok) throw new Error(message);
+}
+
+function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, sortKeys(item)]));
+  }
+  return value;
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
+}
+
+async function main(): Promise<void> {
+  const root = resolve(process.cwd());
+  const expected = buildPreviewCatalog();
+  const manifestPath = join(root, 'public/audio-previews/manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as PreviewManifest;
+  const expectedEntries = flattenEntries(expected.manifest);
+  const categories: Array<keyof Pick<PreviewManifest, 'instruments' | 'behaviours' | 'grooves'>> = ['instruments', 'behaviours', 'grooves'];
+
+  for (const category of categories) {
+    assert(sameJson(Object.keys(manifest[category]).sort(), Object.keys(expected.manifest[category]).sort()), `${category} coverage differs from the current catalog`);
+    for (const [key, wanted] of Object.entries(expected.manifest[category])) {
+      const actual = manifest[category][key] as PreviewEntry | undefined;
+      assert(Boolean(actual), `manifest entry missing for ${category}:${key}`);
+      assert(actual.previewId === wanted.previewId, `preview ID differs for ${category}:${key}`);
+      assert(actual.sourceCatalogId === wanted.sourceCatalogId, `catalog source differs for ${category}:${key}`);
+      assert(actual.sourceLabel === wanted.sourceLabel, `catalog label differs for ${category}:${key}`);
+      assert(actual.semanticFamily === wanted.semanticFamily, `semantic family differs for ${category}:${key}`);
+      assert(actual.pattern === wanted.pattern, `semantic pattern differs for ${category}:${key}`);
+      assert(actual.audioPath === wanted.audioPath, `audio path differs for ${category}:${key}`);
+      assert(actual.musicQcPassed && actual.musicQc.every((rule) => rule.ok), `semantic rules failed for ${actual.previewId}`);
+    }
+  }
+
+  assert(sameJson(manifest.coverage, expected.manifest.coverage), 'manifest coverage counters do not match the live catalog');
+  const expectedIndex = makeRuntimeIndex(expected.manifest);
+  assert(sameJson(previewRuntimeIndex, expectedIndex), 'generated runtime audio index is stale or inconsistent with the catalog');
+
+  const expectedPaths = expectedEntries.map((entry) => join(root, 'public', entry.audioPath)).sort();
+  const actualFiles = (await files(join(root, 'public/audio-previews'))).filter((path) => path.toLowerCase().endsWith('.mp3')).sort();
+  assert(sameJson(actualFiles, expectedPaths), `committed audio files differ from catalog paths; expected ${expectedPaths.length}, found ${actualFiles.length}`);
+
+  for (const wanted of expectedEntries) {
+    const categoryManifest = wanted.category === 'instrument' ? manifest.instruments : wanted.category === 'behaviour' ? manifest.behaviours : manifest.grooves;
+    const actual = categoryManifest[wanted.sourceCatalogId] as PreviewEntry;
+    const file = join(root, 'public', wanted.audioPath);
+    const fresh = await inspectAudio(file, wanted);
+    assert(fresh.ok, `committed MP3 failed independent decode/technical QC: ${wanted.previewId}: ${fresh.errors.join(', ')}`);
+    const committedHash = (actual.technicalQc as TechnicalResult | undefined)?.sha256;
+    assert(typeof committedHash === 'string' && /^[a-f0-9]{64}$/.test(committedHash), `SHA-256 is missing from manifest for ${wanted.previewId}`);
+    assert(fresh.sha256 === committedHash, `committed MP3 SHA-256 mismatch for ${wanted.previewId}`);
+  }
+
+  const qcPath = join(root, 'public/audio-previews/audio-preview-qc.json');
+  const qc = JSON.parse(await readFile(qcPath, 'utf8')) as {
+    technical: { checked: number; passed: number; failed: number; sha256Checked: number; missingHashes: string[]; manifestErrors: number };
+    musicRules: { failed: number };
+  };
+  assert(qc.technical.checked === expectedEntries.length, 'QC report asset count differs from catalog');
+  assert(qc.technical.passed === expectedEntries.length && qc.technical.failed === 0, 'QC report contains technical failures');
+  assert(qc.technical.sha256Checked === expectedEntries.length && qc.technical.missingHashes.length === 0, 'QC report has incomplete SHA-256 coverage');
+  assert(qc.technical.manifestErrors === 0, 'QC report contains manifest errors or orphan files');
+  assert(qc.musicRules.failed === 0, 'QC report contains semantic/music-rule failures');
+
+  for (const path of [join(root, 'public/audio-preview-review.zip'), join(root, 'dist/audio-preview-review.zip')]) {
+    try {
+      await stat(path);
+      throw new Error(`review ZIP must stay out of production files: ${path}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('review ZIP must stay')) throw error;
+    }
+  }
+
+  console.log(`Instrument tone previews: ${manifest.coverage.instruments.mapped}/${manifest.coverage.instruments.expected}`);
+  console.log(`Instrument behaviour pairs: ${manifest.coverage.behaviours.mapped}/${manifest.coverage.behaviours.behaviourPairsExpected} (${manifest.coverage.behaviours.uniqueExpected} unique English behaviour strings)`);
+  console.log(`Grooves: ${manifest.coverage.grooves.mapped}/${manifest.coverage.grooves.expected}`);
+  console.log(`Audio assets decoded and SHA-256 checked: ${expectedEntries.length}; semantic families, catalog paths, runtime index, QC report and orphan checks passed.`);
+}
+
+main().catch((error) => { console.error(error); process.exitCode = 1; });

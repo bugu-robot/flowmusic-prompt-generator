@@ -1,5 +1,16 @@
 # Project Status
 
+## Audio preview correction — local verification (2026-10-07)
+
+- Synced `feat/audio-preview-system` with current `main` (`bf0f414d7cc55a9a2b96f68fdf33ca0461c11f31`) in PR head merge commit `c62d5bc`; no conflicts.
+- Corrected semantic preview classification for melodic keyboard and bass parts, quartal piano, modal ostinatos, jazz waltz meter, contemporary straight-eighth phrasing, Neo-Soul, Jazz-Hop, Free Jazz, Noir brushes and Third Stream. Added focused regression coverage; recommendation, compatibility, variation and prompt compiler behavior were not changed.
+- Rebuilt all current catalog previews: 32/32 instrument tones, 146/146 instrument/behavior pairs (142 unique behavior strings), and 64/64 grooves; 242 MP3 previews total.
+- Structural and technical QC passed for all 242 previews, with zero music-rule or technical failures, missing/silent/clipping files, manifest errors or orphans. Every committed MP3 was independently decoded and its SHA-256 checked against the manifest; runtime-index and catalog consistency passed.
+- `npm ci`, `npm audit` (0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test` (239 tests across 8 files), `npm run build`, `npm run build -- --mode pages`, and `npm run audio:verify` passed locally. Both build modes passed; the Pages build retains `/flowmusic-prompt-generator/` paths and all manifest-linked icons.
+- GitHub Actions Audio preview verification run #6 for `c62d5bc` passed on Node.js 24.21.0: all nine job steps succeeded, the committed-audio/catalog/index/QC checks passed, and the 24,028,077-byte review artifact uploaded successfully (artifact ID `11461645289`). The Pages check built successfully; its deploy job was skipped for the PR event.
+- The review ZIP now lives under ignored `.artifacts/` for CI upload and is excluded from production builds; normal builds no longer invoke the Python packager.
+- PR #4 remains Draft. No merge, deploy, browser UAT, or subjective assessment of the preview sound has been performed.
+
 ## AUTOMATED VERIFIED
 
 - [x] 38 data-driven style options: 37 fixed built-in Jazz styles plus Custom, using the existing 32-instrument catalog. The 12 added styles are documented in README.md.
