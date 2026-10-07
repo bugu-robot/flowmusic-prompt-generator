@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { zhHK } from './zh-HK';
 import { INSTRUMENT_BEHAVIOUR_ZH_HK, instrumentBehaviourLabelZhHK } from './instrument-behaviour-zh-HK';
+import { GROOVE_ZH_HK, grooveLabelZhHK } from './groove-zh-HK';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENTS } from '../data/instruments';
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES } from '../data/options';
@@ -12,6 +13,7 @@ describe('Traditional Chinese localization', () => {
       ...JAZZ_STYLES.flatMap((style) => [style.nameZh, style.descriptionZh]),
       ...INSTRUMENTS.map((instrument) => instrument.nameZh),
       ...Object.values(INSTRUMENT_BEHAVIOUR_ZH_HK),
+      ...Object.values(GROOVE_ZH_HK),
       ...[...CONSTRAINTS, ...HARMONIES, ...MOODS, ...PRODUCTION, ...SCENES, ...ROLES].map((item) => item.label),
     ];
     expect([...Object.values(zhHK), ...catalogCopy].join('')).not.toMatch(simplifiedOnly);
@@ -24,6 +26,28 @@ describe('Traditional Chinese localization', () => {
         expect(instrumentBehaviourLabelZhHK(behaviour), instrument.id + ': ' + behaviour).not.toBe(behaviour);
       }
     }
+  });
+
+  it('provides bilingual Traditional Chinese and English labels for every groove option', () => {
+    const grooves = new Map(JAZZ_STYLES.flatMap((style) => style.grooves.map((groove) => [groove.id, groove] as const)));
+    for (const [id, groove] of grooves) {
+      expect(GROOVE_ZH_HK[id], id).toBeTruthy();
+      const label = grooveLabelZhHK(id, groove.label);
+      expect(label, id).toContain(GROOVE_ZH_HK[id]!);
+      expect(label, id).toContain(groove.label);
+    }
+  });
+
+  it('keeps Dynamics and Arrangement choices bilingual', () => {
+    expect(zhHK.dynamicsVeryStable).toBe('非常穩定 Very Stable');
+    expect(zhHK.dynamicsStable).toBe('穩定 Stable');
+    expect(zhHK.dynamicsGentle).toBe('緩慢變化 Gentle Evolution');
+    expect(zhHK.dynamicsBuild).toBe('漸進提升 Gradual Build');
+    expect(zhHK.dynamicsDynamic).toBe('高動態 Dynamic');
+    expect(zhHK.structureContinuous).toBe('連續背景 Continuous Background');
+    expect(zhHK.structureEvolution).toBe('緩慢演變 Gentle Evolution');
+    expect(zhHK.structureSections).toBe('傳統段落 Traditional Sections');
+    expect(zhHK.structureCustom).toBe('自訂 Custom');
   });
 
   it('provides the interface terms required for roles, prompts and updates', () => {
