@@ -8,6 +8,7 @@ import { generateVariations } from '../engine/variation-engine';
 import { deletePreset, exportPresetJson, importPresetJson, isValidMeter, listPresets, loadCurrentConfiguration, saveCurrentConfiguration, savePreset } from '../storage/local-storage';
 import type { InstrumentPart, InstrumentRole, JazzStyle, MusicConfiguration, UserPreset } from '../models/types';
 import { instrumentBehaviourLabelZhHK } from '../i18n/instrument-behaviour-zh-HK';
+import { grooveLabelZhHK } from '../i18n/groove-zh-HK';
 import { zhHK as t } from '../i18n/zh-HK';
 import { stopPreview, togglePreview } from '../audio-preview/player';
 
@@ -66,10 +67,11 @@ function renderStyleCards(filter: string): string {
 function renderRecommendation(style: JazzStyle): string {
   const roleLines: [string, string[]][] = [[t.lead, style.lead.slice(0, 3)], [t.response, style.response.slice(0, 3)], [t.bass, style.bass], [t.rhythm, style.rhythm.slice(0, 3)]];
   const harmonyLabels = style.harmony.map((id) => HARMONIES.find((item) => item.id === id)?.label).filter((label): label is string => Boolean(label));
+  const recommendedGroove = style.grooves[0];
   return '<section class="panel recommendation" aria-labelledby="recommendation-heading"><div class="panel-heading"><div><p class="eyebrow">' + t.recommendedDefault + '</p><h2 id="recommendation-heading">' + t.recommendationTitle + '</h2></div><button class="button button-secondary" type="button" data-action="apply-recommendation">' + t.applyRecommendation + '</button></div>'
     + '<div class="recommendation-intro"><strong>' + escapeHtml(style.name) + '</strong><span>' + escapeHtml(STYLE_CLASS[style.classification]) + '</span><p>' + escapeHtml(style.descriptionZh) + '</p></div>'
     + '<div class="recommendation-grid"><div><span class="mini-label">' + t.tempo + '</span><strong>' + style.tempo.default + ' BPM</strong><small>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + ' BPM</small></div>'
-    + '<div><span class="mini-label">' + t.meter + '</span><strong>' + escapeHtml(style.meters.slice(0, 2).join(' / ')) + '</strong><small>' + t.groove + ' ' + escapeHtml(style.grooves[0]?.label ?? '') + '</small></div>'
+    + '<div><span class="mini-label">' + t.meter + '</span><strong>' + escapeHtml(style.meters.slice(0, 2).join(' / ')) + '</strong><small>' + t.groove + ' ' + escapeHtml(recommendedGroove ? grooveLabelZhHK(recommendedGroove.id, recommendedGroove.label) : '') + '</small></div>'
     + '<div><span class="mini-label">' + t.recommendedHarmony + '</span><div class="mini-tags">' + harmonyLabels.map((label) => '<span>' + escapeHtml(label) + '</span>').join('') + '</div></div></div>'
     + '<div class="role-recommendations">' + roleLines.map(([label, ids]) => '<div><span>' + escapeHtml(label) + '</span><strong>' + ids.map((id) => INSTRUMENT_BY_ID.get(id)?.nameZh + ' (' + INSTRUMENT_BY_ID.get(id)?.name + ')').filter(Boolean).map(escapeHtml).join(' · ') + '</strong></div>').join('') + '</div>'
     + '<p class="recommendation-footnote">' + t.recommendationPreserves + '</p></section>';
@@ -124,11 +126,11 @@ function render(): void {
   const advancedWasOpen = root.querySelector<HTMLDetailsElement>('.advanced-controls')?.open ?? false;
   const configuration = appState.configuration;
   const style = STYLE_BY_ID.get(configuration.styleId) ?? STYLE_BY_ID.get('cozy-jazz')!;
-  const grooveOptions = style.grooves.map(({ id, label }) => ({ id, label }));
+  const grooveOptions = style.grooves.map(({ id, label }) => ({ id, label: grooveLabelZhHK(id, label) }));
   const tonalityOptions = style.tonalities.map(({ id, label }) => ({ id, label }));
   if (!grooveOptions.some((item) => item.id === configuration.grooveId)) {
     const retained = JAZZ_STYLES.flatMap((candidate) => candidate.grooves).find((item) => item.id === configuration.grooveId);
-    grooveOptions.push({ id: configuration.grooveId, label: (retained?.label ?? configuration.grooveId) + ' · ' + t.retainedOtherStyle });
+    grooveOptions.push({ id: configuration.grooveId, label: (retained ? grooveLabelZhHK(retained.id, retained.label) : configuration.grooveId) + ' · ' + t.retainedOtherStyle });
   }
   if (!tonalityOptions.some((item) => item.id === configuration.tonalityId)) {
     const retained = TONALITIES.find((item) => item.id === configuration.tonalityId);
