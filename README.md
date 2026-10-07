@@ -11,6 +11,8 @@ FlowMusic Prompt Generator is a local-first Progressive Web App for building cle
 - Local presets with rename, duplicate, delete, JSON import and export.
 - Installable PWA with an offline shell and local-only prompt generation.
 
+The catalog has 38 options: 37 fixed built-in styles plus Custom. The 12 expanded styles are Lo-fi Jazz / Chill Jazz, Acid Jazz, Big Band Jazz, Samba Jazz, Jazz Waltz, Piano Jazz / Café Piano Jazz, Contemporary Jazz, Free Jazz / Avant-Garde Jazz, Jazz-Hop / Hip-Hop Jazz, Neo-Soul Jazz, Dark Jazz / Noir Jazz, and Third Stream Jazz.
+
 ## Local development
 
 Node.js 24 LTS is recommended and used in CI. Node.js 22.13+ is also supported; Node.js 22.0–22.12 is unsupported by the lint toolchain.

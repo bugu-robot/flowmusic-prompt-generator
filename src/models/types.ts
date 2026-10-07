@@ -47,6 +47,7 @@ export interface VariationRecipe {
   harmony?: string;
   bass: string;
   rhythm?: string;
+  ensemble?: Array<Pick<InstrumentPart, 'instrumentId' | 'role' | 'prominence' | 'behaviour'>>;
 }
 
 export interface JazzStyle {
@@ -69,7 +70,9 @@ export interface JazzStyle {
   rhythm: string[];
   recommendedParts?: Array<Pick<InstrumentPart, 'instrumentId' | 'role' | 'prominence' | 'behaviour'>>;
   foregroundRule?: MusicConfiguration['foregroundRule'];
+  allowsMultipleLeadRoles?: boolean;
   interactionPrompt?: string;
+  harmonyGuidance?: string;
   moods: string[];
   scenes: string[];
   melodyDensity: number;

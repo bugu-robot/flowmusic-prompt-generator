@@ -45,9 +45,12 @@ export function checkCompatibility(configuration: MusicConfiguration): Compatibi
   const enabled = configuration.instruments.filter((part) => part.enabled);
   if (enabled.length === 0) instrumentScore -= 15;
   const seenLead = enabled.filter((part) => part.role === 'lead');
-  if (seenLead.length > 1) {
+  if (seenLead.length > 1 && !style.allowsMultipleLeadRoles) {
     instrumentScore -= Math.min(9, (seenLead.length - 1) * 4);
-    messages.push({ category: 'unusual', message: '目前有多個樂器設為主奏；prompt 會按 prominence 選出一個主要旋律聲部。' });
+    const message = style.id === 'big-band'
+      ? 'Big Band Jazz 通常只安排一位特色獨奏者；prompt 會按 prominence 選出主要旋律聲部。'
+      : '目前有多個樂器設為主奏；prompt 會按 prominence 選出一個主要旋律聲部。';
+    messages.push({ category: 'unusual', message });
   }
   const alternatives: string[] = [];
   for (const part of enabled) {
