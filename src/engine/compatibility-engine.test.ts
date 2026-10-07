@@ -83,6 +83,17 @@ describe('advisory compatibility engine', () => {
     expect(ordinaryResult.messages.some((item) => item.message.includes('多個樂器設為主奏'))).toBe(true);
   });
 
+  it('warns when Big Band manually assigns another horn as lead and reduces its score', () => {
+    const configuration = recommendConfiguration('big-band');
+    const trumpet = configuration.instruments.find((part) => part.instrumentId === 'trumpet')!;
+    trumpet.role = 'lead';
+    trumpet.behaviour = 'a concise featured solo framed by arranged big-band passages';
+
+    const result = checkCompatibility(configuration);
+    expect(result.score).toBe(96);
+    expect(result.messages.some((item) => item.message.includes('Big Band Jazz 通常只安排一位特色獨奏者'))).toBe(true);
+  });
+
   it('gives the recommended Free Jazz collective configuration full compatibility without a lead warning', () => {
     const result = checkCompatibility(recommendConfiguration('free-jazz'));
     expect(result.score).toBe(100);

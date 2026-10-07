@@ -52,6 +52,17 @@ function describePart(part: InstrumentPart, isAdditionalLead: boolean, style: Ja
   }
 
   if (style.id === 'big-band') {
+    if (isAdditionalLead) {
+      const section = part.instrumentId.includes('sax')
+        ? 'saxophone section'
+        : ['trumpet', 'muted-trumpet'].includes(part.instrumentId)
+          ? 'trumpet section'
+          : part.instrumentId === 'trombone' ? 'trombone section' : undefined;
+      const participation = section
+        ? 'joins the arranged ' + section + ' with coordinated voicings and sectional call-and-response'
+        : 'supports the arranged ensemble with sectional call-and-response';
+      return plainName[0]!.toUpperCase() + plainName.slice(1) + ' ' + participation + ', without taking an additional solo.';
+    }
     if (role === 'lead') return name[0]!.toUpperCase() + name.slice(1) + ' steps out for ' + (behaviour || 'one concise featured solo framed by arranged big-band passages') + '.';
     if (role === 'response' || role === 'countermelody') return capitalizedBehaviour + '.';
   }

@@ -211,6 +211,19 @@ describe('deterministic English prompt compiler', () => {
     }
   });
 
+  it('keeps an extra manually promoted Big Band horn in its arranged section', () => {
+    const configuration = recommendConfiguration('big-band');
+    const trumpet = configuration.instruments.find((part) => part.instrumentId === 'trumpet')!;
+    trumpet.role = 'lead';
+    trumpet.behaviour = 'a concise featured solo framed by arranged big-band passages';
+
+    const prompt = compilePrompt(configuration);
+    expect(prompt).toContain('one concise featured soloist');
+    expect(prompt).toContain('Trumpet joins the arranged trumpet section with coordinated voicings and sectional call-and-response, without taking an additional solo.');
+    expect(prompt.match(/a concise featured solo framed by arranged big-band passages/g)).toHaveLength(1);
+    expect(prompt).not.toContain('Trumpet steps out for a concise featured solo');
+  });
+
   it('uses the requested taxonomy for all 12 added styles', () => {
     const classifications: Record<string, string> = {
       'lofi-jazz': 'modern-descriptor', 'acid-jazz': 'historical-derived-style', 'big-band': 'historical-style',
@@ -255,6 +268,42 @@ describe('deterministic English prompt compiler', () => {
     for (const [styleId, expected] of Object.entries(hashes)) {
       const prompt = compilePrompt(recommendConfiguration(styleId));
       expect(createHash('sha256').update(prompt).digest('hex'), styleId).toBe(expected);
+    }
+  });
+
+  it('keeps all 12 expanded default prompts byte-for-byte stable from the reviewed HEAD', () => {
+    const hashes: Record<string, string> = {
+      'lofi-jazz': '3b745d538697acf40637bdb4663b5bb3119c1582405e9f3d71a5db5962bcd490',
+      'acid-jazz': 'f63934e2aa844c25ebffea7670d2605fb139ad152b3d851bc5752f7f8623a256',
+      'big-band': '64b8577ac65286ce028ab2000712feda533c8463f582d28ff0067010abf59ef0',
+      'samba-jazz': '93ad57fe7af4acdfc0308906bc581b9a014352f2ca51b73505bf5c72eff0a743',
+      'jazz-waltz': 'b83d6b7820a9f91c3bc6139b0049c3b2047a08146c62859f9724c81a631cab15',
+      'piano-cafe-jazz': '7a82ee0942e33b30f462d91d54358e1ec7ff5cdb04099e82ca60b1d38106aaa9',
+      'contemporary-jazz': '93fe67654fb65dfa3ee7a4f831dd5ade373a8e8fb5f36787a16f91cd2bb74b3e',
+      'free-jazz': '798fd2f1917ed88196e5bf96ecc65291b32dca05504b14651e25f24bea26f94b',
+      'jazz-hop': 'a16fa9848726ce11e4c29784e5345f873eb81ce474cf599e8dacf8d989b1d6d6',
+      'neo-soul-jazz': '4545d068b230eb3be4da3460f98a34899d72f541089ec1b75eb6ca42d3e0a6d9',
+      'dark-jazz': '99aaad81f5b299f4ca5fef6faab65c9df2ad40d6b428031a7338329f8fb34452',
+      'third-stream': 'f8377390d7fb630d8681598fd3adecdf29880e10f6fa2864668ea02a60c463de',
+    };
+    expect(Object.keys(hashes)).toHaveLength(12);
+    for (const [styleId, expected] of Object.entries(hashes)) {
+      const prompt = compilePrompt(recommendConfiguration(styleId));
+      expect(createHash('sha256').update(prompt).digest('hex'), styleId).toBe(expected);
+    }
+  });
+
+  it('keeps Big Band A/B/C prompts byte-for-byte stable from the reviewed HEAD', () => {
+    const expected = [
+      '64b8577ac65286ce028ab2000712feda533c8463f582d28ff0067010abf59ef0',
+      'aa6bb00ce3ce086a1c69b4300497c459051dd64cd8a5bb0f2b725b55b2f11d5b',
+      '72d56d063f59a6776dbd2f2e85d0dd4da19d59dab6e12aaa6a4953a84b8c0ff2',
+    ];
+    const variations = generateVariations(recommendConfiguration('big-band'));
+    expect(variations).toHaveLength(3);
+    for (const [index, variation] of variations.entries()) {
+      const prompt = compilePrompt(variation);
+      expect(createHash('sha256').update(prompt).digest('hex'), 'variation ' + ['A', 'B', 'C'][index]).toBe(expected[index]);
     }
   });
 

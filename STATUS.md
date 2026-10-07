@@ -30,6 +30,14 @@
 
 Expanded style pass verified locally on 2026-10-06 with Node.js 24.19.0: `npm ci`, `npm run typecheck`, `npm run lint`, 220 tests across 6 files, `npm run build`, `npm run build -- --mode pages`, and `npm audit` pass; audit reports 0 vulnerabilities. Both build outputs contain the manifest, service worker, Apple touch icon and every manifest icon. The Pages bundle uses `/flowmusic-prompt-generator/`, and the normal and Pages worker cache identities differ. Prompt/style semantics only are verified; no generated audio has been assessed. The Draft PR's GitHub Actions run remains a separate CI gate before manual UAT.
 
+## Final Big Band compatibility correction (2026-10-07)
+
+- Added an explicit `allowsMultipleLeadRoles` style capability. Free Jazz, New Orleans Jazz and Dixieland retain intentional collective lead behavior; Big Band remains an arranged-section style and now warns when a second instrument is manually promoted to lead.
+- Reproduced the manual Big Band case by promoting trumpet to lead and selecting its featured-solo behavior: compatibility is 96/100 with a warning that Big Band Jazz normally uses one featured soloist. The prompt renders trumpet as an arranged trumpet-section participant without assigning it another solo.
+- SHA-256 regressions confirm all 12 expanded default prompts and Big Band A/B/C prompts match reviewed HEAD `dce5392`; the existing 25 default prompt hashes and Custom hash also pass unchanged.
+- Local verification on Node.js 24.19.0: `npm ci`, `npm audit` (0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test` (230 tests across 6 files), `npm run build`, and `npm run build -- --mode pages` pass. Both outputs contain the manifest, service worker, Apple touch icon and all five manifest-linked icons. The Pages output uses `/flowmusic-prompt-generator/`; normal and Pages worker cache identities differ.
+- The Draft PR remains open and draft-only. GitHub Actions verification for the correction commit is required before consolidated manual UAT.
+
 ## Security audit triage
 
 The reviewed lockfile reported three affected packages (one moderate, two critical):

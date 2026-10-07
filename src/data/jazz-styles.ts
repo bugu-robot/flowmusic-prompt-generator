@@ -22,6 +22,7 @@ interface StyleSeed {
   recommendedParts?: NonNullable<JazzStyle['recommendedParts']>;
   variations?: VariationRecipe[];
   foregroundRule?: JazzStyle['foregroundRule'];
+  allowsMultipleLeadRoles?: boolean;
   interactionPrompt?: string;
   harmonyGuidance?: string;
   moods: string[];
@@ -421,6 +422,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 36, behaviour: 'buoyant two-beat acoustic timekeeping with light early-swing accents' },
     ],
     foregroundRule: 'collective',
+    allowsMultipleLeadRoles: true,
     interactionPrompt: 'Allow overlapping but coherent collective front-line improvisation: trumpet or cornet anchors the main line, clarinet weaves the upper counterline, and trombone answers below with a tailgate-style line.',
     moods: ['cheerful', 'playful', 'hopeful', 'nostalgic'], scenes: ['city-night', 'bakery', 'summer'],
     melodyDensity: 74, improvisation: 66, energy: 76, dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'],
@@ -442,6 +444,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 36, behaviour: 'buoyant two-beat acoustic timekeeping with light early-swing accents' },
     ],
     foregroundRule: 'collective',
+    allowsMultipleLeadRoles: true,
     interactionPrompt: 'Allow overlapping but coherent collective front-line improvisation: trumpet or cornet anchors the main line, clarinet weaves the upper counterline, and trombone answers below with a tailgate-style line.',
     moods: ['cheerful', 'playful', 'nostalgic', 'hopeful'], scenes: ['bakery', 'summer', 'city-night'], melodyDensity: 78, improvisation: 68, energy: 78,
     dynamics: 'dynamic', arrangement: 'traditional-sections', production: ['acoustic', 'warm', 'room'], constraints: ['cinematic'],
@@ -661,6 +664,7 @@ export const JAZZ_STYLES: JazzStyle[] = [
       { instrumentId: 'acoustic-drums', role: 'rhythm', prominence: 38, behaviour: 'free-time cymbal and tom colors with no fixed backbeat' },
     ],
     foregroundRule: 'collective',
+    allowsMultipleLeadRoles: true,
     interactionPrompt: 'Let alto saxophone, trumpet, piano and bass trade fragmented motifs, chromatic and modal clusters, nonfunctional pedal fields and timbral responses in collective improvisation, with no permanent lead hierarchy. Have the players listen and answer as pulse and ensemble density expand and contract.',
     moods: ['mysterious', 'reflective', 'energetic'], scenes: ['late-night', 'rain-window', 'moonlight'],
     melodyDensity: 64, improvisation: 86, energy: 58, dynamics: 'dynamic', arrangement: 'custom',

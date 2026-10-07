@@ -70,6 +70,7 @@ export interface JazzStyle {
   rhythm: string[];
   recommendedParts?: Array<Pick<InstrumentPart, 'instrumentId' | 'role' | 'prominence' | 'behaviour'>>;
   foregroundRule?: MusicConfiguration['foregroundRule'];
+  allowsMultipleLeadRoles?: boolean;
   interactionPrompt?: string;
   harmonyGuidance?: string;
   moods: string[];
