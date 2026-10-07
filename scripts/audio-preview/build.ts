@@ -84,7 +84,7 @@ async function main(): Promise<void> {
     await writeFile(join(audioRoot, 'audio-preview-qc.json'), JSON.stringify(report, null, 2) + '\n');
     await writeFile(join(audioRoot, 'audio-preview-qc.md'), markdown);
     await copyFile(join(root, 'AUDIO_ASSET_LICENSES.md'), join(root, 'public', 'AUDIO_ASSET_LICENSES.md'));
-    const archivePath = join(root, 'public', 'audio-preview-review.zip');
+    const archivePath = join(root, '.artifacts', 'audio-preview-review.zip');
     const pack = await run('python3', [join(root, 'scripts/audio-preview/package_review.py'), root, archivePath]);
     if (pack.code !== 0) throw new Error(`Review ZIP packaging failed: ${pack.stderr}`);
     process.stdout.write(markdown);

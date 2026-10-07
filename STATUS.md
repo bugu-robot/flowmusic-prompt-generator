@@ -1,8 +1,18 @@
 # Project Status
 
+## Audio preview correction — local verification (2026-10-07)
+
+- Synced `feat/audio-preview-system` with current `main` (`bf0f414d7cc55a9a2b96f68fdf33ca0461c11f31`) in merge commit `a79dc3a`; no conflicts.
+- Corrected semantic preview classification for melodic keyboard and bass parts, quartal piano, modal ostinatos, jazz waltz meter, contemporary straight-eighth phrasing, Neo-Soul, Jazz-Hop, Free Jazz, Noir brushes and Third Stream. Added focused regression coverage; recommendation, compatibility, variation and prompt compiler behavior were not changed.
+- Rebuilt all current catalog previews: 32/32 instrument tones, 146/146 instrument/behavior pairs (142 unique behavior strings), and 64/64 grooves; 242 MP3 previews total.
+- Structural and technical QC passed for all 242 previews, with zero music-rule or technical failures, missing/silent/clipping files, manifest errors or orphans. Every committed MP3 was independently decoded and its SHA-256 checked against the manifest; runtime-index and catalog consistency passed.
+- `npm ci`, `npm audit` (0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test` (239 tests across 8 files), `npm run build`, `npm run build -- --mode pages`, and `npm run audio:verify` passed locally. Both build modes passed; the Pages build retains `/flowmusic-prompt-generator/` paths and all manifest-linked icons. GitHub Actions for the updated commit remains to be checked after pushing.
+- The review ZIP now lives under ignored `.artifacts/` for CI upload and is excluded from production builds; normal builds no longer invoke the Python packager.
+- PR #4 remains Draft. No merge, deploy, browser UAT, or subjective assessment of the preview sound has been performed.
+
 ## AUTOMATED VERIFIED
 
-- [x] 26 data-driven Jazz styles and 32 instruments, including Manouche / Selmer-style acoustic guitar.
+- [x] 38 data-driven style options: 37 fixed built-in Jazz styles plus Custom, using the existing 32-instrument catalog. The 12 added styles are documented in README.md.
 - [x] Built-in references, unique IDs, variation recipes and recommended configurations checked against all option catalogs.
 - [x] Every style's recommended instrument IDs have zero overlap with unusual instruments; compatibility tests cover default recommendations and all recommended alternatives. Clearly incompatible warnings remain.
 - [x] Optional constraints emit only selected restrictions. V1 always emits `Instrumental only, no vocals.` and shows a fixed instrumental indication without vocal/scat controls.
@@ -10,13 +20,14 @@
 - [x] Imported shared option IDs are validated and deduplicated; unknown scene, dynamics and structure IDs fall back safely. Non-string enum selections are rejected. Globally valid retained grooves/tonalities survive a style change.
 - [x] Gypsy Jazz keeps `maj6` without the redundant `sixth` recommendation.
 - [x] Recommendation, compatibility, deterministic prompt compilation, role normalization and local preset serialization covered by unit tests.
-- [x] Style-specific recommended part behaviors remain deterministic and editable through the existing instrument behavior controls; styles without overrides use the existing fallback.
+- [x] Style-specific recommended part behaviors remain deterministic and editable through the existing instrument behavior controls. All 25 new behavior strings have Traditional Chinese labels; the source behavior strings stay English for prompt generation.
+- [x] The added styles use the existing deterministic recommendation, prompt and compatibility engines. Big Band and Free Jazz variations retain their defining large-ensemble and collective-improvisation identities.
 - [x] New Orleans Jazz and Dixieland defaults use trumpet/cornet, clarinet and the catalog's trombone for overlapping but coherent collective front-line improvisation.
-- [x] All 25 fixed-style default prompts generated and checked against their style-specific semantic requirements; Custom remains separate and user-defined.
+- [x] All 37 fixed-style default prompts generated and checked; the 12 added styles align with the independent expanded benchmark, and SHA-256 regression checks preserve the prior 25 default prompts byte-for-byte. Custom remains separate and user-defined.
 - [x] `npm ci` passes with the regenerated lockfile on Node.js 24.19.0, without EBADENGINE or an ESLint deprecation warning.
 - [x] `npm run typecheck` passes.
 - [x] `npm run lint` passes.
-- [x] `npm test` passes: 155 tests across 6 files.
+- [x] `npm test` passes: 220 tests across 6 files.
 - [x] `npm run build` passes.
 - [x] `npm run build -- --mode pages` passes.
 - [x] GitHub Pages output checked for `/flowmusic-prompt-generator/` paths, manifest, worker registration, Apple touch icon and every manifest icon.
@@ -25,9 +36,17 @@
 - [x] `npm audit` reports 0 vulnerabilities, including 0 critical findings.
 - [x] Node.js 24 LTS is selected in GitHub Actions and recommended in README; Node.js 22.13+ is the supported alternative.
 - [x] CI audits dependencies and verifies both normal and Pages builds. Event/ref-specific concurrency prevents PR verification from cancelling a main deployment.
-- [x] This correction pass targets the existing open Draft PR #1 on `feat/initial-pwa`; it remains unmerged.
+- [x] The expansion is on `feat/expanded-jazz-styles` based on production `main`; the new pull request is draft-only and must not be merged in this pass.
 
-Focused Jazz semantic correction verified locally on 2026-10-06 with Node.js 24.19.0: `npm ci`, typecheck, lint, 155 tests across 6 files, normal build, Pages build and `npm audit` all pass; audit reports 0 vulnerabilities. Both build outputs contain the manifest, service worker, Apple touch icon and every manifest icon. The Pages bundle uses `/flowmusic-prompt-generator/`, and the normal and Pages worker cache identities differ. Prompt/style semantics only are verified; no generated audio has been assessed. The correction commit's GitHub Actions run is the final automated verification gate before manual UAT.
+Expanded style pass verified locally on 2026-10-06 with Node.js 24.19.0: `npm ci`, `npm run typecheck`, `npm run lint`, 220 tests across 6 files, `npm run build`, `npm run build -- --mode pages`, and `npm audit` pass; audit reports 0 vulnerabilities. Both build outputs contain the manifest, service worker, Apple touch icon and every manifest icon. The Pages bundle uses `/flowmusic-prompt-generator/`, and the normal and Pages worker cache identities differ. Prompt/style semantics only are verified; no generated audio has been assessed. The Draft PR's GitHub Actions run remains a separate CI gate before manual UAT.
+
+## Final Big Band compatibility correction (2026-10-07)
+
+- Added an explicit `allowsMultipleLeadRoles` style capability. Free Jazz, New Orleans Jazz and Dixieland retain intentional collective lead behavior; Big Band remains an arranged-section style and now warns when a second instrument is manually promoted to lead.
+- Reproduced the manual Big Band case by promoting trumpet to lead and selecting its featured-solo behavior: compatibility is 96/100 with a warning that Big Band Jazz normally uses one featured soloist. The prompt renders trumpet as an arranged trumpet-section participant without assigning it another solo.
+- SHA-256 regressions confirm all 12 expanded default prompts and Big Band A/B/C prompts match reviewed HEAD `dce5392`; the existing 25 default prompt hashes and Custom hash also pass unchanged.
+- Local verification on Node.js 24.19.0: `npm ci`, `npm audit` (0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test` (230 tests across 6 files), `npm run build`, and `npm run build -- --mode pages` pass. Both outputs contain the manifest, service worker, Apple touch icon and all five manifest-linked icons. The Pages output uses `/flowmusic-prompt-generator/`; normal and Pages worker cache identities differ.
+- The Draft PR remains open and draft-only. GitHub Actions verification for the correction commit is required before consolidated manual UAT.
 
 ## Security audit triage
 

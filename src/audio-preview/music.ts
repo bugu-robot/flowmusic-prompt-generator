@@ -2,7 +2,7 @@ export interface PreviewInstrument { id: string; name: string; category: string;
 export interface PreviewGroove { id: string; label: string; prompt: string }
 export interface MusicEvent { beat: number; pitch: number; duration: number; velocity: number }
 export interface MusicTrack { name: string; instrumentId: string; program: number; channel: number; role: string; notes: MusicEvent[] }
-export interface MusicSpec { id: string; category: 'instrument'|'behaviour'|'groove'; source: string; bpm: number; meter: [number,number]; bars: number; tracks: MusicTrack[]; rules: string[] }
+export interface MusicSpec { id: string; category: 'instrument'|'behaviour'|'groove'; source: string; semanticFamily: string; bpm: number; meter: [number,number]; bars: number; tracks: MusicTrack[]; rules: string[] }
 export interface RuleResult { rule: string; ok: boolean; detail: string }
 const gm: Record<string,number> = {'nylon-guitar':24,'acoustic-guitar':24,'manouche-guitar':24,'jazz-electric-guitar':26,'distorted-guitar':30,piano:0,rhodes:4,'hammond-organ':16,vibraphone:11,trumpet:56,'muted-trumpet':59,flugelhorn:56,'alto-sax':65,'tenor-sax':66,'soprano-sax':64,'bari-sax':67,clarinet:71,trombone:57,violin:40,'upright-bass':32,'electric-bass':33,tuba:58,synth:89,'ambient-pads':89,'brush-drums':0,'acoustic-drums':0,'heavy-rock-drums':0,'soft-shaker':0,congas:0,bongos:0,timbales:0,'brazilian-percussion':0};
 const hash=(s:string):number=>Array.from(s).reduce((v,c)=>(v*31+c.charCodeAt(0))>>>0,7);
@@ -39,6 +39,39 @@ function pompe(i:PreviewInstrument):MusicTrack {const n:MusicEvent[]=[];for(let 
 function bossaComp(i:PreviewInstrument):MusicTrack {const n:MusicEvent[]=[];for(let b=0;b<4;b++)for(const beat of [.5,1.5,2.5,3.5])n.push(...chord(b*4+beat,[55,59,62],.18,60));return tr(i.name,i.id,'harmony',n)}
 function drums(pattern:string,id:string,name:string,bars=4,meter:[number,number]=[4,4]):MusicTrack {
  if(pattern==='swing-ride')return swingRide(id,name,bars,meter);
+ if(pattern==='free-time')return drum(name,id,[note(.35,51,.18,62),note(1.45,47,.24,58),note(3.7,51,.16,67),note(5,45,.22,55),note(7.65,51,.16,69),note(9.1,47,.24,57),note(12.6,51,.16,65),note(14.3,45,.24,59)]);
+ if(pattern==='noir-brushes')return drum(name,id,[note(0,38,.12,50),note(2.75,51,.12,56),note(4.5,38,.12,48),note(7.8,51,.12,52),note(8.9,38,.12,48),note(12.25,51,.12,55),note(14.5,38,.12,47)]);
+ if(pattern==='third-stream')return drum(name,id,Array.from({length:bars},(_,bar)=>[note(bar*4,51,.14,39),note(bar*4+2.5,51,.12,32)]).flat());
+ if(pattern==='contemporary-flex'){
+  const notes:MusicEvent[]=[];
+  const accents=[[0,2.75],[4,6.75],[8,10.5],[12,14.75]] as const;
+  for(let bar=0;bar<bars;bar++){
+   for(let eighth=0;eighth<8;eighth++)notes.push(note(bar*4+eighth*.5,42,.08,eighth%2?34:44));
+   const [kickA,kickB]=accents[bar%accents.length]!;
+   notes.push(note(kickA,36,.12,68),note(kickB,36,.12,51),note(bar*4+1,38,.12,59),note(bar*4+3,38,.12,61));
+  }
+  return drum(name,id,notes);
+ }
+ if(pattern==='neo-soul'){
+  const notes:MusicEvent[]=[];
+  const hats=[0,.5,1,1.75,2,2.5,3,3.75];
+  for(let bar=0;bar<bars;bar++){
+   const base=bar*4;
+   notes.push(note(base,36,.12,70),note(base+2.78,36,.12,54));
+   notes.push(note(base+1.04,38,.12,62),note(base+3.06,38,.12,64));
+   for(let index=0;index<hats.length;index++)notes.push(note(base+hats[index]!+(index===3?.02:index===7?.03:0),42,.07,index%3===0?51:35));
+  }
+  return drum(name,id,notes);
+ }
+ if(pattern==='boom-bap-half-time'){
+  const notes:MusicEvent[]=[];
+  for(let bar=0;bar<bars;bar++){
+   const base=bar*4;
+   notes.push(note(base,36,.12,78),note(base+2.5,36,.12,55),note(base+2.04,38,.12,74));
+   for(let eighth=0;eighth<8;eighth++)notes.push(note(base+eighth*.5,42,.08,eighth%2?39:49));
+  }
+  return drum(name,id,notes);
+ }
  if(pattern==='clave'||pattern==='latin-clave'||pattern.endsWith('-clave'))return clave(id,name);
  if(pattern==='jazz-waltz')return drum(name,id,repeated([[0,51,65],[1,38,47],[2,51,54]],bars,3));
  if(pattern==='odd-meter')return drum(name,id,repeated([[0,36,72],[.5,42,44],[1,42,40],[1.5,38,66],[2,42,43],[2.5,36,58],[3,38,60]],bars,3.5));
@@ -46,7 +79,7 @@ function drums(pattern:string,id:string,name:string,bars=4,meter:[number,number]
  if(pattern==='funk')return drum(name,id,repeated([[0,36,75],[1.5,36,56],[2.75,36,62],[1,38,68],[3,38,72],[0,42,48],[.5,42,40],[1,42,43],[1.5,42,39],[2,42,47],[2.5,42,39],[3,42,45],[3.5,42,40]],bars));
  if(pattern==='ballad'||pattern==='open'||pattern==='modal-pulse')return drum(name,id,repeated([[0,51,54],[2,38,42]],bars));
  if(pattern==='boom-bap'){const e:Array<[number,number,number?]>=[[0,36,82],[2,36,70],[1,38,78],[3,38,80]];for(let x=0;x<8;x++)e.push([x*.5,42,x%2?40:50]);return drum(name,id,repeated(e,bars))}
- if(pattern==='straight-16-funk'||pattern==='neo-soul'){const e:Array<[number,number,number?]>=[[0,36,78],[2,36,68],[1,38,74],[3,38,77]];for(let x=0;x<16;x++)e.push([x*.25,42,x%4===0?57:36]);return drum(name,id,repeated(e,bars))}
+ if(pattern==='straight-16-funk'){const e:Array<[number,number,number?]>=[[0,36,78],[2,36,68],[1,38,74],[3,38,77]];for(let x=0;x<16;x++)e.push([x*.25,42,x%4===0?57:36]);return drum(name,id,repeated(e,bars))}
  if(pattern==='broken-beat')return drum(name,id,repeated([[0,36,77],[1.75,36,63],[3.25,36,69],[1,38,75],[2.75,38,72],[3.5,38,61],[.5,42,39],[1.5,42,42],[2.5,42,39],[3.5,42,43]],bars));
  if(['bossa','samba','tumbao'].includes(pattern)){const e:Array<[number,number,number?]>=[[0,36,66],[1.5,36,52],[2.5,38,55],[3.5,37,58],[.5,70,42],[1.5,70,44],[2.5,70,42],[3.5,70,45]];if(pattern==='samba')for(let x=0;x<8;x++)e.push([x*.5,56,48]);return drum(name,id,repeated(e,bars))}
  if(pattern==='soul-shuffle'){const e:Array<[number,number,number?]>=[[0,36,72],[2,36,65],[1,38,73],[3,38,75]];for(let b=0;b<4;b++){e.push([b,42,48],[b+2/3,42,36])}return drum(name,id,repeated(e,bars))}
@@ -55,27 +88,179 @@ function drums(pattern:string,id:string,name:string,bars=4,meter:[number,number]
 }
 function percussionGuide(i:PreviewInstrument,pattern:string,bars=4):MusicTrack {
  if(['acoustic-drums','brush-drums','heavy-rock-drums'].includes(i.id))return drums(pattern==='brushes'?'soul-shuffle':pattern,i.id,i.name,bars);
- const guide=drums(pattern,'acoustic-drums','percussion guide',bars),notes=guide.notes.map((event,index)=>{let pitch=event.pitch;if(i.id==='congas')pitch=pitch===36?64:pitch===38?63:62;else if(i.id==='bongos')pitch=pitch===36?61:60;else if(i.id==='timbales')pitch=pitch===36?66:pitch===38?65:56;else if(i.id==='soft-shaker')pitch=82;else if(i.id==='brazilian-percussion')pitch=pitch===36?56:pitch===38?69:70;return{...event,pitch,velocity:Math.min(84,Math.max(46,event.velocity+(pitch===event.pitch?0:12)+(index%2?0:4)))}});
+ const guide=drums(pattern,'acoustic-drums','percussion guide',bars),notes=guide.notes.map((event,index)=>{let pitch=event.pitch;if(i.id==='congas')pitch=pitch===36?64:pitch===38?63:62;else if(i.id==='bongos')pitch=pitch===36?61:60;else if(i.id==='timbales')pitch=pitch===36?66:pitch===38?65:56;else if(i.id==='soft-shaker')pitch=82;else if(i.id==='brazilian-percussion')pitch=pitch===36?56:pitch===38?69:70;return{...event,pitch,velocity:Math.min(84,Math.max(30,event.velocity+(pitch===event.pitch?0:12)+(index%2?0:4)))}});
  return drum(i.name,i.id,notes);
 }
-function patternFor(text:string,cat:string):string {const s=text.toLowerCase();if(/pedal/.test(s))return'modal-pedal';if(/odd.?meter|asymmetrical/.test(s))return'odd-meter';if(/march/.test(s))return'march';if(/light.?funk/.test(s))return'funk';if(/modal/.test(s))return'modal-pulse';if(/ballad/.test(s))return'ballad';if(/free|open, user-defined/.test(s))return'open';if(/walking|four-beat walking/.test(s))return'walking-bass';if(/tumbao/.test(s)&&/clave/.test(s))return'tumbao-clave';if(/montuno/.test(s)&&/clave/.test(s))return'montuno-clave';if(/tumbao/.test(s))return'tumbao';if(/montuno/.test(s))return'montuno';if(/la pompe|pompe rhythm/.test(s))return'la-pompe';if(/quartal/.test(s))return'quartal-voicing';if(/pedal/.test(s))return'modal-pedal';if(/ostinato/.test(s))return'modal-ostinato';if(/afro.?cuban|latin|conga|timbales|son|mambo/.test(s))return'latin-clave';if(/swing|ride|bebop/.test(s))return'swing-ride';if(/clave/.test(s))return'clave';if(/waltz/.test(s))return'jazz-waltz';if(/bossa/.test(s))return'bossa';if(/samba/.test(s))return'samba';if(/shuffle/.test(s))return'soul-shuffle';if(/broken.?beat/.test(s))return'broken-beat';if(/boom.?bap/.test(s))return'boom-bap';if(/straight.?16|16th.?note|funk.?pocket|funk-rock/.test(s))return'straight-16-funk';if(/funk/.test(s))return'funk';if(/neo.?soul/.test(s))return'neo-soul';if(/two-beat|two beat/.test(s))return'two-beat';if(cat==='bass')return/restrained|foundation|simple/.test(s)?'bass-foundation':'bass-ostinato';if(cat==='percussion')return/brush/.test(s)?'brushes':'straight-eighth';if(cat==='guitar'&&/chord|comping|voicing/.test(s))return'guitar-comping';if(/chord|comping|voicing|harmony/.test(s)||cat==='keyboard')return'spacious-comping';if(/fingerstyle/.test(s))return'fingerstyle';if(/blues|gospel|soulful/.test(s))return'soul-blues-phrase';if(/nimble|bebop/.test(s))return'bebop-phrase';if(/response|reply|answer|conversational/.test(s))return'conversational-response';if(/sustain/.test(s))return'sustained-texture';return'lyrical-phrase'}
-function tracksFor(i:PreviewInstrument,p:string,source:string):MusicTrack[]{
- if(p==='walking-bass')return[bassWalk(i)];if(p==='modal-pedal')return[pedal(i)];if(p==='modal-ostinato'||p==='bass-ostinato')return[bassOstinato(i)];if(p==='tumbao')return[tumbao(i)];if(p==='tumbao-clave')return[tumbao(i),clave('acoustic-drums','2-3 clave support')];if(p==='montuno')return[montuno(i)];if(p==='montuno-clave')return[montuno(i),clave('acoustic-drums','2-3 clave support')];if(p==='quartal-voicing')return[quartal(i)];if(p==='la-pompe')return[pompe(i)];if(p==='bossa'&&i.category==='guitar')return[bossaComp(i),drums('bossa','acoustic-drums','bossa rhythm')];if(p==='clave')return i.category==='percussion'?[percussionGuide(i,p)]:[melody(i,source),clave('acoustic-drums','2-3 clave support')];
- if(p==='jazz-waltz'||p==='odd-meter'){const stride=p==='jazz-waltz'?3:3.5;if(i.category==='percussion')return[percussionGuide(i,p,4)];if(i.category==='bass')return[bassMeter(i,stride)];if(i.category==='keyboard'||i.category==='guitar')return[harmonyMeter(i,stride)];return[melodyMeter(i,source,stride)]}
- if(['swing-ride','boom-bap','straight-16-funk','neo-soul','broken-beat','bossa','samba','soul-shuffle','two-beat','latin-clave','straight-eighth','brushes','march','funk','ballad','open','modal-pulse'].includes(p)){if(i.category==='percussion')return[percussionGuide(i,p)];return[i.category==='bass'?bassOstinato(i):melody(i,source),drums(p==='latin-clave'?'clave':p,'acoustic-drums','reference rhythm')]}
- if(p==='guitar-comping'||p==='spacious-comping')return[comp(i,p==='guitar-comping')];if(p==='fingerstyle')return[comp(i),melody(i,source)];if(p==='sustained-texture')return[tr(i.name,i.id,'texture',[note(0,60,7.7,52),note(8,65,7.7,50)])];return[melody(i,source)]
+
+const FAMILY_BY_PATTERN:Record<string,string>={
+ 'instrument-tone':'instrument-tone','lyrical-phrase':'melodic-line','conversational-response':'conversational-response','spacious-comping':'keyboard-comping','guitar-comping':'guitar-comping','quartal-voicing':'quartal-harmony',
+ 'walking-bass':'walking-bass','bass-foundation':'bass-foundation','bass-ostinato':'bass-ostinato','bass-melodic':'melodic-bass-line','modal-pedal':'modal-bass-pedal','modal-ostinato':'modal-bass-ostinato','modal-pulse':'modal-pulse',
+ 'jazz-waltz':'jazz-waltz','odd-meter':'asymmetrical-meter','contemporary-flex':'contemporary-flexible-eighths','swing-ride':'swing-ride','boom-bap':'hip-hop-boom-bap','boom-bap-half-time':'hip-hop-half-time','neo-soul':'neo-soul-pocket',
+ 'free-time':'free-improvisation','noir-brushes':'noir-sparse-brushes','third-stream':'third-stream-chamber-jazz','straight-16-funk':'straight-16-funk','broken-beat':'broken-beat','latin-clave':'latin-clave','tumbao':'tumbao','tumbao-clave':'tumbao-clave','montuno':'montuno','montuno-clave':'montuno-clave','la-pompe':'la-pompe','bossa':'bossa','samba':'samba','soul-shuffle':'soul-shuffle','two-beat':'two-beat','march':'march','funk':'funk','ballad':'ballad','open':'open','brushes':'brushes','fingerstyle':'fingerstyle','sustained-texture':'sustained-texture','straight-eighth':'straight-eighth'
+};
+export function semanticFamilyForPattern(pattern:string):string{return FAMILY_BY_PATTERN[pattern]??pattern}
+const RULES_BY_PATTERN:Record<string,string[]>={
+ 'walking-bass':['walking-bass'],'tumbao':['tumbao'],'tumbao-clave':['tumbao','clave-2-3'],'montuno':['montuno'],'montuno-clave':['montuno','clave-2-3'],'clave':['clave-2-3'],'latin-clave':['clave-2-3'],'la-pompe':['la-pompe'],
+ 'swing-ride':['swing-ride'],'jazz-waltz':['jazz-waltz'],'odd-meter':['odd-meter'],'boom-bap':['boom-bap'],'boom-bap-half-time':['boom-bap-half-time'],'straight-16-funk':['straight-16-funk'],'neo-soul':['neo-soul'],'broken-beat':['broken-beat'],
+ 'modal-pedal':['modal-pedal'],'modal-ostinato':['modal-ostinato'],'quartal-voicing':['quartal-voicing'],'free-time':['free-time'],'noir-brushes':['noir-brushes'],'third-stream':['third-stream'],'contemporary-flex':['contemporary-flex']
+};
+const rulesForPattern=(pattern:string):string[]=>[...(RULES_BY_PATTERN[pattern]??[])];
+
+function patternFor(text:string,cat:string):string {
+ const s=text.toLowerCase();
+ if(/free.?time|free and variable time|no fixed backbeat|near.?free|free arco|no fixed chord function|fragmented chromatic/.test(s))return'free-time';
+ if(/jazz.?waltz|waltz|three beats|three-beat|in three/.test(s))return'jazz-waltz';
+ if(/noir|very slow.*brush|sparse.*brush|brush.*negative space|occasional soft brush time/.test(s))return'noir-brushes';
+ if(/third stream|chamber|counterline|composed chamber/.test(s))return'third-stream';
+ if(/quartal/.test(s))return'quartal-voicing';
+ if(/pedal/.test(s))return'modal-pedal';
+ if(/modal.{0,50}ostinato|ostinato.{0,50}modal/.test(s))return'modal-ostinato';
+ if(/jazz.?hop|hip.?hop|boom.?bap/.test(s))return'boom-bap';
+ if(/neo.?soul|16th.note pocket|loose subdivisions.*ghost notes/.test(s))return'neo-soul';
+ if(/contemporary|flexible straight.?eighth/.test(s)&&/asymmetrical|flexible|straight.?eighth/.test(s))return'contemporary-flex';
+ if(cat==='bass'&&/walking/.test(s))return'walking-bass';
+ if(/tumbao/.test(s)&&/clave/.test(s))return'tumbao-clave';
+ if(/montuno/.test(s)&&/clave/.test(s))return'montuno-clave';
+ if(/tumbao/.test(s))return'tumbao';
+ if(/montuno/.test(s))return'montuno';
+ if(/la pompe|pompe rhythm/.test(s))return'la-pompe';
+ if(/swing|ride cymbal|ride-cymbal|bebop/.test(s))return'swing-ride';
+ if(/walking|four-beat walking/.test(s))return'walking-bass';
+ if(/odd.?meter|asymmetrical/.test(s))return'odd-meter';
+ if(/march/.test(s))return'march';
+ if(/bossa/.test(s))return'bossa';
+ if(/samba/.test(s))return'samba';
+ if(/shuffle/.test(s))return'soul-shuffle';
+ if(/broken.?beat/.test(s))return'broken-beat';
+ if(/straight.?16|16th.?note|funk.?pocket|funk-rock/.test(s))return'straight-16-funk';
+ if(/funk/.test(s))return'funk';
+ if(/two-beat|two beat/.test(s))return'two-beat';
+ if(/ballad/.test(s))return'ballad';
+ if(/open|unhurried|floating/.test(s))return'open';
+ if(/fingerstyle/.test(s))return'fingerstyle';
+ if(/response|reply|answer|conversational/.test(s))return'conversational-response';
+ if(/comping|chord|voicing|harmony/.test(s))return cat==='guitar'?'guitar-comping':'spacious-comping';
+ if(cat==='bass'&&/melodic|lead/.test(s))return'bass-melodic';
+ if(/melodic|lead|solo|improvisation|phrase/.test(s))return'lyrical-phrase';
+ if(cat==='bass')return/restrained|foundation|simple/.test(s)?'bass-foundation':'bass-ostinato';
+ if(cat==='percussion')return/brush/.test(s)?'brushes':'straight-eighth';
+ if(cat==='keyboard')return'spacious-comping';
+ if(cat==='guitar')return'lyrical-phrase';
+ return'lyrical-phrase';
 }
-export function makeInstrumentSpec(i:PreviewInstrument):MusicSpec {const p=i.category==='percussion'?'straight-eighth':i.category==='bass'?'bass-foundation':'lyrical-phrase';const bassNotes=Array.from({length:8},(_,beat)=>note(beat,beat%4===0?40:beat%4===2?43:36,.82,68));const textureNotes=[note(0,60,3.8,50),note(4,65,3.8,48)];const tracks=i.category==='percussion'?[percussionGuide(i,p,2)]:i.category==='bass'?[tr(i.name,i.id,'bass',bassNotes)]:i.category==='texture'?[tr(i.name,i.id,'texture',textureNotes)]:[melody(i,i.id,2)];return{id:`instrument-${i.id}`,category:'instrument',source:p,bpm:88,meter:[4,4],bars:2,tracks,rules:['valid-meter','instrument-program',...(i.category==='bass'?['bass-register']:[])]}}
-export function makeBehaviourSpec(i:PreviewInstrument,behaviour:string,index=0):MusicSpec {const p=patternFor(behaviour,i.category),tracks=tracksFor(i,p,behaviour),meter:[number,number]=p==='jazz-waltz'?[3,4]:p==='odd-meter'?[7,8]:[4,4],rules=['valid-meter','instrument-program'];const names:Record<string,string>={'walking-bass':'walking-bass','tumbao-clave':'tumbao','montuno-clave':'montuno',clave:'clave-2-3','latin-clave':'clave-2-3',tumbao:'tumbao',montuno:'montuno','la-pompe':'la-pompe','swing-ride':'swing-ride','jazz-waltz':'jazz-waltz','odd-meter':'odd-meter','boom-bap':'boom-bap','straight-16-funk':'straight-16-funk','broken-beat':'broken-beat','modal-pedal':'modal-pedal','quartal-voicing':'quartal-voicing'};if(names[p])rules.push(names[p]!);return{id:`behaviour-${i.id}-${hash(behaviour).toString(16)}-${index}`,category:'behaviour',source:p,bpm:112,meter,bars:4,tracks,rules}}
-function groovePattern(g:PreviewGroove):string{const text=`${g.id} ${g.label} ${g.prompt}`;if(/walking[ -]swing/i.test(text))return'swing-ride';return patternFor(text,'percussion')}
-function grooveBass(p:string):MusicTrack {const i:PreviewInstrument={id:'upright-bass',name:'Upright Bass',category:'bass',behaviours:[]};if(p==='jazz-waltz')return bassMeter(i,3);if(p==='odd-meter')return bassMeter(i,3.5);if(['tumbao','tumbao-clave','bossa','samba','latin-clave','funk'].includes(p))return p==='funk'?bassOstinato(i):tumbao(i);if(p==='modal-pedal')return pedal(i);if(['broken-beat','boom-bap','neo-soul'].includes(p))return bassOstinato({...i,id:'electric-bass',name:'Electric Bass'});return bassWalk(i)}
-function grooveHarmony(p:string):MusicTrack {const guitar=['bossa','samba','la-pompe','latin-clave'].includes(p),i:PreviewInstrument=guitar?{id:'nylon-guitar',name:'Nylon Guitar',category:'guitar',behaviours:[]}:{id:'piano',name:'Piano',category:'keyboard',behaviours:[]};if(p==='jazz-waltz')return harmonyMeter(i,3);if(p==='odd-meter')return harmonyMeter(i,3.5);if(p==='montuno'||p==='montuno-clave')return montuno(i);if(p==='quartal-voicing')return quartal(i);if(p==='la-pompe')return pompe(i);if(p==='bossa')return bossaComp(i);return comp(i,guitar)}
-export function makeGrooveSpec(g:PreviewGroove):MusicSpec {const p=groovePattern(g),meter:[number,number]=p==='jazz-waltz'?[3,4]:p==='odd-meter'?[7,8]:[4,4],rules=['valid-meter','groove-ensemble'];const map:Record<string,string>={'modal-pedal':'modal-pedal','tumbao-clave':'tumbao','montuno-clave':'montuno',clave:'clave-2-3','latin-clave':'clave-2-3',tumbao:'tumbao','swing-ride':'swing-ride','jazz-waltz':'jazz-waltz','odd-meter':'odd-meter','boom-bap':'boom-bap','straight-16-funk':'straight-16-funk','broken-beat':'broken-beat',montuno:'montuno','la-pompe':'la-pompe'};if(map[p])rules.push(map[p]!);if(p.endsWith('-clave'))rules.push('clave-2-3');return{id:`groove-${g.id}`,category:'groove',source:p,bpm:p==='bossa'?104:p==='samba'?116:p==='jazz-waltz'?118:p==='odd-meter'?108:112,meter,bars:4,tracks:[drums(p,'acoustic-drums',`${g.label} drums`,4,meter),grooveBass(p),grooveHarmony(p)],rules}}
+
+function freeTimeTrack(i:PreviewInstrument,source:string):MusicTrack {
+ const beats=[.25,1.7,4.35,6.1,9.45,11.2,14.15,15.05];
+ if(i.category==='bass')return tr(i.name,i.id,'bass',beats.map((beat,index)=>note(beat,[36,43,40,47,38,45,41,36][index]!,[1.05,.55,1.4,.7,1.1,.6,.75,.65][index]!,58+index%3*3)));
+ if(i.category==='percussion')return drums('free-time',i.id,i.name);
+ const base=i.category==='brass'?64:i.category==='woodwind'?62:60,scale=[0,2,5,7,11,12,15,17];
+ return tr(i.name,i.id,'lead',beats.map((beat,index)=>note(beat,base+scale[(index+hash(source+i.id))%scale.length]!+index%3*12,[.48,.9,.36,1.1,.42,.7,.55,.38][index]!,60+index%4*3)));
+}
+function freeTimeBass(i:PreviewInstrument):MusicTrack {return tr(i.name,i.id,'bass',[note(.4,36,1.1,55),note(2.05,43,.62,52),note(4.7,40,1.2,58),note(6.3,47,.7,50),note(9.6,38,1.05,56),note(11.45,45,.55,51),note(14.2,41,.78,54)])}
+function freeTimeHarmony(i:PreviewInstrument):MusicTrack {const events:[[number,number[]],[number,number[]],[number,number[]],[number,number[]],[number,number[]]]=[[.15,[60,65,70]],[2.85,[62,67,72]],[6.4,[59,64,69]],[10.55,[61,66,71]],[13.35,[60,65,70]]];return tr(i.name,i.id,'harmony',events.flatMap(([beat,pitches],index)=>chord(beat,pitches,[1.45,.85,1.7,.95,1.25][index]!,48)))}
+function sparseNoirBass(i:PreviewInstrument):MusicTrack {return tr(i.name,i.id,'bass',[note(.2,36,2.4,48),note(4.8,40,2.1,45),note(9.1,38,2.8,48),note(13.5,36,1.8,44)])}
+function contemporaryBass(i:PreviewInstrument):MusicTrack {return tr(i.name,i.id,'bass',[note(0,40,.8,65),note(1.5,43,.65,58),note(2.75,38,.5,53),note(4,43,.75,64),note(6.5,36,.6,55),note(7.5,40,.4,52),note(8,45,.8,64),note(10.5,40,.55,55),note(11.25,43,.55,52),note(12,38,.75,62),note(14.5,45,.5,54),note(15.5,40,.35,50)])}
+function neoSoulBass(i:PreviewInstrument):MusicTrack {const at:[[number,number],[number,number],[number,number],[number,number]]=[[0,36],[1.75,43],[2.5,38],[3.75,40]];const notes:MusicEvent[]=[];for(let bar=0;bar<4;bar++)for(const [offset,pitch] of at)notes.push(note(bar*4+offset,pitch,.22,bar%2?57:63));return tr(i.name,i.id,'bass',notes)}
+function chamberCounterline(i:PreviewInstrument,source:string):MusicTrack {const beats=[0,1.25,3.5,4.75,7.2,8.05,11.45,13.1,15];const pitches=[67,72,71,76,74,69,77,72,67];const notes=beats.map((beat,index)=>note(beat,pitches[(index+hash(source))%pitches.length]!+index%2,[.85,.42,.6,1.15,.38,.72,.5,1.05,.4][index]!,55+index%4*3));return tr(i.name,i.id,'countermelody',notes)}
+function pianoPreview():PreviewInstrument{return{id:'piano',name:'Piano',category:'keyboard',behaviours:[]}}
+function violinPreview():PreviewInstrument{return{id:'violin',name:'Violin',category:'strings',behaviours:[]}}
+function tracksFor(i:PreviewInstrument,p:string,source:string):MusicTrack[] {
+ if(p==='walking-bass')return[bassWalk(i)];
+ if(p==='bass-melodic')return[tr(i.name,i.id,'bass',melody(i,source).notes.map(n=>({...n,pitch:clamp(n.pitch-18,30,52),duration:.48})))];
+ if(p==='modal-pedal')return[pedal(i)];
+ if(p==='modal-ostinato'||p==='bass-ostinato')return[bassOstinato(i)];
+ if(p==='tumbao')return[tumbao(i)];
+ if(p==='tumbao-clave')return[tumbao(i),clave('acoustic-drums','2-3 clave support')];
+ if(p==='montuno')return[montuno(i)];
+ if(p==='montuno-clave')return[montuno(i),clave('acoustic-drums','2-3 clave support')];
+ if(p==='quartal-voicing')return[quartal(i)];
+ if(p==='la-pompe')return[pompe(i)];
+ if(p==='free-time')return[freeTimeTrack(i,source)];
+ if(p==='noir-brushes')return[percussionGuide(i,p),sparseNoirBass({id:'upright-bass',name:'Upright Bass',category:'bass',behaviours:[]})];
+ if(p==='third-stream'){
+  const piano=pianoPreview(),violin=violinPreview();
+  if(i.id==='piano')return[melody(i,source),comp(i),chamberCounterline(violin,source)];
+  if(i.id==='violin'||i.id==='clarinet')return[chamberCounterline(i,source),comp(piano)];
+  return[melody(i,source),comp(piano),chamberCounterline(violin,source)];
+ }
+ if(p==='jazz-waltz'||p==='odd-meter'){const stride=p==='jazz-waltz'?3:3.5;if(i.category==='percussion')return[percussionGuide(i,p,4)];if(i.category==='bass')return[bassMeter(i,stride)];if(i.category==='keyboard'||i.category==='guitar')return[harmonyMeter(i,stride)];return[melodyMeter(i,source,stride)]}
+ if(['swing-ride','boom-bap','boom-bap-half-time','straight-16-funk','neo-soul','contemporary-flex','broken-beat','bossa','samba','soul-shuffle','two-beat','latin-clave','straight-eighth','brushes','march','funk','ballad','open','modal-pulse'].includes(p)){
+  if(i.category==='percussion')return[percussionGuide(i,p)];
+  const lead=i.category==='bass'?(p==='neo-soul'?neoSoulBass({...i,id:'electric-bass',name:'Electric Bass'}):p==='contemporary-flex'?contemporaryBass(i):bassOstinato(i)):melody(i,source);
+  return[lead,drums(p==='latin-clave'?'clave':p,'acoustic-drums','reference rhythm')];
+ }
+ if(p==='guitar-comping'||p==='spacious-comping')return[comp(i,p==='guitar-comping')];
+ if(p==='fingerstyle')return[comp(i),melody(i,source)];
+ if(p==='sustained-texture')return[tr(i.name,i.id,'texture',[note(0,60,7.7,52),note(8,65,7.7,50)])];
+ return[melody(i,source)];
+}
+export function makeInstrumentSpec(i:PreviewInstrument):MusicSpec {
+ const p=i.category==='percussion'?'straight-eighth':i.category==='bass'?'bass-foundation':'lyrical-phrase';
+ const bassNotes=Array.from({length:8},(_,beat)=>note(beat,beat%4===0?40:beat%4===2?43:36,.82,68));
+ const textureNotes=[note(0,60,3.8,50),note(4,65,3.8,48)];
+ const tracks=i.category==='percussion'?[percussionGuide(i,p,2)]:i.category==='bass'?[tr(i.name,i.id,'bass',bassNotes)]:i.category==='texture'?[tr(i.name,i.id,'texture',textureNotes)]:[melody(i,i.id,2)];
+ return{id:`instrument-${i.id}`,category:'instrument',source:p,semanticFamily:'instrument-tone',bpm:88,meter:[4,4],bars:2,tracks,rules:['valid-meter','instrument-program','family:instrument-tone',...(i.category==='bass'?['bass-register']:[])]};
+}
+export function makeBehaviourSpec(i:PreviewInstrument,behaviour:string,index=0):MusicSpec {
+ const p=patternFor(behaviour,i.category),family=semanticFamilyForPattern(p),tracks=tracksFor(i,p,behaviour),meter:[number,number]=p==='jazz-waltz'?[3,4]:p==='odd-meter'?[7,8]:[4,4];
+ const rules=['valid-meter','instrument-program',`family:${family}`,...rulesForPattern(p).filter(rule=>!(p==='jazz-waltz'&&rule==='jazz-waltz')&&!(p==='jazz-waltz'&&rule==='jazz-waltz-bass'))];
+ if(p==='jazz-waltz')rules.push(i.category==='percussion'?'jazz-waltz':i.category==='bass'?'jazz-waltz-bass':'jazz-waltz-part');
+ const bpm=p==='noir-brushes'?58:p==='free-time'?76:p==='neo-soul'?76:p==='contemporary-flex'?102:p==='third-stream'?88:112;
+ return{id:`behaviour-${i.id}-${hash(behaviour).toString(16)}-${index}`,category:'behaviour',source:p,semanticFamily:family,bpm,meter,bars:4,tracks,rules};
+}
+const GROOVE_PATTERN_OVERRIDES:Record<string,string>={
+ 'jazz-waltz-three':'jazz-waltz','soft-jazz-waltz':'jazz-waltz','waltz':'jazz-waltz','lofi-chill':'straight-eighth','lofi-straight':'straight-eighth','contemporary-flex':'contemporary-flex','free-time':'free-time','open-free':'free-time',
+ 'jazz-hop-boombap':'boom-bap','jazz-hop-half-time':'boom-bap-half-time','neo-soul-pocket':'neo-soul','neo-soul-loose':'neo-soul',
+ 'noir-slow-brush':'noir-brushes','noir-open':'noir-brushes','third-stream-pulse':'third-stream','third-stream-light':'third-stream'
+};
+function groovePattern(g:PreviewGroove):string {
+ const explicit=GROOVE_PATTERN_OVERRIDES[g.id];if(explicit)return explicit;
+ const text=`${g.id} ${g.label} ${g.prompt}`;
+ if(/swing|ride-cymbal|walking swing/i.test(text))return'swing-ride';
+ return patternFor(text,'percussion');
+}
+function grooveBass(p:string):MusicTrack {
+ const upright:PreviewInstrument={id:'upright-bass',name:'Upright Bass',category:'bass',behaviours:[]};
+ const electric:PreviewInstrument={id:'electric-bass',name:'Electric Bass',category:'bass',behaviours:[]};
+ if(p==='jazz-waltz')return bassMeter(upright,3);
+ if(p==='odd-meter')return bassMeter(upright,3.5);
+ if(p==='free-time')return freeTimeBass(upright);
+ if(p==='noir-brushes')return sparseNoirBass(upright);
+ if(p==='contemporary-flex')return contemporaryBass(upright);
+ if(p==='neo-soul')return neoSoulBass(electric);
+ if(p==='boom-bap'||p==='boom-bap-half-time'||p==='broken-beat')return bassOstinato(electric);
+ if(p==='third-stream')return tr(upright.name,upright.id,'bass',[note(0,40,.9,52),note(2,43,.7,48),note(4,40,.9,51),note(6,45,.7,47),note(8,38,.9,50),note(10,43,.7,46),note(12,40,.9,50),note(14,45,.7,46)]);
+ if(p==='modal-pulse'||p==='modal-ostinato')return bassOstinato(upright);
+ if(['tumbao','tumbao-clave','bossa','samba','latin-clave','funk'].includes(p))return p==='funk'?bassOstinato(upright):tumbao(upright);
+ if(p==='modal-pedal')return pedal(upright);
+ return bassWalk(upright);
+}
+function grooveHarmony(p:string):MusicTrack {
+ const guitar=['bossa','samba','la-pompe','latin-clave'].includes(p),i:PreviewInstrument=guitar?{id:'nylon-guitar',name:'Nylon Guitar',category:'guitar',behaviours:[]}:p==='third-stream'?{id:'piano',name:'Piano',category:'keyboard',behaviours:[]}:{id:'piano',name:'Piano',category:'keyboard',behaviours:[]};
+ if(p==='free-time')return freeTimeHarmony(i);
+ if(p==='noir-brushes')return tr(i.name,i.id,'harmony',[note(.5,60,3.1,42),note(5.25,63,2.7,40),note(10.1,58,3.4,38),note(14.4,62,1.1,36)]);
+ if(p==='jazz-waltz')return harmonyMeter(i,3);
+ if(p==='odd-meter')return harmonyMeter(i,3.5);
+ if(p==='montuno'||p==='montuno-clave')return montuno(i);
+ if(p==='quartal-voicing'||p==='modal-pulse')return quartal(i);
+ if(p==='la-pompe')return pompe(i);
+ if(p==='bossa')return bossaComp(i);
+ return comp(i,guitar);
+}
+export function makeGrooveSpec(g:PreviewGroove):MusicSpec {
+ const p=groovePattern(g),family=semanticFamilyForPattern(p),meter:[number,number]=p==='jazz-waltz'?[3,4]:p==='odd-meter'?[7,8]:[4,4];
+ const rhythmId=p==='noir-brushes'?'brush-drums':'acoustic-drums',tracks:MusicTrack[]=[drums(p,rhythmId,`${g.label} drums`,4,meter),grooveBass(p),grooveHarmony(p)];
+ if(p==='third-stream')tracks.push(chamberCounterline(violinPreview(),g.id));
+ const specificRules=rulesForPattern(p);
+ const rules=['valid-meter','groove-ensemble',`family:${family}`,...specificRules];
+ const bpm=p==='bossa'?104:p==='samba'?116:p==='jazz-waltz'?118:p==='odd-meter'?108:p==='neo-soul'?76:p==='noir-brushes'?54:p==='free-time'?76:p==='third-stream'?88:p==='contemporary-flex'?102:p==='boom-bap'?86:p==='boom-bap-half-time'?74:112;
+ return{id:`groove-${g.id}`,category:'groove',source:p,semanticFamily:family,bpm,meter,bars:4,tracks,rules};
+}
 
 const starts=(t:MusicTrack):number[]=>t.notes.map(n=>n.beat).sort((a,b)=>a-b);
 const mono=(t:MusicTrack):boolean=>{const e=t.notes.flatMap(n=>[[n.beat,1] as const,[n.beat+n.duration,-1] as const]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);let active=0;for(const [,d] of e){active+=d;if(active>1)return false}return true};
 function drumPitches(t:MusicTrack):[number,number,number]{if(t.instrumentId==='congas')return[64,63,62];if(t.instrumentId==='bongos')return[61,60,60];if(t.instrumentId==='timbales')return[66,65,56];if(t.instrumentId==='soft-shaker')return[82,82,82];if(t.instrumentId==='brazilian-percussion')return[56,69,70];return[36,38,42]}
-export function validateMusicSpec(s:MusicSpec):RuleResult[]{const r:RuleResult[]=[],add=(rule:string,ok:boolean,detail:string)=>r.push({rule,ok,detail});add('valid-meter',s.meter[0]>0&&s.meter[1]>0&&s.bars>0,`${s.meter.join('/')} × ${s.bars} bars`);add('instrument-program',s.tracks.every(t=>t.program>=0&&t.program<=127&&t.notes.every(n=>n.pitch>=0&&n.pitch<=127)),'GM program and MIDI note range');const songEnd=s.bars*s.meter[0]*4/s.meter[1];add('events-within-bars',s.tracks.every(t=>t.notes.every(n=>n.beat>=0&&n.beat+n.duration<=songEnd+1e-6)),`events end within ${songEnd} quarter-note beats`);
+function validateStructuralMusicSpec(s:MusicSpec):RuleResult[]{const r:RuleResult[]=[],add=(rule:string,ok:boolean,detail:string)=>r.push({rule,ok,detail});add('valid-meter',s.meter[0]>0&&s.meter[1]>0&&s.bars>0,`${s.meter.join('/')} × ${s.bars} bars`);add('instrument-program',s.tracks.every(t=>t.program>=0&&t.program<=127&&t.notes.every(n=>n.pitch>=0&&n.pitch<=127)),'GM program and MIDI note range');const songEnd=s.bars*s.meter[0]*4/s.meter[1];add('events-within-bars',s.tracks.every(t=>t.notes.every(n=>n.beat>=0&&n.beat+n.duration<=songEnd+1e-6)),`events end within ${songEnd} quarter-note beats`);
  if(s.rules.includes('walking-bass')){const t=s.tracks.find(x=>x.role==='bass')!,a=starts(t);add('walking-bass-meter',s.meter[0]===4&&s.meter[1]===4,'4/4 meter');add('walking-bass-register',t.notes.every(n=>n.pitch>=28&&n.pitch<=48),'E1–C3 register');add('walking-bass-monophonic',mono(t),'no overlapping notes');add('walking-bass-quarter-grid',JSON.stringify(a)===JSON.stringify(Array.from({length:16},(_,n)=>n)),'quarter note onsets across four bars');add('walking-bass-root-target',t.notes.filter(n=>n.beat%4===0).length===4,'one root target per bar')}
  if(s.rules.includes('clave-2-3')){const t=s.tracks.find(x=>x.channel===9&&x.notes.length>0),a=t?starts(t).filter(x=>x<8):[];add('clave-2-3-grid',JSON.stringify(a)===JSON.stringify([1,3,4,5.5,7]),'canonical 2-3 clave on the two-bar grid')}
  if(s.rules.includes('tumbao')){const t=s.tracks.find(x=>x.role==='bass')!,a=starts(t);add('tumbao-register',t.notes.every(n=>n.pitch>=28&&n.pitch<=48),'E1–C3 register');add('tumbao-monophonic',mono(t),'monophonic bass');add('tumbao-syncopation',a.every(x=>x%1!==0),'syncopated offbeat attacks');add('tumbao-repeat',JSON.stringify(a.slice(0,4))===JSON.stringify(a.slice(4,8).map(x=>x-8)),'repeating two-bar identity')}
@@ -90,6 +275,69 @@ export function validateMusicSpec(s:MusicSpec):RuleResult[]{const r:RuleResult[]
  if(s.rules.includes('modal-pedal')){const t=s.tracks.find(x=>x.role==='bass')!;add('modal-pedal-stability',t.notes.length>=4&&t.notes.every(n=>n.pitch===t.notes[0]?.pitch),'stable repeated pitch');add('modal-pedal-register',t.notes.every(n=>n.pitch>=28&&n.pitch<=48),'bass register')}
  if(s.rules.includes('quartal-voicing')){const track=s.tracks.find(t=>t.role==='harmony')!;const first=Math.min(...track.notes.map(n=>n.beat));const p=[...new Set(track.notes.filter(n=>n.beat===first).map(n=>n.pitch))].sort((a,b)=>a-b);add('quartal-intervals',p.length===3&&(p[1]! - p[0]!)===5&&(p[2]! - p[1]!)===5,'stacked perfect fourths in each opening voicing')}
  if(s.rules.includes('groove-ensemble'))add('groove-mini-ensemble',s.tracks.some(t=>t.role==='rhythm')&&s.tracks.some(t=>t.role==='bass')&&s.tracks.some(t=>t.role==='harmony'),'drums, bass and chordal instrument');return r}
+function validateSemanticMusicSpec(s:MusicSpec):RuleResult[] {
+ const results:RuleResult[]=[];
+ const add=(rule:string,ok:boolean,detail:string)=>results.push({rule,ok,detail});
+ const expectedFamily=s.category==='instrument'?'instrument-tone':semanticFamilyForPattern(s.source);
+ add('semantic-family-pattern',s.semanticFamily===expectedFamily,s.semanticFamily+' → '+s.source+'; expected '+expectedFamily);
+ add('semantic-family-rule',s.rules.includes('family:'+expectedFamily),'family:'+expectedFamily+' is present in structural rules');
+ const rhythm=s.tracks.find(track=>track.role==='rhythm');
+ const bass=s.tracks.find(track=>track.role==='bass');
+ const hats=rhythm?.notes.filter(event=>event.pitch===42)??[];
+ const snares=rhythm?.notes.filter(event=>event.pitch===38)??[];
+ if(s.semanticFamily==='modal-bass-ostinato'){
+  const positions=bass?starts(bass):[];
+  const expected=[0,1.5,2.5,3.5];
+  add('modal-ostinato-bass-role',Boolean(bass),'modal ostinato is carried by a bass part');
+  add('modal-ostinato-repeating-cell',positions.length===16&&positions.every((beat,index)=>Math.abs(beat%4-expected[index%4]!)<1e-6),'four-note syncopated cell repeats across four bars');
+ }
+ if(s.semanticFamily==='jazz-waltz'){
+  const expectedOffsets=[0,1,2];
+  add('jazz-waltz-meter-3-4',s.meter[0]===3&&s.meter[1]===4,'three-beat 3/4 meter');
+  if(bass){const positions=starts(bass);add('jazz-waltz-bass-three-beats',positions.length>=9&&positions.every((beat,index)=>Math.abs(beat%3-expectedOffsets[index%3]!)<1e-6),'bass articulates all three beats of each bar')}
+  if(rhythm){const positions=starts(rhythm);add('jazz-waltz-rhythm-three-beats',positions.length>=9&&positions.every((beat,index)=>Math.abs(beat%3-expectedOffsets[index%3]!)<1e-6),'rhythm articulates all three beats of each bar')}
+ }
+ if(s.semanticFamily==='contemporary-flexible-eighths'){
+  add('contemporary-flex-meter',s.meter[0]===4&&s.meter[1]===4,'flexible straight-eighth reference remains 4/4');
+  add('contemporary-flex-eighth-grid',hats.length>=24&&hats.every(event=>Math.abs(event.beat*2-Math.round(event.beat*2))<1e-6),'steady eighth-note subdivision');
+  add('contemporary-flex-asymmetrical-accents',Boolean(rhythm?.notes.some(event=>[36,38].includes(event.pitch)&&Math.abs(event.beat-Math.round(event.beat))>.1)),'asymmetrical accents vary inside the 4/4 pulse');
+ }
+ if(s.semanticFamily==='neo-soul-pocket'){
+  add('neo-soul-meter',s.meter[0]===4&&s.meter[1]===4,'laid-back 4/4 pocket');
+  add('neo-soul-displaced-sixteenths',hats.length>=24&&hats.length<64&&hats.every(event=>Math.abs(event.beat*4-Math.round(event.beat*4))<=.13),'sparse sixteenth-grid hats with subtle displacement');
+  add('neo-soul-late-backbeat',snares.some(event=>{const offset=event.beat%1;return offset>=.03&&offset<=.1}),'snare placement sits slightly behind the beat');
+ }
+ if(s.semanticFamily==='hip-hop-half-time'){
+  add('boom-bap-half-time-meter',s.meter[0]===4&&s.meter[1]===4,'4/4 boom-bap reference');
+  add('boom-bap-half-time-snare',snares.length>=s.bars&&snares.every(event=>{const offset=event.beat%4;return offset>=2&&offset<=2.15}),'one delayed snare on beat three of each bar');
+  add('boom-bap-half-time-hats',hats.length<=s.bars*8,'hi-hats stay at or below eighth-note density');
+ }
+ if(s.semanticFamily==='free-improvisation'){
+  const backbeatNotes=rhythm?.channel===9?rhythm.notes.filter(event=>[36,38].includes(event.pitch)):[];
+  const irregular=s.tracks.some(track=>track.notes.some(event=>Math.abs(event.beat*2-Math.round(event.beat*2))>.05));
+  add('free-time-no-fixed-backbeat',backbeatNotes.length===0,'no repeated kick/snare backbeat');
+  add('free-time-irregular-events',irregular,'event timing leaves the fixed eighth-note grid');
+ }
+ if(s.semanticFamily==='noir-sparse-brushes'){
+  const events=rhythm?.notes??[];
+  const gaps=events.slice(1).map((event,index)=>event.beat-events[index]!.beat);
+  add('noir-brush-instrument',rhythm?.instrumentId==='brush-drums','brush-drum timbre mapping');
+  add('noir-slow-tempo',s.bpm<=64,'sparse brush tempo at '+s.bpm+' BPM');
+  add('noir-sparse-dynamics',events.length>0&&events.length<=8&&events.every(event=>event.velocity<=56),'at most eight soft brush accents');
+  add('noir-negative-space',gaps.some(gap=>gap>=2),'long pauses remain between brush accents');
+ }
+ if(s.semanticFamily==='third-stream-chamber-jazz'){
+  const chamber=s.tracks.find(track=>['violin','clarinet'].includes(track.instrumentId)&&track.role==='countermelody');
+  const piano=s.tracks.find(track=>track.instrumentId==='piano'&&track.role==='harmony');
+  add('third-stream-chamber-line',Boolean(chamber&&chamber.notes.some(event=>event.duration>=.8)&&chamber.notes.some(event=>event.duration<.5)),'composed chamber counterline has varied sustained and short phrases');
+  add('third-stream-jazz-harmony',Boolean(piano&&piano.notes.length>=6),'piano supplies a jazz-harmony reference');
+ }
+ return results;
+}
+export function validateMusicSpec(s:MusicSpec):RuleResult[] {
+ return [...validateStructuralMusicSpec(s),...validateSemanticMusicSpec(s)];
+}
+
 function vlq(n:number):number[]{let v=Math.max(0,Math.floor(n));const o=[v&127];while((v>>=7)>0)o.unshift((v&127)|128);return o}
 function chunk(type:string,d:number[]):number[]{const l=d.length;return[...Array.from(type).map(c=>c.charCodeAt(0)),l>>>24&255,l>>>16&255,l>>>8&255,l&255,...d]}
 export function encodeMidi(s:MusicSpec):Uint8Array {const ppq=480,us=Math.round(60_000_000/s.bpm),tracks:number[][]=[];const conductor=[0,255,81,3,us>>>16&255,us>>>8&255,us&255,0,255,88,4,s.meter[0],Math.log2(s.meter[1]),24,8,0,255,47,0];tracks.push(chunk('MTrk',conductor));for(const t of s.tracks){const ch=t.channel%16,e:Array<{tick:number;order:number;bytes:number[]}>= [{tick:0,order:0,bytes:[192|ch,t.program&127]}];for(const n of t.notes){const a=Math.round(n.beat*ppq),b=Math.max(a+1,Math.round((n.beat+n.duration)*ppq));e.push({tick:a,order:2,bytes:[144|ch,n.pitch&127,n.velocity&127]},{tick:b,order:1,bytes:[128|ch,n.pitch&127,0]})}e.sort((a,b)=>a.tick-b.tick||a.order-b.order);const d:number[]=[];let prev=0;for(const x of e){d.push(...vlq(x.tick-prev),...x.bytes);prev=x.tick}d.push(0,255,47,0);tracks.push(chunk('MTrk',d))}const h=[77,84,104,100,0,0,0,6,0,1,tracks.length>>>8&255,tracks.length&255,1,224];return new Uint8Array([...h,...tracks.flat()])}

@@ -8,20 +8,22 @@
       "mapped": 32
     },
     "behaviours": {
-      "uniqueExpected": 115,
-      "behaviourPairsExpected": 116,
-      "mapped": 116
+      "uniqueExpected": 142,
+      "behaviourPairsExpected": 146,
+      "mapped": 146
     },
     "grooves": {
-      "expected": 40,
-      "mapped": 40
+      "expected": 64,
+      "mapped": 64
     },
-    "reusablePatterns": 34
+    "reusablePatterns": 38
   },
   "technical": {
-    "checked": 188,
-    "passed": 188,
+    "checked": 242,
+    "passed": 242,
     "failed": 0,
+    "sha256Checked": 242,
+    "missingHashes": [],
     "missing": [],
     "orphan": [],
     "failedAssets": [],
@@ -30,9 +32,9 @@
     "loudness": [],
     "duration": [],
     "manifestErrors": 0,
-    "totalBytes": 18043182,
-    "averageBytes": 95974,
-    "largestBytes": 112894,
+    "totalBytes": 24480786,
+    "averageBytes": 101160,
+    "largestBytes": 209756,
     "loudnessPolicy": {
       "standardTargetLufs": -18,
       "percussionOnlyTargetLufs": -22.5,
@@ -43,7 +45,7 @@
     "maxInitialSilenceSeconds": 0.25
   },
   "musicRules": {
-    "checked": 741,
+    "checked": 1492,
     "failed": 0,
     "failures": []
   },
@@ -53,14 +55,14 @@
       "mapped": 32
     },
     "behaviours": {
-      "uniqueExpected": 115,
-      "behaviourPairsExpected": 116,
-      "mapped": 116
+      "uniqueExpected": 142,
+      "behaviourPairsExpected": 146,
+      "mapped": 146
     },
     "grooves": {
-      "expected": 40,
-      "mapped": 40
+      "expected": 64,
+      "mapped": 64
     }
   },
-  "representativeCount": 19
+  "representativeCount": 20
 }

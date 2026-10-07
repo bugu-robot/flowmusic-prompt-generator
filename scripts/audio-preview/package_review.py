@@ -5,6 +5,7 @@ import sys
 import zipfile
 
 root, archive = sys.argv[1:3]
+os.makedirs(os.path.dirname(archive), exist_ok=True)
 with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as output:
     def add(path, arcname):
         info = zipfile.ZipInfo(arcname, (1980, 1, 1, 0, 0, 0))

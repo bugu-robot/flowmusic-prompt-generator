@@ -1,7 +1,7 @@
 node_modules/
 dist/
 coverage/
-public/audio-preview-review.zip
+.artifacts/
 .DS_Store
 npm-debug.log*
 *.tsbuildinfo

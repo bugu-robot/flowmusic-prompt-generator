@@ -25,14 +25,16 @@ jobs:
         run: npm ci
       - name: Audit dependencies
         run: npm audit
+      - name: Install FFmpeg for committed-audio verification
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Run code, production-build, and committed-audio checks
+        run: npm run typecheck && npm run lint && npm test && npm run build && npm run build -- --mode pages && npm run audio:verify
       - name: Package the review archive from committed assets
         run: npm run audio:package
-      - name: Run fast checks and committed-audio verification
-        run: npm run typecheck && npm run lint && npm test && npm run audio:verify && npm run build && npm run build -- --mode pages
       - name: Upload complete audio review package
         uses: actions/upload-artifact@v4
         with:
           name: audio-preview-review
-          path: public/audio-preview-review.zip
+          path: .artifacts/audio-preview-review.zip
           if-no-files-found: error
           retention-days: 14

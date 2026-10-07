@@ -3,7 +3,7 @@ import { JAZZ_STYLES } from '../data/jazz-styles';
 import { makeBehaviourSpec, makeGrooveSpec, makeInstrumentSpec, validateMusicSpec, type MusicSpec, type PreviewGroove, type PreviewInstrument, type RuleResult } from './music';
 
 export interface PreviewEntry {
-  previewId: string; sourceCatalogId: string; sourceLabel: string; category: 'instrument'|'behaviour'|'groove';
+  previewId: string; sourceCatalogId: string; sourceLabel: string; category: 'instrument'|'behaviour'|'groove'; semanticFamily: string;
   audioPath: string; pattern: string; instrumentId?: string; instrument?: string;
   bpm: number; meter: string; durationSeconds: number; targetLufs: number; loudnessToleranceLufs: number; targetTruePeakDbtp: number; musicQc: RuleResult[]; musicQcPassed: boolean; technicalQc?: unknown;
 }
@@ -22,7 +22,7 @@ const duration=(spec:MusicSpec):number=>spec.bars*spec.meter[0]*4/spec.meter[1]*
 function entry(spec:MusicSpec,category:PreviewEntry['category'],sourceId:string,label:string,path:string,instrument?:PreviewInstrument):PreviewEntry {
  const musicQc=validateMusicSpec(spec);
  const percussionOnly=spec.tracks.length>0&&spec.tracks.every(track=>track.role==='rhythm');
- return {previewId:spec.id,sourceCatalogId:sourceId,sourceLabel:label,category,audioPath:path,pattern:spec.source,instrumentId:instrument?.id,instrument:instrument?.name,bpm:spec.bpm,meter:spec.meter.join('/'),durationSeconds:Number(duration(spec).toFixed(3)),targetLufs:percussionOnly?-22.5:-18,loudnessToleranceLufs:percussionOnly?2.5:2,targetTruePeakDbtp:-2.8,musicQc,musicQcPassed:musicQc.every(rule=>rule.ok)};
+ return {previewId:spec.id,sourceCatalogId:sourceId,sourceLabel:label,category,semanticFamily:spec.semanticFamily,audioPath:path,pattern:spec.source,instrumentId:instrument?.id,instrument:instrument?.name,bpm:spec.bpm,meter:spec.meter.join('/'),durationSeconds:Number(duration(spec).toFixed(3)),targetLufs:percussionOnly?-22.5:-18,loudnessToleranceLufs:percussionOnly?2.5:2,targetTruePeakDbtp:-2.8,musicQc,musicQcPassed:musicQc.every(rule=>rule.ok)};
 }
 function pickInstrument(query:string, fallbackCategory?:string):PreviewInstrument|undefined {
  return (INSTRUMENTS.find(i=>i.id===query)||INSTRUMENTS.find(i=>i.name.toLowerCase().includes(query.toLowerCase()))||INSTRUMENTS.find(i=>i.category===fallbackCategory)) as PreviewInstrument|undefined;

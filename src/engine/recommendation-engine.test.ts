@@ -6,18 +6,26 @@ import { recommendConfiguration } from './recommendation-engine';
 
 describe('Jazz style data and recommendations', () => {
   it('loads the complete initial style catalog and every entry has type-safe recommendations', () => {
-    expect(JAZZ_STYLES.length).toBeGreaterThanOrEqual(25);
+    expect(JAZZ_STYLES).toHaveLength(38);
+    expect(JAZZ_STYLES.filter((style) => style.classification !== 'custom')).toHaveLength(37);
+    expect(JAZZ_STYLES.filter((style) => style.classification === 'custom')).toHaveLength(1);
     for (const style of JAZZ_STYLES) {
       expect(style.tempo.min).toBeLessThan(style.tempo.max);
       expect(style.tempo.default).toBeGreaterThanOrEqual(style.tempo.min);
       expect(style.tempo.default).toBeLessThanOrEqual(style.tempo.max);
       expect(style.meters.length).toBeGreaterThan(0);
-      expect(style.meters[0]).toBe('4/4');
+      expect(style.meters[0]).toBe(style.id === 'jazz-waltz' ? '3/4' : '4/4');
       expect(style.lead.length).toBeGreaterThan(0);
       expect(style.bass.length).toBeGreaterThan(0);
       expect(style.variations).toHaveLength(3);
     }
     expect(STYLE_BY_ID.get('jazz-ballad')?.meters).toContain('3/4');
+    expect(STYLE_BY_ID.get('jazz-waltz')?.meters[0]).toBe('3/4');
+    expect(recommendConfiguration('jazz-waltz').meter).toBe('3/4');
+    expect(STYLE_BY_ID.get('samba-jazz')?.meters).toEqual(['4/4', '2/4']);
+    expect(recommendConfiguration('samba-jazz').meter).toBe('4/4');
+    expect(STYLE_BY_ID.get('third-stream')?.meters).toEqual(['4/4', '3/4']);
+    expect(recommendConfiguration('third-stream').meter).toBe('4/4');
     expect(STYLE_BY_ID.get('new-orleans')?.meters).toContain('2/4');
   });
 
@@ -45,8 +53,54 @@ describe('Jazz style data and recommendations', () => {
   });
 
   it.each(JAZZ_STYLES)('$name never marks its own recommended instruments unusual', (style) => {
-    const recommended = [...style.lead, ...style.response, ...style.harmonyInstruments, ...style.bass, ...style.rhythm];
-    expect(style.unusualInstruments.filter((id) => recommended.includes(id))).toEqual([]);
+      const recommended = [...style.lead, ...style.response, ...style.harmonyInstruments, ...style.bass, ...style.rhythm, ...(style.recommendedParts ?? []).map((part) => part.instrumentId)];
+      expect(style.unusualInstruments.filter((id) => recommended.includes(id))).toEqual([]);
+  });
+
+  it('keeps every taxonomy, default and unique instrument-role pairing explicit', () => {
+    const ids = JAZZ_STYLES.map((style) => style.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const styles = [
+      ['lofi-jazz', 'modern-descriptor'],
+      ['acid-jazz', 'historical-derived-style'],
+      ['big-band', 'historical-style'],
+      ['samba-jazz', 'historical-derived-style'],
+      ['jazz-waltz', 'historical-derived-style'],
+      ['piano-cafe-jazz', 'modern-descriptor'],
+      ['contemporary-jazz', 'modern-descriptor'],
+      ['free-jazz', 'historical-style'],
+      ['jazz-hop', 'modern-descriptor'],
+      ['neo-soul-jazz', 'modern-descriptor'],
+      ['dark-jazz', 'modern-descriptor'],
+      ['third-stream', 'historical-derived-style'],
+    ] as const;
+    for (const [id, classification] of styles) expect(STYLE_BY_ID.get(id)?.classification).toBe(classification);
+
+    for (const style of JAZZ_STYLES) {
+      const explicitParts = style.recommendedParts ?? [];
+      const explicitIds = explicitParts.map((part) => part.instrumentId);
+      expect(new Set(explicitIds).size, style.id + ' explicit recommendations').toBe(explicitIds.length);
+      for (const part of explicitParts) {
+        expect(INSTRUMENT_BY_ID.get(part.instrumentId)?.roles, style.id + ': ' + part.instrumentId).toContain(part.role);
+      }
+      const recommendedRoles: Array<[string[], 'lead' | 'response' | 'harmony' | 'bass' | 'rhythm']> = [
+        [style.lead, 'lead'], [style.response, 'response'], [style.harmonyInstruments, 'harmony'],
+        [style.bass, 'bass'], [style.rhythm, 'rhythm'],
+      ];
+      for (const [instrumentIds, role] of recommendedRoles) {
+        for (const id of instrumentIds) expect(INSTRUMENT_BY_ID.get(id)?.roles, style.id + ': ' + id + ' as ' + role).toContain(role);
+      }
+      const parts = recommendConfiguration(style.id).instruments;
+      const partIds = parts.map((part) => part.instrumentId);
+      expect(new Set(partIds).size, style.id).toBe(partIds.length);
+      expect(recommendConfiguration(style.id)).toEqual(recommendConfiguration(style.id));
+      if (['lofi-jazz', 'acid-jazz', 'big-band', 'samba-jazz', 'jazz-waltz', 'piano-cafe-jazz', 'contemporary-jazz', 'free-jazz', 'jazz-hop', 'neo-soul-jazz', 'dark-jazz', 'third-stream'].includes(style.id)) {
+        for (const part of style.recommendedParts ?? []) {
+          expect(INSTRUMENT_BY_ID.get(part.instrumentId)?.roles, style.id + ': ' + part.instrumentId).toContain(part.role);
+          expect(INSTRUMENT_BY_ID.get(part.instrumentId)?.behaviours, style.id + ': ' + part.behaviour).toContain(part.behaviour);
+        }
+      }
+    }
   });
 
   it('marks Cozy Jazz and Brisk Jazz as modern descriptors', () => {

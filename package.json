@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "prebuild": "npm run audio:package",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint .",
@@ -17,7 +16,7 @@
     "audio:install": "bash scripts/audio-preview/install-deps.sh",
     "audio:build": "npm run audio:install && node --import=tsx scripts/audio-preview/build.ts",
     "audio:qc": "node --import=tsx scripts/audio-preview/qc-cli.ts",
-    "audio:package": "python3 scripts/audio-preview/package_review.py . public/audio-preview-review.zip",
+    "audio:package": "python3 scripts/audio-preview/package_review.py . .artifacts/audio-preview-review.zip",
     "audio:verify": "node --import=tsx scripts/audio-preview/verify.ts",
     "audio:all": "npm run audio:build && npm run audio:verify"
   },

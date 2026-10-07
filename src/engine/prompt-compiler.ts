@@ -34,7 +34,7 @@ function roleOrder(part: InstrumentPart): number {
   return order[part.role];
 }
 
-function describePart(part: InstrumentPart, isAdditionalLead: boolean, allowCollective: boolean): string | undefined {
+function describePart(part: InstrumentPart, isAdditionalLead: boolean, style: JazzStyle): string | undefined {
   const instrument = INSTRUMENT_BY_ID.get(part.instrumentId);
   if (!instrument || !part.enabled) return undefined;
   const name = instrument.wording;
@@ -42,6 +42,31 @@ function describePart(part: InstrumentPart, isAdditionalLead: boolean, allowColl
   const behaviour = clean(part.behaviour) || instrument.behaviours[0] || '';
   const role = isAdditionalLead ? 'response' : part.role;
   const restrained = part.prominence < 35;
+  const allowCollective = style.foregroundRule === 'collective';
+  const capitalizedBehaviour = behaviour ? behaviour[0]!.toUpperCase() + behaviour.slice(1) : '';
+
+  if (style.id === 'free-jazz') {
+    if (role === 'lead') return name[0]!.toUpperCase() + name.slice(1) + ' contributes ' + (behaviour || 'a distinct improvisational voice') + ' as one voice in the collective improvisation.';
+    if (role === 'response') return plainName[0]!.toUpperCase() + plainName.slice(1) + ' contributes ' + (behaviour || 'an answering phrase') + ' in an overlapping collective exchange.';
+    if (role === 'countermelody') return plainName[0]!.toUpperCase() + plainName.slice(1) + ' contributes ' + (behaviour || 'a distinct counterline') + ' within the shared collective texture.';
+  }
+
+  if (style.id === 'big-band') {
+    if (isAdditionalLead) {
+      const section = part.instrumentId.includes('sax')
+        ? 'saxophone section'
+        : ['trumpet', 'muted-trumpet'].includes(part.instrumentId)
+          ? 'trumpet section'
+          : part.instrumentId === 'trombone' ? 'trombone section' : undefined;
+      const participation = section
+        ? 'joins the arranged ' + section + ' with coordinated voicings and sectional call-and-response'
+        : 'supports the arranged ensemble with sectional call-and-response';
+      return plainName[0]!.toUpperCase() + plainName.slice(1) + ' ' + participation + ', without taking an additional solo.';
+    }
+    if (role === 'lead') return name[0]!.toUpperCase() + name.slice(1) + ' steps out for ' + (behaviour || 'one concise featured solo framed by arranged big-band passages') + '.';
+    if (role === 'response' || role === 'countermelody') return capitalizedBehaviour + '.';
+  }
+
   switch (role) {
     case 'lead':
       return name[0]!.toUpperCase() + name.slice(1) + ' carries the main melodic voice with ' + (behaviour || 'clear, measured phrases') + '.';
@@ -177,14 +202,16 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const additionalLeadIds = new Set(sortedLead.slice(1).map((part) => part.instrumentId));
   const instrumentSentences = enabledParts
     .filter((part) => part !== lead)
-    .map((part) => describePart(part, additionalLeadIds.has(part.instrumentId), configuration.foregroundRule === 'collective'))
+    .map((part) => describePart(part, additionalLeadIds.has(part.instrumentId), style))
     .filter((sentence): sentence is string => Boolean(sentence));
-  if (lead) instrumentSentences.unshift(describePart(lead, false, configuration.foregroundRule === 'collective')!);
+  if (lead) instrumentSentences.unshift(describePart(lead, false, style)!);
 
   const harmonyNames = unique(configuration.harmonyIds).map((id) => HARMONY_BY_ID.get(id)?.prompt).filter((value): value is string => Boolean(value));
-  const harmonySentence = harmonyNames.length
-    ? 'Use ' + asList(harmonyNames.slice(0, 6)) + ' harmony, with smooth voice leading and restrained tension.'
-    : 'Use restrained jazz harmony with smooth voice leading and gentle tension.';
+  const harmonySentence = style.harmonyGuidance
+    ? (harmonyNames.length ? 'Use ' + asList(harmonyNames.slice(0, 6)) + '. ' : 'Use open jazz harmony. ') + style.harmonyGuidance
+    : harmonyNames.length
+      ? 'Use ' + asList(harmonyNames.slice(0, 6)) + ' harmony, with smooth voice leading and restrained tension.'
+      : 'Use restrained jazz harmony with smooth voice leading and gentle tension.';
   const melody = melodyDescription(configuration, style);
   const dynamics = dynamicsDescription(configuration.dynamics, configuration.energy);
   const arrangement = arrangementDescription(configuration.structure);
