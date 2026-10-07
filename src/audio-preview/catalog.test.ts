@@ -32,14 +32,16 @@ describe('catalog-driven audio previews', () => {
     }
   });
 
-  it('leaves prompt output and saved configuration semantics untouched', () => {
-    const configuration = recommendConfiguration('cozy-jazz');
-    const originalConfiguration = structuredClone(configuration);
-    const originalPrompt = compilePrompt(configuration);
+  it('leaves every built-in prompt and configuration unchanged when building audio previews', () => {
+    const configurations = [...JAZZ_STYLES.map((style) => recommendConfiguration(style.id)), {
+      ...recommendConfiguration('cozy-jazz'), styleId: 'custom', customStyleName: 'User-defined jazz',
+    }];
+    const originals = configurations.map((configuration) => structuredClone(configuration));
+    const prompts = configurations.map((configuration) => compilePrompt(configuration));
 
     buildPreviewCatalog();
 
-    expect(configuration).toEqual(originalConfiguration);
-    expect(compilePrompt(configuration)).toBe(originalPrompt);
+    expect(configurations).toEqual(originals);
+    expect(configurations.map((configuration) => compilePrompt(configuration))).toEqual(prompts);
   });
 });

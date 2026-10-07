@@ -6,7 +6,7 @@
 - Instrument tones: 32/32
 - Behaviour mappings: 146/146 behaviour/instrument pairs (142 unique English strings)
 - Grooves: 64/64
-- Reusable patterns: 38
+- Reusable patterns: 112
 - Music rule failures: 0
 - Technical failures: 0
 - Missing files: 0

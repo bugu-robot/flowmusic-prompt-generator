@@ -28,7 +28,7 @@ jobs:
       - name: Install FFmpeg for committed-audio verification
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Run code, production-build, and committed-audio checks
-        run: npm run typecheck && npm run lint && npm test && npm run build && npm run build -- --mode pages && npm run audio:verify
+        run: npm run typecheck && npm run lint && npm test && npm run build && npm run build -- --mode pages && npm run audio:similarity && npm run audio:verify
       - name: Package the review archive from committed assets
         run: npm run audio:package
       - name: Upload complete audio review package

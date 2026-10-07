@@ -7,6 +7,12 @@ import type { PreviewEntry, PreviewManifest } from './catalog';
 export interface TechnicalResult { ok: boolean; durationSeconds: number|null; integratedLufs: number|null; truePeakDbtp: number|null; initialSilenceSeconds: number|null; trailingSilenceSeconds: number|null; sampleRate: number|null; channels: number|null; codec: string|null; sha256: string|null; checks: Record<string,boolean>; errors: string[]; bytes: number }
 function run(command:string,args:string[]):Promise<{code:number;stdout:string;stderr:string}>{return new Promise((resolve,reject)=>{const child=spawn(command,args,{stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',d=>stdout+=d);child.stderr.on('data',d=>stderr+=d);child.on('error',reject);child.on('close',code=>resolve({code:code??1,stdout,stderr}))})}
 const matchLast=(text:string,pattern:RegExp):number|null=>{const all=[...text.matchAll(pattern)];return all.length?Number(all[all.length-1]![1]):null};
+export function initialSilenceFromDetection(starts:number[],ends:number[]):number {
+ // Only the silence interval beginning at t=0 is leading silence. A short first
+ // attack followed by a quiet gap (common for shaker and brush samples) must
+ // not be mislabeled as initial silence.
+ return starts[0]!==undefined&&starts[0]<=0.001?(ends.find(value=>value>=starts[0]!+0.001)??0):0;
+}
 export async function inspectAudio(file:string,entry:PreviewEntry):Promise<TechnicalResult>{
  const errors:string[]=[],checks:Record<string,boolean>={};let bytes=0;
  try{const info=await stat(file);bytes=info.size;checks.exists=info.isFile()&&bytes>0}catch{checks.exists=false;errors.push('file missing or empty')}
@@ -19,7 +25,7 @@ export async function inspectAudio(file:string,entry:PreviewEntry):Promise<Techn
  const decoded=await run('ffmpeg',['-hide_banner','-nostats','-i',file,'-af','silencedetect=noise=-50dB:d=0.04,ebur128=peak=true','-f','null','-']);
  const logs=decoded.stderr;const lufs=matchLast(logs,/I:\s*(-?[\d.]+)\s*LUFS/g);const peak=matchLast(logs,/(?:Peak|True peak):\s*(-?[\d.]+)\s*dB(?:FS|TP)/g);
  const starts=[...logs.matchAll(/silence_start:\s*([\d.]+)/g)].map(m=>Number(m[1]));const ends=[...logs.matchAll(/silence_end:\s*([\d.]+)/g)].map(m=>Number(m[1]));
- const initialSilence=starts.length&&starts[0]!<0.06?(ends.find(v=>v>=starts[0]!+0.001)??0):0;
+ const initialSilence=initialSilenceFromDetection(starts,ends);
  const lastStart=starts.at(-1),lastEnd=ends.at(-1);const trailingSilence=lastStart!==undefined&&(lastEnd===undefined||lastStart>lastEnd)?Math.max(0,(durationSeconds??0)-lastStart):0;
  const range: [number,number]=entry.category==='instrument'?[3.7,6.5]:[Math.max(entry.category==='groove'?5.5:4.2,entry.durationSeconds*.82),Math.max(10.5,entry.durationSeconds*1.15+.5)];
  checks.decodes=decoded.code===0;

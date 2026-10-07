@@ -4,6 +4,7 @@ import { buildPreviewCatalog, makeRuntimeIndex, type PreviewEntry, type PreviewM
 import { previewRuntimeIndex } from '../../src/audio-preview/generated-index';
 import { flattenEntries, inspectAudio, type TechnicalResult } from '../../src/audio-preview/qc';
 import process from 'node:process';
+import { approvedEquivalentIntent, INTENT_ALIAS_RULES } from '../../src/audio-preview/intent';
 
 async function files(dir: string): Promise<string[]> {
   let all: string[] = [];
@@ -49,6 +50,8 @@ async function main(): Promise<void> {
       assert(actual.sourceLabel === wanted.sourceLabel, `catalog label differs for ${category}:${key}`);
       assert(actual.semanticFamily === wanted.semanticFamily, `semantic family differs for ${category}:${key}`);
       assert(actual.pattern === wanted.pattern, `semantic pattern differs for ${category}:${key}`);
+      assert(actual.bpm === wanted.bpm && actual.meter === wanted.meter && actual.durationSeconds === wanted.durationSeconds, `rendered tempo/meter/duration metadata is stale for ${category}:${key}`);
+      assert(actual.articulationFamily === wanted.articulationFamily, `articulation metadata is stale for ${category}:${key}`);
       assert(actual.audioPath === wanted.audioPath, `audio path differs for ${category}:${key}`);
       assert(actual.musicQcPassed && actual.musicQc.every((rule) => rule.ok), `semantic rules failed for ${actual.previewId}`);
     }
@@ -84,6 +87,43 @@ async function main(): Promise<void> {
   assert(qc.technical.manifestErrors === 0, 'QC report contains manifest errors or orphan files');
   assert(qc.musicRules.failed === 0, 'QC report contains semantic/music-rule failures');
 
+  const similarity = JSON.parse(await readFile(join(root, 'public/audio-previews/audio-preview-similarity.json'), 'utf8')) as {
+    version: number;
+    intentPolicy: { aliasRules: typeof INTENT_ALIAS_RULES };
+    summary: { totalAssets: number; invalidCollisionGroups: number; invalidCollisionPairs: number; percussionKitFamiliesValidated: number };
+    regressions: Array<{ name: string; pass: boolean; featureSimilarity: { overall: number } }>;
+    intentRegressions: Array<{ pass: boolean; classification: string; renderedDifferences: string[] }>;
+    assets: Array<{ previewId: string; sourceLabel: string; pattern: string; soundFontBank: number; soundFontProgram: number; percussionKitFamily?: string }>;
+    exactSpecDuplicateGroups: Array<{ pairs: Array<{ a: string; b: string; classification: string; intentRule?: string }> }>;
+    nearSpecDuplicateGroups: Array<{ pairs: Array<{ a: string; b: string; classification: string; intentRule?: string }> }>;
+    nearAudioSimilarityGroups: Array<{ pairs: Array<{ a: string; b: string; classification: string; intentRule?: string }> }>;
+  };
+  assert(similarity.version === 2 && sameJson(similarity.intentPolicy.aliasRules, INTENT_ALIAS_RULES), 'similarity report has a stale source-intent policy');
+  assert(similarity.summary.totalAssets === expectedEntries.length, 'similarity audit asset count differs from catalog');
+  assert(similarity.assets.length === expectedEntries.length, 'similarity feature signatures do not cover every preview');
+  assert(similarity.summary.invalidCollisionGroups === 0 && similarity.summary.invalidCollisionPairs === 0, 'similarity audit contains invalid collisions');
+  assert(similarity.summary.percussionKitFamiliesValidated === 8, 'percussion semantic audit did not validate all eight identities');
+  assert(similarity.regressions.length === 3 && similarity.regressions.every(item => item.pass && item.featureSimilarity.overall < 0.9), 'percussion PCM regression comparison failed');
+  assert(similarity.intentRegressions.length === 17 && similarity.intentRegressions.every(pair => pair.pass && pair.classification === 'EXPECTED_VARIANT' && pair.renderedDifferences.length > 0), 'reviewed swing/Big Band/Vibraphone intent regression failed');
+  const expectedById = new Map(expectedEntries.map(entry => [entry.previewId, entry]));
+  for (const group of [...similarity.exactSpecDuplicateGroups, ...similarity.nearSpecDuplicateGroups, ...similarity.nearAudioSimilarityGroups]) for (const pair of group.pairs) {
+    const a = expectedById.get(pair.a), b = expectedById.get(pair.b);
+    assert(Boolean(a && b), 'similarity pair references a missing preview');
+    assert(pair.classification !== 'INVALID_COLLISION', `invalid pair is hidden by report summary: ${pair.a} / ${pair.b}`);
+    if (pair.classification === 'ACCEPTED_EQUIVALENT') {
+      const approval = approvedEquivalentIntent(a!, b!);
+      assert(Boolean(approval) && approval!.intentRule === pair.intentRule, `unjustified semantic equivalence: ${pair.a} / ${pair.b}`);
+    }
+  }
+  const similarityById = new Map(similarity.assets.map(item => [item.previewId, item]));
+  for (const wanted of expectedEntries) {
+    const actual = similarityById.get(wanted.previewId);
+    assert(Boolean(actual), `similarity metadata missing for ${wanted.previewId}`);
+    assert(actual.sourceLabel === wanted.sourceLabel && actual.pattern === wanted.pattern, `similarity metadata is stale for ${wanted.previewId}`);
+    assert(actual.soundFontBank === wanted.soundFontBank && actual.soundFontProgram === wanted.soundFontProgram, `timbre mapping differs in similarity report for ${wanted.previewId}`);
+    assert(actual.percussionKitFamily === wanted.percussionKitFamily, `percussion kit family differs in similarity report for ${wanted.previewId}`);
+  }
+
   for (const path of [join(root, 'public/audio-preview-review.zip'), join(root, 'dist/audio-preview-review.zip')]) {
     try {
       await stat(path);
@@ -96,7 +136,7 @@ async function main(): Promise<void> {
   console.log(`Instrument tone previews: ${manifest.coverage.instruments.mapped}/${manifest.coverage.instruments.expected}`);
   console.log(`Instrument behaviour pairs: ${manifest.coverage.behaviours.mapped}/${manifest.coverage.behaviours.behaviourPairsExpected} (${manifest.coverage.behaviours.uniqueExpected} unique English behaviour strings)`);
   console.log(`Grooves: ${manifest.coverage.grooves.mapped}/${manifest.coverage.grooves.expected}`);
-  console.log(`Audio assets decoded and SHA-256 checked: ${expectedEntries.length}; semantic families, catalog paths, runtime index, QC report and orphan checks passed.`);
+  console.log(`Audio assets decoded and SHA-256 checked: ${expectedEntries.length}; semantic families, catalog paths, runtime index, QC report, percussion fidelity, PCM similarity and orphan checks passed.`);
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; });

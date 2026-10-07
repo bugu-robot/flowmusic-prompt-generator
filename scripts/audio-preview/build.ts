@@ -24,7 +24,11 @@ function outputPath(root: string, entry: PreviewEntry): string { return join(roo
 async function normalize(job: RenderJob, root: string): Promise<void> {
   const destination = outputPath(root, job.entry);
   await mkdir(dirname(destination), { recursive: true });
-  const fades = 'silenceremove=start_periods=1:start_duration=0.035:start_threshold=-40dB,afade=t=in:d=0.035,areverse,afade=t=in:d=0.12,areverse';
+  // FluidR3 brush swirls, shaker articulations, and other light percussion can
+  // decay below -40 dB before the 35 ms gate opens. Keep these quiet attacks for
+  // loudness analysis and apply the normal fade to remove boundary clicks.
+  const gate = job.entry.percussionKitFamily ? '-65dB' : '-40dB';
+  const fades = `silenceremove=start_periods=1:start_duration=0.035:start_threshold=${gate},afade=t=in:d=0.035,areverse,afade=t=in:d=0.12,areverse`;
   // Isolated drum and hand-percussion examples have a high crest factor.
   // Normalize them to a slightly lower loudness while preserving transients;
   // mixed ensembles and pitched examples use the common -18 LUFS target.

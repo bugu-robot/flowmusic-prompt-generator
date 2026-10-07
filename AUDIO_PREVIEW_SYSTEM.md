@@ -14,11 +14,27 @@ FluidSynth runs without an audio device, with its reverb and chorus disabled. Th
 npm ci
 npm run audio:install
 npm run audio:build
+npm run audio:similarity
 npm run audio:qc
 npm run audio:verify
+npm run audio:package
 ```
 
 `audio:build` regenerates `src/audio-preview/generated-index.ts`, the complete committed MP3 library, JSON manifest, Markdown/JSON QC reports, the public review page's data, and `.artifacts/audio-preview-review.zip`. Temporary WAV and MIDI files are removed after rendering. `audio:qc` re-decodes every MP3 with FFprobe/FFmpeg and refreshes reports and the local review ZIP. `audio:verify` derives expected coverage from the current source catalog, checks semantic-family rules, independently decodes every committed MP3, compares its SHA-256 with the manifest, validates the generated runtime index and paths, and rejects missing or orphan previews. Normal builds do not package the review ZIP or require Python; `npm run audio:package` builds the review archive separately for local review or CI artifact upload.
+
+`audio:similarity` decodes all committed MP3s, regenerates the JSON/Markdown similarity reports, and rejects invalid semantic collisions. Run it after rebuilding and before final verification/packaging; rebuilding removes the previous reports along with the old asset directory.
+
+## Intent-based collision auditing
+
+Generated `semanticFamily` and `pattern` fields are descriptive metadata, not equivalence evidence. `ACCEPTED_EQUIVALENT` requires either an identical complete behaviour instruction or an explicit source-ID-and-description allowlist rule in `src/audio-preview/intent.ts`. Each accepted pair records its rule ID and musical rationale. Changes to an allowlisted description invalidate that exemption.
+
+`EXPECTED_VARIANT` requires differences in rendered tempo, meter, sounding voices/presets, attack spacing, density, note duration, chord voicing/melodic contour or relative accents. Renaming roles/patterns, applying uniform velocity gain, or transposing a melodic copy does not qualify. Percussion note changes select different sample articulations. A non-equivalent pair with no meaningful rendered difference is `INVALID_COLLISION`; spec and near-audio audit warnings remain available for listening review.
+
+The full-library regression test reviews every exact/near event-spec pair. The decoded-PCM report also includes all 15 pairings among the six reviewed swing descriptions, Big Band punches versus Hard Bop, and sparse Vibraphone notes versus sustained chord colours. Tempo and arrangement differences are recorded alongside PCM scores; these comparisons cannot inherit a family/pattern exemption.
+
+Swing previews distinguish fast Bebop, brisk/traditional swing, open medium swing, up-tempo walking swing, and arranged Big Band section calls/answers or ensemble punches. Other previously collapsed examples distinguish sparse notes from chords, extended Rhodes voice leading, relaxed versus driving grooves, foreground piano with secondary accompaniment, and restrained versus active bass/percussion support. Very fast performances are extended to preserve the listening window without reducing their tempo.
+
+The offline renderer selects and verifies an explicit bank/program for every track, including restoring melodic bank 0 after percussion use. Tracks with conflicting presets receive separate channels, and both music QC and the renderer reject channel/preset conflicts so one section cannot overwrite another section's timbre.
 
 ## Catalog updates and parallel style work
 

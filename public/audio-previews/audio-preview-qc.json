@@ -16,7 +16,7 @@
       "expected": 64,
       "mapped": 64
     },
-    "reusablePatterns": 38
+    "reusablePatterns": 112
   },
   "technical": {
     "checked": 242,
@@ -32,8 +32,8 @@
     "loudness": [],
     "duration": [],
     "manifestErrors": 0,
-    "totalBytes": 24480786,
-    "averageBytes": 101160,
+    "totalBytes": 24484892,
+    "averageBytes": 101177,
     "largestBytes": 209756,
     "loudnessPolicy": {
       "standardTargetLufs": -18,
@@ -45,7 +45,7 @@
     "maxInitialSilenceSeconds": 0.25
   },
   "musicRules": {
-    "checked": 1492,
+    "checked": 1997,
     "failed": 0,
     "failures": []
   },

@@ -1,5 +1,21 @@
 # Project Status
 
+## PR #6 source-intent equivalence correction — final verification (2026-10-07)
+
+- Continued `fix/audio-preview-fidelity` from reviewed head `ac344985816b1b498d61dc2a7dbe0344f82b167e`. Prompt generation, musical option catalogs, recommendations, compatibility, variations and product UI are unchanged.
+- Removed blanket equivalence by generated family/pattern. Acceptance now requires an identical complete behaviour instruction or one of four source-ID-and-description allowlist rules with a musical rationale. A direct `reasonAndClassify()` regression proves same family/pattern alone cannot yield ACCEPTED_EQUIVALENT; tests also re-audit every catalog pair sharing those metadata.
+- EXPECTED_VARIANT requires rendered differences in tempo, meter, preset/voice inventory, articulation, attack spacing, density, voicing/contour or relative accents. Role/pattern labels, uniform gain and pure transposition alone do not qualify.
+- Split the six swing intents, arranged Big Band calls/answers and ensemble punches from small-combo Hard Bop, and sparse Vibraphone lead notes from sustained chord colours. Broader shared patterns were re-audited across the catalog.
+- Assigned conflicting SoundFont selections separate channels. Pitched tracks explicitly select and verify bank 0; percussion tracks verify their recorded bank/program.
+- Regenerated the full catalog: 32/32 instrument tones, 146/146 behaviour/instrument pairs (142 unique descriptions), 64/64 grooves, 242 MP3s and 112 reusable patterns. All 242 assets passed technical/music QC and SHA-256 verification. Final similarity report: 5 exact-spec groups, 1 near-spec group, 19 near-audio groups, 4 intent-justified ACCEPTED_EQUIVALENT groups, 20 EXPECTED_VARIANT groups, 0 INVALID_COLLISION groups/pairs. All 17 reviewed swing/Big Band/Vibraphone regressions and all 8 percussion identities passed.
+- Compared all 152 style-default and A/B/C prompt outputs with the reviewed starting head; they are byte-for-byte unchanged.
+
+## Verification
+
+- Audio preview verification run #14 passed on Node.js 24: clean `npm ci`, `npm audit` (0 vulnerabilities), typecheck, lint, 260 tests / 10 files, normal and Pages builds, similarity audit and committed-audio verification (242/242 hashes). Review artifact [audio-preview-review](https://github.com/bugu-robot/flowmusic-prompt-generator/actions/runs/37635057730/artifacts/11489715298) uploaded successfully.
+- Pages build run #26 passed on Node.js 24: clean install, audit, 260 tests / 10 files and both builds. The Pages artifact includes the manifest, service worker, Apple touch icon and all manifest-linked PNG icons; the Pages deploy job was skipped for this pull-request event. Artifact [github-pages](https://github.com/bugu-robot/flowmusic-prompt-generator/actions/runs/37635056953/artifacts/11487673650) uploaded successfully.
+- PR #6 remains open and Draft. No merge or production deployment occurred. Manual browser/offline UAT and subjective listening are not claimed.
+
 ## Audio preview correction — local verification (2026-10-07)
 
 - Synced `feat/audio-preview-system` with current `main` (`bf0f414d7cc55a9a2b96f68fdf33ca0461c11f31`) in PR head merge commit `c62d5bc`; no conflicts.
@@ -82,3 +98,14 @@ No actual Flow Music audio quality is claimed as verified; audio UAT remains the
 - Flow Music prompt quality remains deterministic and may respond differently across Flow/Lyria releases.
 - Enable GitHub Pages with GitHub Actions in repository settings before publishing from `main`.
 - Development stops after the correction commit's GitHub Actions verification. The next step is the consolidated manual UAT above; no additional features are in scope.
+
+## Audio preview fidelity pass — local verification (2026-10-07)
+
+- Started `fix/audio-preview-fidelity` directly at production `main` SHA `76ef93c8170dbc67d99397c59540150108f21f36`; no generator, recommendation, compatibility, variation or prompt wording semantics were changed.
+- Rebuilt the full catalog: 32/32 instrument tones, 146/146 instrument/behavior pairs (142 unique behavior strings), and 64/64 grooves; 242 MP3 previews total. The reusable pattern count is 91 (38 on the base revision).
+- Technical and semantic QC passed all 242 assets: zero missing files, orphans, silent files, clipping failures, manifest errors, technical failures or music-rule failures. SHA-256 was recorded and independently verified for all 242 files; runtime index and catalog coverage passed.
+- Added explicit FluidR3 percussion selection and articulation metadata. Acoustic drums use bank 128/program 32 (Jazz), brush drums 128/40 (Brush), and heavy rock 128/16 (Power). Brush uses the SoundFont's Brush Swirl articulation (pitch 40) and brush snare notes; it is not a brush-timbre approximation. Congas, bongos, timbales, shaker and Brazilian percussion use distinct note/articulation mappings on Standard bank 128/program 0; shaker and Brazilian ensemble colors are documented approximations.
+- Similarity report: 24 exact-spec groups, 3 near-spec groups, 24 near-audio groups, 28 ACCEPTED_EQUIVALENT groups, 18 EXPECTED_VARIANT groups, and 0 INVALID_COLLISION groups. Eight percussion identity families passed. Of 496 instrument-tone comparisons, 35 were flagged near-audio; the single indistinguishable pair is Trumpet/Flugelhorn, explicitly documented as a FluidR3 trumpet-patch approximation.
+- Decoded-PCM regression comparisons pass: Acoustic vs Brush 0.54294, Acoustic vs Heavy Rock 0.89112, Brush vs Heavy Rock 0.57344. The report records the weighted feature breakdown; hashes are not used as the similarity metric.
+- `npm ci`, `npm audit` (0 vulnerabilities), `npm run typecheck`, `npm run lint`, `npm test` (247 tests across 9 files), `npm run audio:build`, `npm run audio:qc`, `npm run audio:similarity`, `npm run audio:verify`, `npm run build`, and `npm run build -- --mode pages` pass locally.
+- Created Draft PR #6 into `main`; base is `76ef93c8170dbc67d99397c59540150108f21f36`. Final source commit `40c983797c1b8d35d77df0ce47059e3372407576` passed both PR workflows: Audio preview verification run #12 and Pages build run #24. Audio review artifact ID `11475891272` uploaded; Pages artifact ID `11476520344` uploaded. The Pages deploy job was skipped for the PR event. No merge or production deployment has occurred.

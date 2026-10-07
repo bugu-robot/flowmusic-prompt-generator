@@ -1,10 +1,11 @@
 import { INSTRUMENTS } from '../data/instruments';
 import { JAZZ_STYLES } from '../data/jazz-styles';
-import { makeBehaviourSpec, makeGrooveSpec, makeInstrumentSpec, validateMusicSpec, type MusicSpec, type PreviewGroove, type PreviewInstrument, type RuleResult } from './music';
+import { makeBehaviourSpec, makeGrooveSpec, makeInstrumentSpec, validateMusicSpec, type MusicSpec, type PercussionMapping, type PreviewGroove, type PreviewInstrument, type RuleResult } from './music';
 
 export interface PreviewEntry {
   previewId: string; sourceCatalogId: string; sourceLabel: string; category: 'instrument'|'behaviour'|'groove'; semanticFamily: string;
   audioPath: string; pattern: string; instrumentId?: string; instrument?: string;
+  timbreFamily: string; soundFontBank: number; soundFontProgram: number; soundFontPreset: string; articulationFamily: string; fidelityStatus: 'GM_PRESET'|'SOUNDFONT_ARTICULATION'|'TIMBRE_APPROXIMATION'; percussionKitFamily?: string; percussionMapping?: PercussionMapping;
   bpm: number; meter: string; durationSeconds: number; targetLufs: number; loudnessToleranceLufs: number; targetTruePeakDbtp: number; musicQc: RuleResult[]; musicQcPassed: boolean; technicalQc?: unknown;
 }
 export interface PreviewRef { category: 'instrument'|'behaviour'|'groove'; key: string; label: string; previewId: string }
@@ -19,10 +20,16 @@ const slug=(s:string):string=>s.toLowerCase().normalize('NFKD').replace(/[^a-z0-
 const behaviorKey=(instrumentId:string,behaviour:string):string=>`${instrumentId}::${behaviour}`;
 const expectedGrooves=():PreviewGroove[]=>[...new Map(JAZZ_STYLES.flatMap(style=>style.grooves).map(g=>[g.id,g])).values()];
 const duration=(spec:MusicSpec):number=>spec.bars*spec.meter[0]*4/spec.meter[1]*60/spec.bpm;
+const GM_PRESETS:Record<number,string>={0:'Acoustic Grand Piano',4:'Electric Piano 1',11:'Vibraphone',16:'Drawbar Organ',24:'Acoustic Guitar (nylon)',25:'Acoustic Guitar (steel)',26:'Electric Guitar (jazz)',27:'Electric Guitar (clean)',30:'Distortion Guitar',32:'Acoustic Bass',33:'Electric Bass (finger)',40:'Violin',56:'Trumpet',57:'Trombone',58:'Tuba',59:'Muted Trumpet',64:'Soprano Sax',65:'Alto Sax',66:'Tenor Sax',67:'Baritone Sax',71:'Clarinet',89:'Warm Pad'};
+const APPROXIMATE_GM_INSTRUMENTS=new Set(['flugelhorn','manouche-guitar','upright-bass']);
 function entry(spec:MusicSpec,category:PreviewEntry['category'],sourceId:string,label:string,path:string,instrument?:PreviewInstrument):PreviewEntry {
  const musicQc=validateMusicSpec(spec);
  const percussionOnly=spec.tracks.length>0&&spec.tracks.every(track=>track.role==='rhythm');
- return {previewId:spec.id,sourceCatalogId:sourceId,sourceLabel:label,category,semanticFamily:spec.semanticFamily,audioPath:path,pattern:spec.source,instrumentId:instrument?.id,instrument:instrument?.name,bpm:spec.bpm,meter:spec.meter.join('/'),durationSeconds:Number(duration(spec).toFixed(3)),targetLufs:percussionOnly?-22.5:-18,loudnessToleranceLufs:percussionOnly?2.5:2,targetTruePeakDbtp:-2.8,musicQc,musicQcPassed:musicQc.every(rule=>rule.ok)};
+ const percussionMapping=spec.tracks.find(track=>track.percussionMapping)?.percussionMapping;
+ const soundTrack=spec.tracks.find(track=>track.percussionMapping)??spec.tracks.find(track=>track.role!=='rhythm')??spec.tracks[0];
+ const program=soundTrack?.program??0,timbreFamily=percussionMapping?.percussionKitFamily??soundTrack?.instrumentId??'unknown';
+ const fidelityStatus=percussionMapping?.fidelity??(soundTrack&&APPROXIMATE_GM_INSTRUMENTS.has(soundTrack.instrumentId)?'TIMBRE_APPROXIMATION':'GM_PRESET');
+ return {previewId:spec.id,sourceCatalogId:sourceId,sourceLabel:label,category,semanticFamily:spec.semanticFamily,audioPath:path,pattern:spec.source,instrumentId:instrument?.id,instrument:instrument?.name,timbreFamily,soundFontBank:percussionMapping?.soundFontBank??0,soundFontProgram:percussionMapping?.soundFontProgram??program,soundFontPreset:percussionMapping?.soundFontPreset??GM_PRESETS[program]??`GM program ${program}`,articulationFamily:percussionMapping?.articulationFamily??soundTrack?.role??'unknown',fidelityStatus,percussionKitFamily:percussionMapping?.percussionKitFamily,percussionMapping,bpm:spec.bpm,meter:spec.meter.join('/'),durationSeconds:Number(duration(spec).toFixed(3)),targetLufs:percussionOnly?-22.5:-18,loudnessToleranceLufs:percussionOnly?2.5:2,targetTruePeakDbtp:-2.8,musicQc,musicQcPassed:musicQc.every(rule=>rule.ok)};
 }
 function pickInstrument(query:string, fallbackCategory?:string):PreviewInstrument|undefined {
  return (INSTRUMENTS.find(i=>i.id===query)||INSTRUMENTS.find(i=>i.name.toLowerCase().includes(query.toLowerCase()))||INSTRUMENTS.find(i=>i.category===fallbackCategory)) as PreviewInstrument|undefined;
