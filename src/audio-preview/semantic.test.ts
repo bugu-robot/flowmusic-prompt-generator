@@ -196,7 +196,7 @@ describe('audio preview semantic mapping and QC', () => {
     const byId = new Map(specs.map((spec) => [spec.id.replace('groove-', ''), spec]));
     expect(byId.get('relaxed-swing')!.source).toBe('swing-light');
     expect(byId.get('walking-swing')!.source).toBe('swing-restrained-ride');
-    expect(byId.get('medium-swing')!.source).toBe('swing-clear-eighth');
+    expect(byId.get('medium-swing')!.source).toBe('swing-medium-open');
     expect(byId.get('hard-swing')!.source).toBe('hard-bop-ride');
     expect(byId.get('two-beat')!.source).toBe('two-beat-early-swing');
     expect(byId.get('son')!.source).toBe('son-clave');

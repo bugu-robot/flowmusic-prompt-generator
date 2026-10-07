@@ -6,6 +6,7 @@ import { buildPreviewCatalog, type PreviewEntry } from '../../src/audio-preview/
 import { flattenEntries } from '../../src/audio-preview/qc';
 import type { MusicEvent, MusicSpec, MusicTrack } from '../../src/audio-preview/music';
 import process from 'node:process';
+import { classifyIntentSimilarity, INTENT_ALIAS_RULES, renderedIntentDifferences, type SimilarityClassification } from '../../src/audio-preview/intent';
 
 const REPORT_JSON = 'public/audio-previews/audio-preview-similarity.json';
 const REPORT_MD = 'public/audio-previews/audio-preview-similarity.md';
@@ -13,6 +14,7 @@ const SAMPLE_RATE = 11_025;
 const ENVELOPE_BINS = 48;
 const AUDIO_NEAR_THRESHOLD = 0.9;
 
+interface FeatureSimilarity extends Record<string, number> { overall: number; timbre: number }
 interface AudioFeatures {
   durationSeconds: number;
   rms: number;
@@ -30,12 +32,14 @@ interface AuditItem {
   spec: MusicSpec;
   audio: AudioFeatures;
 }
-type Classification = 'ACCEPTED_EQUIVALENT' | 'EXPECTED_VARIANT' | 'INVALID_COLLISION';
+type Classification = SimilarityClassification;
 interface PairRecord {
   a: string;
   b: string;
   classification: Classification;
   reason: string;
+  intentRule?: string;
+  renderedDifferences?: string[];
   similarity?: Record<string, unknown>;
 }
 interface SimilarityGroup {
@@ -50,6 +54,7 @@ interface SimilarityReportDocument {
   instrumentToneAudit: { comparedPairs: number; distinctFluidR3Presets: number; sharedPresetPairs: Array<{ a: string; b: string; bank: number; program: number; preset: string; classification: Classification }>; nearAudioPairs: PairRecord[]; indistinguishableDecodedPairs: PairRecord[]; documentedApproximations: Array<{ previewId: string; instrument: string; preset: string; reason: string }> };
   percussionIdentities: Array<{ instrument: string; soundFontBank: number; soundFontProgram: number; soundFontPreset: string; articulation: string; valid: boolean }>;
   regressions: Array<{ name: string; pass: boolean; featureSimilarity: Record<string, number>; reason: string }>;
+  intentRegressions: Array<{ a: string; b: string; labels: [string, string]; bpms: [number, number]; classification: Classification; pass: boolean; renderedDifferences: string[]; featureSimilarity: Record<string, number> }>;
   groups: SimilarityGroup[];
 }
 
@@ -187,7 +192,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return Math.max(0, Math.min(1, dot / Math.sqrt(aPower * bPower)));
 }
 
-function featureSimilarity(a: AudioFeatures, b: AudioFeatures): Record<string, number> {
+function featureSimilarity(a: AudioFeatures, b: AudioFeatures): FeatureSimilarity {
   const envelope = cosineSimilarity(a.rmsEnvelope, b.rmsEnvelope);
   const spectralEnvelope = cosineSimilarity(a.spectralBandEnvelope, b.spectralBandEnvelope);
   const band = Math.max(0, 1 - 0.5 * a.lowMidHighEnergy.reduce((sum, value, index) => sum + Math.abs(value - b.lowMidHighEnergy[index]!), 0));
@@ -199,15 +204,17 @@ function featureSimilarity(a: AudioFeatures, b: AudioFeatures): Record<string, n
   const zeroCrossing = Math.exp(-Math.abs(a.zeroCrossingRate - b.zeroCrossingRate) / Math.max(a.zeroCrossingRate, b.zeroCrossingRate, 0.001));
   const timbre = 0.4 * detailedBand + 0.4 * centroid + 0.2 * zeroCrossing;
   const overall = 0.18 * envelope + 0.08 * spectralEnvelope + 0.12 * band + 0.25 * detailedBand + 0.20 * centroid + 0.06 * onset + 0.05 * transient + 0.03 * duration + 0.03 * zeroCrossing;
-  return Object.fromEntries(Object.entries({ overall, timbre, envelope, spectralEnvelope, bandEnergy: band, detailedBandEnergy: detailedBand, spectralBrightness: centroid, onsetDensity: onset, transientDensity: transient, duration, zeroCrossing }).map(([key, value]) => [key, Number(value.toFixed(5))]));
+  return Object.fromEntries(Object.entries({ overall, timbre, envelope, spectralEnvelope, bandEnergy: band, detailedBandEnergy: detailedBand, spectralBrightness: centroid, onsetDensity: onset, transientDensity: transient, duration, zeroCrossing }).map(([key, value]) => [key, Number(value.toFixed(5))])) as FeatureSimilarity;
 }
 
 function trackMapping(track: MusicTrack): string {
   const percussion = track.percussionMapping;
-  return [track.instrumentId, track.role, track.channel, percussion?.percussionKitFamily ?? '', percussion?.soundFontBank ?? 0, percussion?.soundFontProgram ?? track.program, track.program].join('|');
+  // Compare the selected sounding preset. Names, roles, kit-family labels and
+  // channel numbers cannot hide an identical event performance.
+  return [percussion?.soundFontBank ?? 0, percussion?.soundFontProgram ?? track.program].join('|');
 }
 
-function serializeSpec(spec: MusicSpec): string {
+export function serializeSpec(spec: MusicSpec): string {
   const tracks = spec.tracks.map((track) => ({ mapping: trackMapping(track), events: track.notes.map((event) => [event.beat, event.pitch, event.duration, event.velocity]).sort((a, b) => Number(a[0]) - Number(b[0]) || Number(a[1]) - Number(b[1])) })).sort((a, b) => a.mapping.localeCompare(b.mapping));
   return JSON.stringify({ bpm: spec.bpm, meter: spec.meter, bars: spec.bars, tracks });
 }
@@ -216,7 +223,7 @@ function eventPattern(spec: MusicSpec): Array<{ mapping: string; events: MusicEv
   return spec.tracks.map((track) => ({ mapping: trackMapping(track), events: [...track.notes].sort((a, b) => a.beat - b.beat || a.pitch - b.pitch) })).sort((a, b) => a.mapping.localeCompare(b.mapping));
 }
 
-function nearSpecMetrics(a: MusicSpec, b: MusicSpec): { eventPatternSimilarity: number; velocityMeanAbsDiff: number; bpmDelta: number; trackPatternSimilarity: Array<{ mapping: string; score: number }> } | undefined {
+export function nearSpecMetrics(a: MusicSpec, b: MusicSpec): { eventPatternSimilarity: number; velocityMeanAbsDiff: number; bpmDelta: number; trackPatternSimilarity: Array<{ mapping: string; score: number }> } | undefined {
   if (a.meter.join('/') !== b.meter.join('/') || Math.abs(a.bpm - b.bpm) > 2 || a.tracks.length !== b.tracks.length) return undefined;
   const aTracks = eventPattern(a);
   const bTracks = eventPattern(b);
@@ -245,36 +252,22 @@ function nearSpecMetrics(a: MusicSpec, b: MusicSpec): { eventPatternSimilarity: 
   return { eventPatternSimilarity: Number(eventPatternSimilarity.toFixed(5)), velocityMeanAbsDiff: Number((velocityDelta / velocityMatches).toFixed(3)), bpmDelta: Math.abs(a.bpm - b.bpm), trackPatternSimilarity: trackPatternSimilarity.map(track => ({ ...track, score: Number(track.score.toFixed(5)) })) };
 }
 
-function reasonAndClassify(a: PreviewEntry, b: PreviewEntry, context: 'spec'|'audio', eventPatternSimilarity?: number, audioMetrics?: Record<string, number>): { classification: Classification; reason: string } {
+export function reasonAndClassify(left: Pick<AuditItem, 'entry'|'spec'>, right: Pick<AuditItem, 'entry'|'spec'>, context: 'spec'|'audio', audioMetrics?: Record<string, number>) {
+  const a = left.entry, b = right.entry;
   if (a.category === 'instrument' && b.category === 'instrument' && a.instrumentId !== b.instrumentId) {
     const samePatch = a.soundFontBank === b.soundFontBank && a.soundFontProgram === b.soundFontProgram;
     if (samePatch && (a.fidelityStatus === 'TIMBRE_APPROXIMATION' || b.fidelityStatus === 'TIMBRE_APPROXIMATION')) {
-      return { classification: 'EXPECTED_VARIANT', reason: `The catalog labels differ but FluidR3 resolves both to the same GM patch; TIMBRE_APPROXIMATION is recorded (${a.soundFontPreset}).` };
+      return { classification: 'EXPECTED_VARIANT' as const, reason: `The catalog labels differ but FluidR3 resolves both to the same GM patch; TIMBRE_APPROXIMATION is recorded (${a.soundFontPreset}).` };
     }
     if (samePatch && (a.percussionKitFamily !== b.percussionKitFamily || a.articulationFamily !== b.articulationFamily)) {
-      return { classification: 'EXPECTED_VARIANT', reason: 'These hand-percussion tones intentionally share FluidR3 Standard bank/program 128/0; their note-range and articulation-family mappings select the different conga, bongo, timbale, shaker, or Brazilian samples.' };
+      return classifyIntentSimilarity(a, b, left.spec, right.spec);
     }
     if (context === 'audio' && !samePatch && (audioMetrics?.timbre ?? 1) < 0.995) {
-      return { classification: 'EXPECTED_VARIANT', reason: 'These instrument tones use different SoundFont presets and have a different decoded spectral timbre signature; the common neutral phrase raises the full-track similarity score.' };
+      return { classification: 'EXPECTED_VARIANT' as const, reason: 'These instrument tones use different SoundFont presets and have a different decoded spectral timbre signature; the common neutral phrase raises the full-track similarity score.' };
     }
-    return { classification: 'INVALID_COLLISION', reason: 'Distinct instrument-tone identities must not share effectively the same decoded audio feature signature.' };
+    return { classification: 'INVALID_COLLISION' as const, reason: 'Distinct instrument-tone identities must not share effectively the same decoded audio feature signature.' };
   }
-  if (a.semanticFamily === b.semanticFamily && a.pattern === b.pattern) {
-    return context === 'spec'
-      ? { classification: 'ACCEPTED_EQUIVALENT', reason: 'These entries use the same canonical pattern and semantic family; reuse is intentional.' }
-      : { classification: 'ACCEPTED_EQUIVALENT', reason: 'Decoded PCM is similar for entries using the same canonical semantic family and pattern; reuse is intentional.' };
-  }
-  if (a.semanticFamily === b.semanticFamily) {
-    return { classification: 'EXPECTED_VARIANT', reason: 'The previews share a semantic family but use separate canonical patterns; this is an expected family-level variation.' };
-  }
-  const sameLabel = a.sourceLabel.toLowerCase() === b.sourceLabel.toLowerCase();
-  if (sameLabel && a.instrumentId !== b.instrumentId) {
-    return { classification: 'ACCEPTED_EQUIVALENT', reason: 'The same behavior description is reused for different instruments; the reference phrase is intentionally shared.' };
-  }
-  if (context === 'audio' && (eventPatternSimilarity === undefined || eventPatternSimilarity < 0.86)) {
-    return { classification: 'EXPECTED_VARIANT', reason: 'The decoded PCM feature summary crosses the review threshold, while the generated MIDI event signatures remain structurally distinct; the PCM warning is retained for review without labeling different patterns as a semantic collision.' };
-  }
-  return { classification: 'INVALID_COLLISION', reason: 'The semantic families differ, and no equivalent-pattern policy documents this pair as intentional reuse.' };
+  return classifyIntentSimilarity(a, b, left.spec, right.spec);
 }
 
 function approximationReason(instrumentId: string | undefined): string {
@@ -373,6 +366,18 @@ function markdownReport(report: SimilarityReportDocument): string {
     '',
     'MP3 files are decoded by FFmpeg to mono float PCM at 11,025 Hz. The audit compares a 48-bin RMS envelope, 25 ms onset/transient density, zero-crossing rate, duration, low/mid/high energy ratios, and eight one-pole spectral bands split at 80, 160, 315, 630, 1,250, 2,500 and 5,000 Hz. Band energy and per-time-bin band envelopes supply the timbre and spectral-shape measures; scores are deterministic, explainable feature distances, not an ML or perceptual model. MP3 hashes are not used as similarity evidence.',
     '',
+    '## Semantic intent policy',
+    '',
+    'ACCEPTED_EQUIVALENT requires a complete identical behaviour description or a source-ID-and-description match in the explicit intent allowlist. Each pair records the rule ID and rationale. Shared generated semanticFamily/pattern never exempts a collision. EXPECTED_VARIANT requires measurable rendered musical differences; uniform velocity gain and pure transposition alone do not qualify. Near-audio warnings remain in the report for listening review.',
+    '',
+    ...INTENT_ALIAS_RULES.map(rule => `- **${rule.id}**: ${rule.reason}`),
+    '',
+    '## Reviewed source-intent regressions',
+    '',
+    '| Sources | BPM | Decision | PCM score | Result |',
+    '|---|---|---|---:|---|',
+    ...report.intentRegressions.map(pair => `| ${pair.labels.join(' / ')} | ${pair.bpms.join(' / ')} | ${pair.classification} | ${pair.featureSimilarity.overall} | ${pair.pass ? 'PASS' : 'FAIL'} |`),
+    '',
     '## Instrument-tone audit',
     '',
     `All ${report.instrumentToneAudit.comparedPairs} instrument-tone pairs are compared using decoded PCM features. The catalog uses ${report.instrumentToneAudit.distinctFluidR3Presets} distinct FluidR3 bank/program selections; ${report.instrumentToneAudit.sharedPresetPairs.length} pairs intentionally share a bank/program, with their note-range or documented approximation recorded below.`,
@@ -425,7 +430,7 @@ async function main(): Promise<void> {
     if (group.length < 2) continue;
     for (let left = 0; left < group.length; left++) for (let right = left + 1; right < group.length; right++) {
       const a = group[left]!; const b = group[right]!;
-      const classification = reasonAndClassify(a.entry, b.entry, 'spec');
+      const classification = reasonAndClassify(a, b, 'spec');
       exactPairs.push({ a: a.entry.previewId, b: b.entry.previewId, ...classification });
     }
   }
@@ -437,19 +442,15 @@ async function main(): Promise<void> {
     if (serializeSpec(a.spec) === serializeSpec(b.spec)) continue;
     const metrics = nearSpecMetrics(a.spec, b.spec);
     if (!metrics) continue;
-    const classification = reasonAndClassify(a.entry, b.entry, 'spec');
+    const classification = reasonAndClassify(a, b, 'spec');
     const variant: PairRecord = { a: a.entry.previewId, b: b.entry.previewId, ...classification, similarity: metrics };
-    if (variant.classification === 'ACCEPTED_EQUIVALENT' && metrics.velocityMeanAbsDiff > 0) {
-      variant.classification = 'EXPECTED_VARIANT';
-      variant.reason = 'The canonical concept is reused with a small event/velocity change; expected variant differences are recorded for review.';
-    }
     nearSpecPairs.push(variant);
   }
 
   const audioPairs: PairRecord[] = [];
-  const instrumentToneComparisons: Array<{ a: AuditItem; b: AuditItem; metrics: Record<string, number> }> = [];
+  const instrumentToneComparisons: Array<{ a: AuditItem; b: AuditItem; metrics: FeatureSimilarity }> = [];
   const regressionIds = ['instrument-acoustic-drums', 'instrument-brush-drums', 'instrument-heavy-rock-drums'];
-  const regressionPairs = new Map<string, Record<string, number>>();
+  const regressionPairs = new Map<string, FeatureSimilarity>();
   for (let left = 0; left < items.length; left++) for (let right = left + 1; right < items.length; right++) {
     const a = items[left]!; const b = items[right]!;
     const metrics = featureSimilarity(a.audio, b.audio);
@@ -458,7 +459,7 @@ async function main(): Promise<void> {
     if (regressionIds.includes(a.entry.previewId) && regressionIds.includes(b.entry.previewId)) regressionPairs.set(key, metrics);
     if (metrics.overall < AUDIO_NEAR_THRESHOLD) continue;
     const structural = nearSpecMetrics(a.spec, b.spec);
-    const classification = reasonAndClassify(a.entry, b.entry, 'audio', structural?.eventPatternSimilarity, metrics);
+    const classification = reasonAndClassify(a, b, 'audio', metrics);
     audioPairs.push({ a: a.entry.previewId, b: b.entry.previewId, ...classification, similarity: { ...metrics, ...(structural ? { eventPatternSimilarity: structural.eventPatternSimilarity } : {}) } });
   }
 
@@ -466,13 +467,14 @@ async function main(): Promise<void> {
   const nearSpecGroups = connectedGroups(nearSpecPairs, itemById, 'spec-near');
   const nearAudioGroups = connectedGroups(audioPairs, itemById, 'audio-near');
   const groups = [...exactGroups, ...nearSpecGroups, ...nearAudioGroups];
-  const uniqueGroupKeys = new Set<string>();
-  const uniqueGroups = groups.filter((group) => {
-    const key = [...group.items.map(item => item.previewId)].sort().join('|');
-    if (uniqueGroupKeys.has(key)) return false;
-    uniqueGroupKeys.add(key);
-    return true;
-  });
+  const uniqueByMembership = new Map<string, SimilarityGroup>();
+  const severity = { ACCEPTED_EQUIVALENT: 0, EXPECTED_VARIANT: 1, INVALID_COLLISION: 2 };
+  for (const group of groups) {
+    const key = group.items.map(item => item.previewId).sort().join('|');
+    const previous = uniqueByMembership.get(key);
+    if (!previous || severity[group.classification] > severity[previous.classification]) uniqueByMembership.set(key, group);
+  }
+  const uniqueGroups = [...uniqueByMembership.values()];
   const percussionInstrumentIds = ['acoustic-drums', 'brush-drums', 'heavy-rock-drums', 'congas', 'bongos', 'timbales', 'soft-shaker', 'brazilian-percussion'];
   const percussionIdentities = percussionInstrumentIds.map((id) => {
     const item = itemById.get(`instrument-${id}`)!;
@@ -500,10 +502,21 @@ async function main(): Promise<void> {
     { name: 'Brush vs Heavy Rock', a: regressionIds[1], b: regressionIds[2], pass: Boolean(brushVsHeavy && brushVsHeavy.overall < 0.9), featureSimilarity: brushVsHeavy ?? {}, reason: 'Brush bank 128/program 40 and Brush Swirl event pitch 40 vs Power bank 128/program 16 and strong kick/snare events.' },
   ];
   const instrumentToneItems = items.filter(item => item.entry.category === 'instrument');
-  const instrumentTonePairRecord = ({ a, b, metrics }: (typeof instrumentToneComparisons)[number]): PairRecord => ({ a: a.entry.previewId, b: b.entry.previewId, ...reasonAndClassify(a.entry, b.entry, 'audio', undefined, metrics), similarity: metrics });
+  const intentRegressionSources: Array<[string, string]> = [];
+  const reviewedSwing = ['bebop-swing', 'big-band-medium', 'medium-swing', 'brisk-swing', 'swing', 'up-tempo'];
+  for (let left = 0; left < reviewedSwing.length; left++) for (let right = left + 1; right < reviewedSwing.length; right++) intentRegressionSources.push([reviewedSwing[left]!, reviewedSwing[right]!]);
+  intentRegressionSources.push(['big-band-swing', 'hard-swing'], ['vibraphone::delicate, widely spaced notes', 'vibraphone::soft shimmering chord colours']);
+  const intentRegressions: SimilarityReportDocument['intentRegressions'] = intentRegressionSources.map(([aSource, bSource]) => {
+    const a = items.find(item => item.entry.sourceCatalogId === aSource), b = items.find(item => item.entry.sourceCatalogId === bSource);
+    if (!a || !b) throw new Error(`Reviewed source intent disappeared: ${aSource} / ${bSource}`);
+    const decision = reasonAndClassify(a, b, 'spec');
+    const renderedDifferences = renderedIntentDifferences(a.spec, b.spec);
+    return { a: a.entry.previewId, b: b.entry.previewId, labels: [a.entry.sourceLabel, b.entry.sourceLabel], bpms: [a.spec.bpm, b.spec.bpm], classification: decision.classification, pass: decision.classification === 'EXPECTED_VARIANT' && renderedDifferences.length > 0, renderedDifferences, featureSimilarity: featureSimilarity(a.audio, b.audio) };
+  });
+  const instrumentTonePairRecord = ({ a, b, metrics }: (typeof instrumentToneComparisons)[number]): PairRecord => ({ a: a.entry.previewId, b: b.entry.previewId, ...reasonAndClassify(a, b, 'audio', metrics), similarity: metrics });
   const instrumentToneNearAudioPairs = instrumentToneComparisons.filter(pair => pair.metrics.overall >= AUDIO_NEAR_THRESHOLD).map(instrumentTonePairRecord);
   const instrumentToneIndistinguishablePairs = instrumentToneComparisons.filter(pair => pair.metrics.overall >= 0.99 && pair.metrics.timbre >= 0.995).map(instrumentTonePairRecord);
-  const sharedPresetPairs = instrumentToneComparisons.filter(({ a, b }) => a.entry.soundFontBank === b.entry.soundFontBank && a.entry.soundFontProgram === b.entry.soundFontProgram).map((pair) => ({ a: pair.a.entry.previewId, b: pair.b.entry.previewId, bank: pair.a.entry.soundFontBank, program: pair.a.entry.soundFontProgram, preset: pair.a.entry.soundFontPreset, classification: reasonAndClassify(pair.a.entry, pair.b.entry, 'audio', undefined, pair.metrics).classification }));
+  const sharedPresetPairs = instrumentToneComparisons.filter(({ a, b }) => a.entry.soundFontBank === b.entry.soundFontBank && a.entry.soundFontProgram === b.entry.soundFontProgram).map((pair) => ({ a: pair.a.entry.previewId, b: pair.b.entry.previewId, bank: pair.a.entry.soundFontBank, program: pair.a.entry.soundFontProgram, preset: pair.a.entry.soundFontPreset, classification: reasonAndClassify(pair.a, pair.b, 'audio', pair.metrics).classification }));
   const documentedApproximations = instrumentToneItems.filter(item => item.entry.fidelityStatus === 'TIMBRE_APPROXIMATION').map(item => ({ previewId: item.entry.previewId, instrument: item.entry.sourceLabel, preset: item.entry.soundFontPreset, reason: approximationReason(item.entry.instrumentId) }));
   const instrumentToneAudit = { comparedPairs: instrumentToneItems.length * (instrumentToneItems.length - 1) / 2, distinctFluidR3Presets: new Set(instrumentToneItems.map(item => `${item.entry.soundFontBank}/${item.entry.soundFontProgram}`)).size, sharedPresetPairs, nearAudioPairs: instrumentToneNearAudioPairs, indistinguishableDecodedPairs: instrumentToneIndistinguishablePairs, documentedApproximations };
   const classificationCounts = { ACCEPTED_EQUIVALENT: 0, EXPECTED_VARIANT: 0, INVALID_COLLISION: 0 };
@@ -525,12 +538,18 @@ async function main(): Promise<void> {
     return { previewId: item.entry.previewId, sourceLabel: item.entry.sourceLabel, category: item.entry.category, instrumentId: item.entry.instrumentId, instrument: item.entry.instrument, semanticFamily: item.entry.semanticFamily, pattern: item.entry.pattern, percussionKitFamily: item.entry.percussionKitFamily, timbreFamily: item.entry.timbreFamily, articulationFamily: item.entry.articulationFamily, fidelityStatus: item.entry.fidelityStatus, soundFontBank: item.entry.soundFontBank, soundFontProgram: item.entry.soundFontProgram, soundFontPreset: item.entry.soundFontPreset, audioPath: item.entry.audioPath, similarityFlags: flags, audioFeatures: roundedFeatures(item.audio) };
   });
   const report: SimilarityReportDocument & Record<string, unknown> = {
-    version: 1,
+    version: 2,
+    intentPolicy: {
+      equivalence: 'Complete identical behaviour descriptions, or exact source ID/description matches in a reasoned intent allowlist. Generated semanticFamily and pattern never grant equivalence.',
+      variants: 'Measurable rendered tempo, meter, instrument/role, attack spacing, density, articulation, melodic contour/chord voicing or relative accent differences. Role/pattern labels, uniform gain and pure melodic transposition alone do not qualify.',
+      aliasRules: INTENT_ALIAS_RULES,
+    },
     method: { decoder: 'FFmpeg', sampleRate: SAMPLE_RATE, channels: 1, sampleFormat: 'float32le', envelopeBins: ENVELOPE_BINS, envelopeWindowSeconds: 0.025, spectralMethod: 'eight one-pole low-pass bands with edges at 80, 160, 315, 630, 1250, 2500 and 5000 Hz; per-bin normalized RMS band envelopes', overallWeights: { rmsEnvelope: 0.18, spectralEnvelope: 0.08, lowMidHighEnergy: 0.12, detailedBandEnergy: 0.25, spectralCentroid: 0.20, onsetDensity: 0.06, transientDensity: 0.05, duration: 0.03, zeroCrossingRate: 0.03 }, timbreWeights: { detailedBandEnergy: 0.4, spectralCentroid: 0.4, zeroCrossingRate: 0.2 }, nearAudioThreshold: AUDIO_NEAR_THRESHOLD, hashesUsedForSimilarity: false },
     summary: { instrumentTones: instrumentToneCount, instrumentToneNearAudioPairs: instrumentToneNearAudioPairs.length, instrumentToneIndistinguishablePairs: instrumentToneIndistinguishablePairs.length, behaviourPairs: behaviourCount, grooves: grooveCount, totalAssets: entries.length, exactSpecDuplicateGroups: exactGroups.length, nearSpecDuplicateGroups: nearSpecGroups.length, nearAudioSimilarityGroups: nearAudioGroups.length, acceptedEquivalentGroups: classificationCounts.ACCEPTED_EQUIVALENT, expectedVariantGroups: classificationCounts.EXPECTED_VARIANT, invalidCollisionGroups: classificationCounts.INVALID_COLLISION, invalidCollisionPairs: invalidPairs.size, percussionKitFamiliesValidated: percussionIdentities.filter(item => item.valid).length },
     instrumentToneAudit,
     percussionIdentities,
     regressions,
+    intentRegressions,
     exactSpecDuplicateGroups: exactGroups,
     nearSpecDuplicateGroups: nearSpecGroups,
     nearAudioSimilarityGroups: nearAudioGroups,
@@ -541,7 +560,7 @@ async function main(): Promise<void> {
   await writeFile(join(root, REPORT_JSON), JSON.stringify(report, null, 2) + '\n');
   await writeFile(join(root, REPORT_MD), markdownReport(report));
   process.stdout.write(`${JSON.stringify(report.summary, null, 2)}\n`);
-  if (report.summary.invalidCollisionGroups || report.summary.invalidCollisionPairs || percussionIdentities.some(item => !item.valid) || regressions.some(item => !item.pass)) process.exitCode = 1;
+  if (report.summary.invalidCollisionGroups || report.summary.invalidCollisionPairs || percussionIdentities.some(item => !item.valid) || regressions.some(item => !item.pass) || intentRegressions.some(item => !item.pass)) process.exitCode = 1;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main().catch(error => { console.error(error); process.exitCode = 1; });

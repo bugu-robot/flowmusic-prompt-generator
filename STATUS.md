@@ -1,5 +1,18 @@
 # Project Status
 
+## PR #6 source-intent equivalence correction — local verification (2026-10-07)
+
+- Continued `fix/audio-preview-fidelity` from reviewed head `ac344985816b1b498d61dc2a7dbe0344f82b167e`. Prompt generation, musical option catalogs, recommendations, compatibility, variations and the product UI are unchanged.
+- Removed all generated family/pattern equivalence exemptions. Accepted reuse now requires an identical complete behaviour description or one of four explicitly reviewed source-ID/description alias rules, each with a musical rationale. Edited descriptions invalidate their old exemption. Spec comparisons use actual SoundFont bank/program and events; instrument/role names and channel numbers cannot disguise identical performances.
+- Expected variations require actual tempo, articulation, attack spacing, density, voicing/contour, relative accents or sounding-voice differences. Role/pattern renaming, uniform velocity gain and pure melodic transposition alone cannot exempt a collision.
+- Separated the six reviewed swing descriptions through tempo and performance/arrangement choices, Big Band horn calls/answers and punches from small-combo Hard Bop, and sparse Vibraphone notes from sustained chords. Reviewed all prior exact/near duplicate groups and further shared behaviour patterns, including Rhodes extended voice leading, bass/percussion support, occasional versus regular replies, foreground piano, Bossa, waltz, free-time and shuffle variants.
+- Assigned conflicting SoundFont selections separate channels and added channel/preset conflict checks. The offline renderer now explicitly selects/verifies bank 0 for pitched tracks and the recorded bank/program for percussion; section presets cannot overwrite each other or leak into later previews.
+- Regenerated the complete library: 32/32 instrument tones, 146/146 instrument/behaviour pairs (142 unique descriptions), 64/64 grooves; 242 MP3s and 112 reusable patterns. Technical/music-rule failures, missing/orphan/silent/clipping files and manifest errors are all zero. Independent committed-audio decoding and SHA-256 checks passed 242/242.
+- Final similarity report: 5 exact-spec groups, 1 near-spec group, 19 near-audio groups; 4 ACCEPTED_EQUIVALENT groups with intent rules, 20 EXPECTED_VARIANT groups, 0 INVALID_COLLISION groups and 0 invalid pairs. All 17 reviewed swing/Big Band/Vibraphone comparisons and all 8 percussion identities passed. The existing documented Trumpet/Flugelhorn SoundFont approximation remains an expected variant, never an accepted semantic-equivalence exemption.
+- `npm ci`, `npm run typecheck`, `npm run lint`, `npm test` (259 tests / 10 files), `npm audit` (0 vulnerabilities), `npm run audio:build`, `npm run audio:similarity`, `npm run audio:qc`, `npm run audio:verify`, `npm run audio:package`, `npm run build`, and `npm run build -- --mode pages` passed locally. Both outputs retain their manifest, worker, Apple touch icon and all manifest icons; Pages keeps `/flowmusic-prompt-generator/`, separate worker identity, and review-ZIP exclusion.
+- Independently compared 152 prompt outputs (all 38 style defaults plus A/B/C variations) against the reviewed starting head: every output is byte-for-byte unchanged. Existing prompt hash regressions also passed.
+- Existing Draft PR #6 is the only target. Final GitHub Actions verification follows the source update; no merge or production deployment is authorized.
+
 ## Audio preview correction — local verification (2026-10-07)
 
 - Synced `feat/audio-preview-system` with current `main` (`bf0f414d7cc55a9a2b96f68fdf33ca0461c11f31`) in PR head merge commit `c62d5bc`; no conflicts.

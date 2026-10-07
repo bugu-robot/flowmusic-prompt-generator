@@ -101,8 +101,15 @@ def select_track_preset(synth, sfid, track, presets, spec_id):
         if (current_sfont.value, current_bank.value, current_program.value) != (sfid, bank, program):
             raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth selected an unexpected kit preset")
     else:
-        if fs.fluid_synth_program_change(synth, int(track["channel"]), int(track["program"])) != 0:
+        # Explicitly restore melodic bank 0: another preview may previously
+        # have used this channel for a separately selected percussion preset.
+        if fs.fluid_synth_program_select(synth, int(track["channel"]), sfid, 0, int(track["program"])) != 0:
             raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth rejected GM program {track['program']}")
+        current_sfont, current_bank, current_program = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
+        if fs.fluid_synth_get_program(synth, int(track["channel"]), ctypes.byref(current_sfont), ctypes.byref(current_bank), ctypes.byref(current_program)) != 0:
+            raise RuntimeError(f"{spec_id}/{track['name']}: could not verify melodic preset")
+        if (current_sfont.value, current_bank.value, current_program.value) != (sfid, 0, int(track["program"])):
+            raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth retained an unexpected melodic bank/program")
 
 
 def main():
@@ -131,8 +138,14 @@ def main():
         spec = item["spec"]
         bpm = spec["bpm"]
         events = []
+        channel_presets = {}
         for track in spec["tracks"]:
             channel = track["channel"]
+            mapping = track.get("percussionMapping") or {}
+            selection = (mapping.get("soundFontBank", 0), mapping.get("soundFontProgram", track["program"]))
+            if channel in channel_presets and channel_presets[channel] != selection:
+                raise RuntimeError(f"{item['id']}: conflicting SoundFont presets on channel {channel}")
+            channel_presets[channel] = selection
             select_track_preset(synth, sfid, track, presets, item["id"])
             for note in track["notes"]:
                 on = round(note["beat"] * 60 * SAMPLE_RATE / bpm)
