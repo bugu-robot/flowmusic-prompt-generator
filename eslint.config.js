@@ -22,6 +22,8 @@ export default tseslint.config(
         URL: 'readonly',
         fetch: 'readonly',
         Response: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
       },
     },
   },

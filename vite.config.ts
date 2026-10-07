@@ -56,6 +56,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'es2022',
       sourcemap: true,
+      rollupOptions: { input: [resolve(root, 'index.html'), resolve(root, 'audio-preview-review.html')] },
     },
   };
 });
