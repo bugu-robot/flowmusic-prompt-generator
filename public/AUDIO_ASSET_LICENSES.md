@@ -15,6 +15,23 @@
 
 FluidSynth is used as a system package and is not bundled. FluidSynth is LGPL-2.1-or-later; FFmpeg and its MP3 encoder are system build tools and are not distributed by this project. Neither tool contributes separately licensed source assets to the preview files. The MP3 previews contain the generated compositions and the rendered timbres from the MIT-licensed SoundFont.
 
+## Verified percussion presets and articulation map
+
+The renderer enumerates the loaded FluidR3 presets, requires the preset names shown below, selects each kit through FluidSynth's `fluid_synth_program_select(synth, channel, soundfont_id, bank, preset)` API, and reads the active bank/program back before rendering. A MIDI `program_change()` alone does not select the required drum bank. All percussion presets below are in SoundFont bank 128; the program values are the zero-based preset numbers exposed by FluidSynth for the exact licensed FluidR3 3.1-5.3 package.
+
+| Preview identity | Bank / program | FluidR3 preset | Notes / articulation |
+|---|---:|---|---|
+| Acoustic Drum Kit | 128 / 32 | Jazz | Acoustic jazz kit with kick, snare, ride and cymbal timekeeping. |
+| Brush Drums | 128 / 40 | Brush | Native Brush kit. MIDI 40 resolves to the SoundFont sample named “Brush Swirl”; MIDI 38 and 39 resolve to brush snare samples. |
+| Heavy Rock Drums | 128 / 16 | Power | Power kit with stronger kick/snare samples, crash and tom accents. |
+| Congas | 128 / 0 | Standard | GM percussion keys 62–64: muted high, open high, and low conga. |
+| Bongos | 128 / 0 | Standard | GM percussion keys 60–61: high and low bongo. |
+| Timbales | 128 / 0 | Standard | GM percussion keys 65–66: high and low timbale; cowbell accents use key 56. |
+| Soft Shaker | 128 / 0 | Standard | Low-velocity maracas at GM key 70; labeled `TIMBRE_APPROXIMATION` because FluidR3 has no dedicated soft-shaker preset. |
+| Brazilian Percussion | 128 / 0 | Standard | Surdo, snare, agogo and maracas pattern using GM keys 36, 38, 67, 68 and 70; labeled `TIMBRE_APPROXIMATION` for the pandeiro/tamborim/chocalho section. |
+
+The Brush kit also has separate metadata/articulation families for swirl, light taps and restrained pulse. Acoustic Drum Kit behaviors that explicitly request brushes select the Brush kit for that behavior preview; its generic instrument-tone preview remains the Jazz kit. The committed similarity report and review page record the actual bank, program, preset, articulation family and any approximation status.
+
 ## Timbral limits
 
-FluidR3 is a General MIDI soundfont, not a set of professional live recordings. Flugelhorn, muted trumpet, Manouche guitar, brushes, upright bass, congas, timbales, and Brazilian percussion are approximate GM timbres. The specifications and QC verify MIDI structure, roles, register, meter, timing, and technical audio properties; they do not claim subjective performance or live-instrument fidelity.
+FluidR3 is a General MIDI SoundFont, not a set of professional live recordings. Brush Drums use the actual FluidR3 Brush kit and its `Brush Swirl` sample, rather than a standard kit carrying a brush label. Soft Shaker and Brazilian Percussion use documented General MIDI approximations described above. Flugelhorn resolves to the same GM Trumpet program as Trumpet, and Manouche guitar uses FluidR3's Jazz Guitar program; both are explicitly marked `TIMBRE_APPROXIMATION`. Upright Bass uses the GM Acoustic Bass patch. The specifications and QC verify preset selection, percussion note/articulation mapping, MIDI structure, roles, register, meter, timing, and technical audio properties; they do not claim a live performance or exact acoustic-instrument reproduction.

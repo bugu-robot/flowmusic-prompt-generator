@@ -6,14 +6,14 @@
 - Instrument tones: 32/32
 - Behaviour mappings: 146/146 behaviour/instrument pairs (142 unique English strings)
 - Grooves: 64/64
-- Reusable patterns: 38
+- Reusable patterns: 91
 - Music rule failures: 0
 - Technical failures: 0
 - Missing files: 0
 - Silent files: 0
 - Clipping failures: 0
 - Manifest errors / orphans: 0
-- Compressed audio: 23.35 MiB total; 98.8 KiB average; 204.8 KiB largest
+- Compressed audio: 23.20 MiB total; 98.2 KiB average; 204.8 KiB largest
 
 All preview files passed technical audio QC.
 

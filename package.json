@@ -16,9 +16,10 @@
     "audio:install": "bash scripts/audio-preview/install-deps.sh",
     "audio:build": "npm run audio:install && node --import=tsx scripts/audio-preview/build.ts",
     "audio:qc": "node --import=tsx scripts/audio-preview/qc-cli.ts",
+    "audio:similarity": "node --import=tsx scripts/audio-preview/similarity.ts",
     "audio:package": "python3 scripts/audio-preview/package_review.py . .artifacts/audio-preview-review.zip",
     "audio:verify": "node --import=tsx scripts/audio-preview/verify.ts",
-    "audio:all": "npm run audio:build && npm run audio:verify"
+    "audio:all": "npm run audio:build && npm run audio:similarity && npm run audio:verify"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

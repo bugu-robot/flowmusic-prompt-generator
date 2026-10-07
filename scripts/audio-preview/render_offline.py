@@ -24,7 +24,23 @@ fs.new_fluid_synth.argtypes = [P]
 fs.new_fluid_synth.restype = P
 fs.fluid_synth_sfload.argtypes = [P, ctypes.c_char_p, ctypes.c_int]
 fs.fluid_synth_sfload.restype = ctypes.c_int
+fs.fluid_synth_get_sfont_by_id.argtypes = [P, ctypes.c_int]
+fs.fluid_synth_get_sfont_by_id.restype = P
+fs.fluid_sfont_iteration_start.argtypes = [P]
+fs.fluid_sfont_iteration_next.argtypes = [P]
+fs.fluid_sfont_iteration_next.restype = P
+fs.fluid_preset_get_banknum.argtypes = [P]
+fs.fluid_preset_get_banknum.restype = ctypes.c_int
+fs.fluid_preset_get_num.argtypes = [P]
+fs.fluid_preset_get_num.restype = ctypes.c_int
+fs.fluid_preset_get_name.argtypes = [P]
+fs.fluid_preset_get_name.restype = ctypes.c_char_p
 fs.fluid_synth_program_change.argtypes = [P, ctypes.c_int, ctypes.c_int]
+fs.fluid_synth_program_change.restype = ctypes.c_int
+fs.fluid_synth_program_select.argtypes = [P, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+fs.fluid_synth_program_select.restype = ctypes.c_int
+fs.fluid_synth_get_program.argtypes = [P, ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+fs.fluid_synth_get_program.restype = ctypes.c_int
 fs.fluid_synth_noteon.argtypes = [P, ctypes.c_int, ctypes.c_int, ctypes.c_int]
 fs.fluid_synth_noteoff.argtypes = [P, ctypes.c_int, ctypes.c_int]
 fs.fluid_synth_all_sounds_off.argtypes = [P, ctypes.c_int]
@@ -45,6 +61,50 @@ def render_samples(synth, wav_file, count):
     wav_file.writeframesraw(interleaved.tobytes())
 
 
+def preset_table(synth, sfid):
+    sfont = fs.fluid_synth_get_sfont_by_id(synth, sfid)
+    if not sfont:
+        raise RuntimeError("FluidSynth could not inspect the loaded SoundFont")
+    fs.fluid_sfont_iteration_start(sfont)
+    presets = {}
+    while True:
+        preset = fs.fluid_sfont_iteration_next(sfont)
+        if not preset:
+            break
+        bank = fs.fluid_preset_get_banknum(preset)
+        program = fs.fluid_preset_get_num(preset)
+        name = fs.fluid_preset_get_name(preset).decode("utf-8", "replace")
+        presets[(bank, program)] = name
+    return presets
+
+
+def select_track_preset(synth, sfid, track, presets, spec_id):
+    mapping = track.get("percussionMapping")
+    if mapping:
+        bank = int(mapping["soundFontBank"])
+        program = int(mapping["soundFontProgram"])
+        expected_name = mapping["soundFontPreset"]
+        actual_name = presets.get((bank, program))
+        if actual_name != expected_name:
+            raise RuntimeError(
+                f"{spec_id}/{track['name']}: requested FluidR3 preset "
+                f"bank {bank}, program {program} ({expected_name}); found {actual_name!r}"
+            )
+        if int(track["program"]) != program:
+            raise RuntimeError(f"{spec_id}/{track['name']}: track program disagrees with percussion mapping")
+        result = fs.fluid_synth_program_select(synth, int(track["channel"]), sfid, bank, program)
+        if result != 0:
+            raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth rejected bank {bank}, program {program}")
+        current_sfont, current_bank, current_program = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
+        if fs.fluid_synth_get_program(synth, int(track["channel"]), ctypes.byref(current_sfont), ctypes.byref(current_bank), ctypes.byref(current_program)) != 0:
+            raise RuntimeError(f"{spec_id}/{track['name']}: could not verify selected FluidSynth kit")
+        if (current_sfont.value, current_bank.value, current_program.value) != (sfid, bank, program):
+            raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth selected an unexpected kit preset")
+    else:
+        if fs.fluid_synth_program_change(synth, int(track["channel"]), int(track["program"])) != 0:
+            raise RuntimeError(f"{spec_id}/{track['name']}: FluidSynth rejected GM program {track['program']}")
+
+
 def main():
     soundfont, spec_path = sys.argv[1:3]
     specs = json.load(open(spec_path, encoding="utf-8"))
@@ -60,6 +120,12 @@ def main():
     sfid = fs.fluid_synth_sfload(synth, os.fsencode(soundfont), 1)
     if sfid < 0:
         raise RuntimeError("Unable to load SoundFont: " + soundfont)
+    presets = preset_table(synth, sfid)
+    required = {(128, 0): "Standard", (128, 16): "Power", (128, 32): "Jazz", (128, 40): "Brush"}
+    missing = [(bank, program, name) for (bank, program), name in required.items() if presets.get((bank, program)) != name]
+    if missing:
+        raise RuntimeError(f"FluidR3 required percussion presets do not match: {missing}")
+    print("Verified FluidR3 percussion kits: " + ", ".join(f"bank {bank}/program {program} {name}" for (bank, program), name in sorted(required.items())))
 
     for item in specs:
         spec = item["spec"]
@@ -67,7 +133,7 @@ def main():
         events = []
         for track in spec["tracks"]:
             channel = track["channel"]
-            fs.fluid_synth_program_change(synth, channel, track["program"])
+            select_track_preset(synth, sfid, track, presets, item["id"])
             for note in track["notes"]:
                 on = round(note["beat"] * 60 * SAMPLE_RATE / bpm)
                 off = round((note["beat"] + note["duration"]) * 60 * SAMPLE_RATE / bpm)
