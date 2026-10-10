@@ -25,9 +25,8 @@ describe('local preset serialization', () => {
     expect(normalized?.trackDurationId).toBe('4-5');
 
     const storage = new MemoryStorage();
-    storage.setItem('flowmusic-current-configuration', JSON.stringify(legacy));
-    // Legacy objects can also be migrated directly through normalization.
-    expect(normalizeConfiguration(JSON.parse(JSON.stringify(legacy)))?.trackDurationId).toBe('4-5');
+    storage.setItem('flowmusic.promptGenerator.configuration.v1', JSON.stringify(legacy));
+    expect(loadCurrentConfiguration(storage)?.trackDurationId).toBe('4-5');
   });
 
   it('persists supported target durations and rejects invalid imported values', () => {
