@@ -76,6 +76,8 @@ scripts/
 vite.config.ts  build identity and emitted dist/sw.js
 ~~~
 
+Every generated prompt ends with a fixed instruction to use only the explicitly selected instruments and not introduce any additional instruments or percussion. This applies to all styles, including Custom and A/B/C variations, and does not add a new option or change saved configurations.
+
 The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. V1 always compiles `Instrumental only, no vocals.`; the interface shows a fixed instrumental indication, and optional avoidance selections emit only the selected restrictions. Preset imports validate IDs against the shared catalogs while preserving globally valid grooves and tonalities retained after a style change.
 
 All npm packages are development tools, not runtime services. The shipped bundle contains only the browser application; security audit findings in test/build tools still matter because those tools run with developer or CI permissions. See STATUS.md for the audit triage and verification results.
