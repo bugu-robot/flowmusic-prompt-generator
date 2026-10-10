@@ -18,6 +18,8 @@ export const zhHK = {
   applyRecommendation: '套用建議設定',
   recommendationPreserves: '更換風格不會自動覆蓋你手動調整的內容。',
   tempo: '速度（Tempo）',
+  trackDuration: '曲長（Duration）',
+  trackDurationHint: '只作目標時間參考；實際長度由音樂生成模型決定。',
   tempoFeel: '速度感（Tempo Feel）',
   tempoAuto: '按 BPM 自動',
   tempoRange: '建議範圍',
