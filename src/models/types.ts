@@ -92,6 +92,7 @@ export interface MusicConfiguration {
   styleId: string;
   tempo: number;
   tempoFeelId: 'auto' | 'very-slow' | 'very-relaxed' | 'relaxed' | 'moderate' | 'brisk' | 'fast';
+  trackDurationId: import('../data/track-duration').TrackDurationId;
   meter: string;
   customMeter?: string;
   grooveId: string;

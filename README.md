@@ -5,7 +5,7 @@ FlowMusic Prompt Generator is a local-first Progressive Web App for building cle
 ## Features
 
 - Searchable, data-driven Jazz styles, including historical genres and clearly labelled modern descriptors such as Cozy Jazz and Brisk Jazz.
-- Role-based instrument setup, tempo, meter, groove, harmony, tonality, mood, arrangement and production controls.
+- Role-based instrument setup, tempo, meter, groove, harmony, tonality, mood, arrangement, target track duration and production controls.
 - Live English prompt compilation and an advisory compatibility score with visible rule factors.
 - Curated, repeatable arrangement variations.
 - Local presets with rename, duplicate, delete, JSON import and export.
@@ -77,6 +77,8 @@ vite.config.ts  build identity and emitted dist/sw.js
 ~~~
 
 Every generated prompt ends with a fixed instruction to use only the explicitly selected instruments and not introduce any additional instruments or percussion. This applies to all styles, including Custom and A/B/C variations, and does not add a new option or change saved configurations.
+
+Target track duration is selectable under basic music settings, with a default of **4–5 minutes** and additional ranges from 1–2 to 10–12 minutes. This is a **prompt target**, not a guarantee that Flow Music or another generator will produce an exact length. Existing local presets/configurations without this field are migrated to 4–5 minutes; new saves and exported JSON retain the selected range. A/B/C arrangement variations inherit the chosen duration.
 
 The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. V1 always compiles `Instrumental only, no vocals.`; the interface shows a fixed instrumental indication, and optional avoidance selections emit only the selected restrictions. Preset imports validate IDs against the shared catalogs while preserving globally valid grooves and tonalities retained after a style change.
 

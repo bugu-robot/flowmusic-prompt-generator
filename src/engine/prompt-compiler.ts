@@ -1,6 +1,7 @@
 import { CONSTRAINTS, HARMONY_BY_ID, MOODS, OPTION_BY_ID, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { JAZZ_STYLES } from '../data/jazz-styles';
+import { trackDurationPrompt } from '../data/track-duration';
 import { getStyle, recommendConfiguration } from './recommendation-engine';
 import { FLOW_PROMPT_RULES } from './prompt-rules';
 import { normalizeConfiguration } from '../storage/local-storage';
@@ -241,6 +242,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
     melody,
     dynamics,
     arrangement,
+    trackDurationPrompt(configuration.trackDurationId),
     productionSentence,
     constraintSentence(configuration),
   ];

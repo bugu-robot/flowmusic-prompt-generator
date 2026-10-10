@@ -1,6 +1,7 @@
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, TONALITIES } from '../data/options';
+import { normalizeTrackDurationId } from '../data/track-duration';
 import type { InstrumentPart, MusicConfiguration, UserPreset } from '../models/types';
 
 const PRESETS_KEY = 'flowmusic.promptGenerator.presets.v1';
@@ -81,6 +82,7 @@ export function normalizeConfiguration(value: unknown): MusicConfiguration | und
     styleId: value.styleId,
     tempo: Math.max(20, Math.min(400, Math.round(numeric('tempo', 80)))),
     tempoFeelId: enumOption<MusicConfiguration['tempoFeelId']>('tempoFeelId', ['auto', 'very-slow', 'very-relaxed', 'relaxed', 'moderate', 'brisk', 'fast'], 'auto'),
+    trackDurationId: normalizeTrackDurationId(value.trackDurationId),
     meter,
     customMeter: isValidMeter(value.customMeter) ? value.customMeter : '4/4',
     grooveId: grooveIds.has(stringValue('grooveId', 'open')) ? stringValue('grooveId', 'open') : 'open',

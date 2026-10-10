@@ -18,6 +18,33 @@ describe('local preset serialization', () => {
     expect(loadCurrentConfiguration(storage)).toEqual(configuration);
   });
 
+  it('migrates existing configurations without a track duration to the 4–5 minute default', () => {
+    const legacy = { ...recommendConfiguration('cozy-jazz') } as Record<string, unknown>;
+    delete legacy.trackDurationId;
+    const normalized = normalizeConfiguration(legacy);
+    expect(normalized?.trackDurationId).toBe('4-5');
+
+    const storage = new MemoryStorage();
+    storage.setItem('flowmusic.promptGenerator.configuration.v1', JSON.stringify(legacy));
+    expect(loadCurrentConfiguration(storage)?.trackDurationId).toBe('4-5');
+  });
+
+  it('persists supported target durations and rejects invalid imported values', () => {
+    for (const id of ['1-2', '3-4', '4-5', '5-6', '6-8', '8-10', '10-12']) {
+      const normalized = normalizeConfiguration({ ...recommendConfiguration('custom'), trackDurationId: id });
+      expect(normalized?.trackDurationId).toBe(id);
+    }
+    for (const value of [null, 5, [], ['4-5'], '<script>', '100-200', '0-0']) {
+      expect(normalizeConfiguration({ ...recommendConfiguration('cozy-jazz'), trackDurationId: value })?.trackDurationId).toBe('4-5');
+    }
+    const storage = new MemoryStorage();
+    const configuration = { ...recommendConfiguration('slow-bossa'), trackDurationId: '8-10' as const };
+    saveCurrentConfiguration(configuration, storage);
+    expect(loadCurrentConfiguration(storage)?.trackDurationId).toBe('8-10');
+    const saved = savePreset('Long jazz session', configuration, storage);
+    expect(importPresetJson(exportPresetJson(saved), storage)?.configuration.trackDurationId).toBe('8-10');
+  });
+
   it('round-trips named presets through portable JSON', () => {
     const storage = new MemoryStorage();
     const configuration = recommendConfiguration('cool-jazz');

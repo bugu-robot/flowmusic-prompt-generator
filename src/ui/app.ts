@@ -1,6 +1,7 @@
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES, TONALITIES } from '../data/options';
 import { INSTRUMENTS, INSTRUMENT_BY_ID } from '../data/instruments';
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
+import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { recommendConfiguration } from '../engine/recommendation-engine';
@@ -26,6 +27,7 @@ const TEMPO_FEELS = [
   ['auto', t.tempoAuto], ['very-slow', t.feelVerySlow], ['very-relaxed', t.feelRelaxed], ['relaxed', t.feelEasy],
   ['moderate', t.feelModerate], ['brisk', t.feelBrisk], ['fast', t.feelFast],
 ];
+const TRACK_DURATION_OPTIONS = TRACK_DURATIONS.map(({ id, minMinutes, maxMinutes }) => ({ id, label: minMinutes + '–' + maxMinutes + ' 分鐘' }));
 const COMMON_METERS = ['4/4', '3/4', '6/8', '2/4'];
 const CHIP_GROUP_LABEL: Record<string, string> = {
   harmonyIds: t.recommendedHarmony,
@@ -156,6 +158,7 @@ function render(): void {
     + '<div class="add-instrument-row"><label for="instrument-picker">' + t.addInstrument + '</label><select id="instrument-picker"><option value="">' + t.chooseInstrument + '</option>' + categories.map((category) => '<optgroup label="' + escapeHtml(categoryLabels[category] ?? category) + '">' + INSTRUMENTS.filter((item) => item.category === category && !configuration.instruments.some((part) => part.instrumentId === item.id)).map((instrument) => '<option value="' + escapeHtml(instrument.id) + '">' + escapeHtml(instrument.nameZh + ' (' + instrument.name + ')') + '</option>').join('') + '</optgroup>').join('') + '</select></div></section>'
     + '<section class="panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow">03 · MUSIC</p><h2 id="music-heading">' + t.basicTitle + '</h2></div></div><div class="control-grid"><div class="tempo-control"><div class="label-line"><label for="tempo-number">' + t.tempo + '</label><span>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + '</span></div><div class="tempo-inputs"><input id="tempo-range" type="range" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><input id="tempo-number" class="number-input" type="number" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><span>BPM</span></div><small class="tempo-feel" id="tempo-feel">' + tempoFeelLabel(configuration) + '</small></div>'
     + '<label><span>' + t.tempoFeel + '</span><select data-field="tempoFeelId">' + selectOptions(TEMPO_FEELS.map(([id, label]) => ({ id: id as string, label: label as string })), configuration.tempoFeelId) + '</select></label>'
+    + '<label><span>' + t.trackDuration + '</span><select data-field="trackDurationId">' + selectOptions(TRACK_DURATION_OPTIONS, configuration.trackDurationId) + '</select><small>' + t.trackDurationHint + '</small></label>'
     + '<div class="groove-control"><label><span>' + t.groove + '</span><select data-field="grooveId">' + selectOptions(grooveOptions, configuration.grooveId) + '</select></label>' + previewControl('groove', configuration.grooveId, grooveOptions.find(item => item.id === configuration.grooveId)?.label ?? configuration.grooveId) + '</div><label><span>' + t.energy + '</span><div class="range-labels"><small>' + t.energyLow + '</small><small>' + t.energyHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.energy + '" data-field="energy" aria-label="' + t.energy + '"></label>'
     + '<label><span>' + t.melodyDensity + '</span><div class="range-labels"><small>' + t.densityLow + '</small><small>' + t.densityHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.melodyDensity + '" data-field="melodyDensity" aria-label="' + t.melodyDensity + '"></label><label><span>' + t.improvisation + '</span><div class="range-labels"><small>' + t.improvLow + '</small><small>' + t.improvHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.improvisation + '" data-field="improvisation" aria-label="' + t.improvisation + '"></label></div>'
     + '<details class="advanced-controls"><summary>' + t.advancedTitle + '</summary><div class="control-grid advanced-grid"><label><span>' + t.meter + '</span><select data-field="meter">' + selectOptions(meterOptions, configuration.meter) + '</select>' + (configuration.meter === 'custom' ? '<input class="custom-meter-input" type="text" inputmode="numeric" maxlength="5" data-field="customMeter" aria-label="' + t.customMeterValue + '" placeholder="5/4" value="' + escapeHtml(configuration.customMeter ?? '4/4') + '"><small>' + t.customMeterValue + '</small>' : '') + '</label><label><span>' + t.tonality + '</span><select data-field="tonalityId">' + selectOptions(tonalityOptions, configuration.tonalityId) + '</select></label>'
@@ -198,7 +201,7 @@ function refreshDynamicAreas(): void {
   const compatibility = document.querySelector<HTMLElement>('#compatibility-panel');
   if (compatibility) { const wrapper = document.createElement('div'); wrapper.innerHTML = renderCompatibility(appState.configuration); compatibility.replaceWith(wrapper.firstElementChild!); }
   const previewMeta = document.querySelector<HTMLElement>('.preview-metadata');
-  if (previewMeta) previewMeta.innerHTML = '<span>' + escapeHtml(STYLE_BY_ID.get(appState.configuration.styleId)?.name ?? '') + '</span><span>·</span><span>' + appState.configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(appState.configuration)) + '</span>';
+  if (previewMeta) previewMeta.innerHTML = '<span>' + escapeHtml(STYLE_BY_ID.get(appState.configuration.styleId)?.name ?? '') + '</span><span>·</span><span>' + appState.configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(appState.configuration)) + '</span><span>·</span><span>' + escapeHtml(appState.configuration.trackDurationId) + ' min</span>';
   const feel = document.querySelector<HTMLElement>('#tempo-feel');
   if (feel) feel.textContent = tempoFeelLabel(appState.configuration);
 }
@@ -207,6 +210,7 @@ function updateConfiguration(field: string, value: unknown): void {
   switch (field) {
     case 'tempo': current.tempo = Math.max(20, Math.min(400, Number(value) || 20)); break;
     case 'tempoFeelId': current.tempoFeelId = value as MusicConfiguration['tempoFeelId']; break;
+    case 'trackDurationId': current.trackDurationId = normalizeTrackDurationId(value); break;
     case 'energy': current.energy = Number(value); break;
     case 'melodyDensity': current.melodyDensity = Number(value); break;
     case 'improvisation': current.improvisation = Number(value); break;
