@@ -158,7 +158,7 @@ describe('deterministic English prompt compiler', () => {
         expect(prompt.endsWith(EXCLUSIVE_INSTRUMENT_SENTENCE), style.id).toBe(true);
         expect(prompt.split(EXCLUSIVE_INSTRUMENT_SENTENCE), style.id).toHaveLength(2);
         expect(prompt, style.id).toContain('Instrumental only, no vocals.');
-        expect(prompt, style.id).not.toMatch(/[\\u3400-\\u9fff]/u);
+        expect(prompt, style.id).not.toMatch(/[\u3400-\u9fff]/u);
       }
     }
     const empty = recommendConfiguration('custom');
