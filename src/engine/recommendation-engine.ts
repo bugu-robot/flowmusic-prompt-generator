@@ -1,4 +1,5 @@
 import { HARMONIES, MOODS, PRODUCTION, SCENES } from '../data/options';
+import { DEFAULT_TRACK_DURATION } from '../data/track-duration';
 import { INSTRUMENTS, INSTRUMENT_BY_ID } from '../data/instruments';
 import { STYLE_BY_ID } from '../data/jazz-styles';
 import type { InstrumentPart, JazzStyle, MusicConfiguration } from '../models/types';
@@ -50,6 +51,7 @@ export function recommendConfiguration(styleId: string): MusicConfiguration {
     styleId: style.id,
     tempo: style.tempo.default,
     tempoFeelId: 'auto',
+    trackDurationId: DEFAULT_TRACK_DURATION,
     meter: style.meters[0] ?? '4/4',
     customMeter: '4/4',
     grooveId: defaultGroove,
