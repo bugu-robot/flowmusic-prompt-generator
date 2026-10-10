@@ -6,19 +6,58 @@ import { generateVariations } from './variation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { CONSTRAINTS } from '../data/options';
+import { TRACK_DURATIONS, DEFAULT_TRACK_DURATION, trackDurationPrompt } from '../data/track-duration';
 import type { MusicConfiguration } from '../models/types';
 
 const EXCLUSIVE_INSTRUMENT_SENTENCE = 'Use only the instruments explicitly selected in this arrangement; do not add any other instruments, including extra percussion.';
 
-// Guard the previously approved prompt text byte-for-byte: the new rule is
-// the only permitted change to the existing default/variation snapshots.
+// Guard the previously approved prompt text byte-for-byte: only the explicitly
+// requested instrument-exclusivity and track-duration sentences may differ.
 function withoutNewInstrumentRule(prompt: string): string {
   const suffix = ' ' + EXCLUSIVE_INSTRUMENT_SENTENCE;
   expect(prompt.endsWith(suffix)).toBe(true);
-  return prompt.slice(0, -suffix.length);
+  const stripped = prompt.slice(0, -suffix.length);
+  const durationParagraph = '\n\n' + trackDurationPrompt(DEFAULT_TRACK_DURATION);
+  expect(stripped.includes(durationParagraph)).toBe(true);
+  return stripped.replace(durationParagraph, '');
 }
 
 describe('deterministic English prompt compiler', () => {
+  it('targets 4–5 minutes by default for all styles and their variations', () => {
+    for (const style of JAZZ_STYLES) {
+      const recommended = recommendConfiguration(style.id);
+      expect(recommended.trackDurationId, style.id).toBe(DEFAULT_TRACK_DURATION);
+      for (const configuration of [recommended, ...generateVariations(recommended)]) {
+        const prompt = compilePrompt(configuration);
+        const instruction = trackDurationPrompt(DEFAULT_TRACK_DURATION);
+        expect(prompt.includes(instruction), style.id).toBe(true);
+        expect(prompt.split(instruction), style.id).toHaveLength(2);
+      }
+    }
+  });
+
+  it('compiles each supported duration range as an English target, not a guarantee', () => {
+    for (const duration of TRACK_DURATIONS) {
+      const configuration = recommendConfiguration('cozy-jazz');
+      configuration.trackDurationId = duration.id;
+      const prompt = compilePrompt(configuration);
+      expect(prompt).toContain(trackDurationPrompt(duration.id));
+      expect(prompt).toContain('approximately ' + duration.minMinutes + ' to ' + duration.maxMinutes + ' minutes');
+      expect(prompt).toContain('natural ending');
+      expect(prompt).toContain(EXCLUSIVE_INSTRUMENT_SENTENCE);
+      expect(prompt.split('Target a total track duration'), duration.id).toHaveLength(2);
+    }
+  });
+
+  it('does not reuse invalid or legacy duration IDs in compiler output', () => {
+    const config = recommendConfiguration('custom');
+    const missing = compilePrompt({ ...config, trackDurationId: undefined } as Partial<MusicConfiguration>);
+    const invalid = compilePrompt({ ...config, trackDurationId: '<script>10 hours</script>' } as Partial<MusicConfiguration>);
+    expect(missing).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
+    expect(invalid).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
+    expect(invalid).not.toContain('<script>');
+  });
+
   it('compiles the Slow Bossa recommendations into a coherent role-based prompt', () => {
     const configuration = recommendConfiguration('slow-bossa');
     const prompt = compilePrompt(configuration);
