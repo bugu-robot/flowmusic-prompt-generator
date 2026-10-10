@@ -8,6 +8,16 @@ import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { CONSTRAINTS } from '../data/options';
 import type { MusicConfiguration } from '../models/types';
 
+const EXCLUSIVE_INSTRUMENT_SENTENCE = 'Use only the instruments explicitly selected in this arrangement; do not add any other instruments, including extra percussion.';
+
+// Guard the previously approved prompt text byte-for-byte: the new rule is
+// the only permitted change to the existing default/variation snapshots.
+function withoutNewInstrumentRule(prompt: string): string {
+  const suffix = ' ' + EXCLUSIVE_INSTRUMENT_SENTENCE;
+  expect(prompt.endsWith(suffix)).toBe(true);
+  return prompt.slice(0, -suffix.length);
+}
+
 describe('deterministic English prompt compiler', () => {
   it('compiles the Slow Bossa recommendations into a coherent role-based prompt', () => {
     const configuration = recommendConfiguration('slow-bossa');
@@ -72,7 +82,7 @@ describe('deterministic English prompt compiler', () => {
 
   it('keeps the Custom default prompt byte-for-byte stable', () => {
     const prompt = compilePrompt(recommendConfiguration('custom'));
-    expect(createHash('sha256').update(prompt).digest('hex')).toBe('aa3f2be9702a71f12329391230808681f625b6074f7720f3dca6fd3d8875ca1d');
+    expect(createHash('sha256').update(withoutNewInstrumentRule(prompt)).digest('hex')).toBe('aa3f2be9702a71f12329391230808681f625b6074f7720f3dca6fd3d8875ca1d');
   });
 
   it('supports explicit custom meters while keeping the output English', () => {
@@ -118,14 +128,14 @@ describe('deterministic English prompt compiler', () => {
     const configuration = recommendConfiguration('cozy-jazz');
     configuration.constraintIds = [option.id];
     const constraints = compilePrompt(configuration).split('\n\n').at(-1);
-    expect(constraints).toBe('Instrumental only, no vocals. Avoid ' + option.prompt + '.');
+    expect(constraints).toBe('Instrumental only, no vocals. Avoid ' + option.prompt + '. ' + EXCLUSIVE_INSTRUMENT_SENTENCE);
   });
 
   it('combines selected constraints without adding their unselected siblings', () => {
     const configuration = recommendConfiguration('cozy-jazz');
     configuration.constraintIds = ['electronic', 'bright-brass'];
     const constraints = compilePrompt(configuration).split('\n\n').at(-1);
-    expect(constraints).toBe('Instrumental only, no vocals. Avoid electronic instruments and overly bright brass.');
+    expect(constraints).toBe('Instrumental only, no vocals. Avoid electronic instruments and overly bright brass. ' + EXCLUSIVE_INSTRUMENT_SENTENCE);
     expect(constraints).not.toContain('heavy bass');
     expect(constraints).not.toContain('chromatic runs');
   });
@@ -134,10 +144,28 @@ describe('deterministic English prompt compiler', () => {
     expect(CONSTRAINTS.some((option) => ['vocals', 'scat'].includes(option.id))).toBe(false);
     const configuration = recommendConfiguration('cozy-jazz');
     configuration.constraintIds = [];
-    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals.');
+    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals. ' + EXCLUSIVE_INSTRUMENT_SENTENCE);
     // Old preset IDs cannot reintroduce optional vocal controls.
     configuration.constraintIds = ['vocals', 'scat'];
-    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals.');
+    expect(compilePrompt(configuration).split('\n\n').at(-1)).toBe('Instrumental only, no vocals. ' + EXCLUSIVE_INSTRUMENT_SENTENCE);
+  });
+
+  it('always restricts instrumentation for every style, variation and cleared ensemble', () => {
+    for (const style of JAZZ_STYLES) {
+      const recommended = recommendConfiguration(style.id);
+      for (const configuration of [recommended, ...generateVariations(recommended)]) {
+        const prompt = compilePrompt(configuration);
+        expect(prompt.endsWith(EXCLUSIVE_INSTRUMENT_SENTENCE), style.id).toBe(true);
+        expect(prompt.split(EXCLUSIVE_INSTRUMENT_SENTENCE), style.id).toHaveLength(2);
+        expect(prompt, style.id).toContain('Instrumental only, no vocals.');
+        expect(prompt, style.id).not.toMatch(/[\\u3400-\\u9fff]/u);
+      }
+    }
+    const empty = recommendConfiguration('custom');
+    empty.instruments = [];
+    const prompt = compilePrompt(empty);
+    expect(prompt.endsWith(EXCLUSIVE_INSTRUMENT_SENTENCE)).toBe(true);
+    expect(prompt).not.toContain('carries the main melodic voice');
   });
 
   it('compiles every built-in style without throwing or leaking UI localization', () => {
@@ -267,7 +295,7 @@ describe('deterministic English prompt compiler', () => {
     expect(Object.keys(hashes)).toHaveLength(25);
     for (const [styleId, expected] of Object.entries(hashes)) {
       const prompt = compilePrompt(recommendConfiguration(styleId));
-      expect(createHash('sha256').update(prompt).digest('hex'), styleId).toBe(expected);
+      expect(createHash('sha256').update(withoutNewInstrumentRule(prompt)).digest('hex'), styleId).toBe(expected);
     }
   });
 
@@ -289,7 +317,7 @@ describe('deterministic English prompt compiler', () => {
     expect(Object.keys(hashes)).toHaveLength(12);
     for (const [styleId, expected] of Object.entries(hashes)) {
       const prompt = compilePrompt(recommendConfiguration(styleId));
-      expect(createHash('sha256').update(prompt).digest('hex'), styleId).toBe(expected);
+      expect(createHash('sha256').update(withoutNewInstrumentRule(prompt)).digest('hex'), styleId).toBe(expected);
     }
   });
 
@@ -303,7 +331,7 @@ describe('deterministic English prompt compiler', () => {
     expect(variations).toHaveLength(3);
     for (const [index, variation] of variations.entries()) {
       const prompt = compilePrompt(variation);
-      expect(createHash('sha256').update(prompt).digest('hex'), 'variation ' + ['A', 'B', 'C'][index]).toBe(expected[index]);
+      expect(createHash('sha256').update(withoutNewInstrumentRule(prompt)).digest('hex'), 'variation ' + ['A', 'B', 'C'][index]).toBe(expected[index]);
     }
   });
 
