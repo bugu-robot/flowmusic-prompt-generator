@@ -159,7 +159,7 @@ function constraintSentence(configuration: MusicConfiguration): string {
   for (let index = 0; index < selected.length; index += groupSize) {
     selectedSentences.push('Avoid ' + asList(selected.slice(index, index + groupSize)) + '.');
   }
-  return ['Instrumental only, no vocals.', ...selectedSentences].join(' ');
+  return ['Instrumental only, no vocals.', ...selectedSentences, 'Use only the instruments explicitly selected in this arrangement; do not add any other instruments, including extra percussion.'].join(' ');
 }
 
 export function compilePrompt(input: MusicConfiguration | Partial<MusicConfiguration> | null | undefined): string {
