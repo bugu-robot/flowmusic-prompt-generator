@@ -52,7 +52,7 @@ describe('deterministic English prompt compiler', () => {
   it('does not reuse invalid or legacy duration IDs in compiler output', () => {
     const config = recommendConfiguration('custom');
     const missing = compilePrompt({ ...config, trackDurationId: undefined } as Partial<MusicConfiguration>);
-    const invalid = compilePrompt({ ...config, trackDurationId: '<script>10 hours</script>' } as Partial<MusicConfiguration>);
+    const invalid = compilePrompt({ ...config, trackDurationId: '<script>10 hours</script>' } as unknown as Partial<MusicConfiguration>);
     expect(missing).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
     expect(invalid).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
     expect(invalid).not.toContain('<script>');
