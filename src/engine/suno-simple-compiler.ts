@@ -125,5 +125,14 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
     + trackDurationPrompt(config.trackDurationId) + ' No vocals or singing. '
     + 'No instruments beyond the listed ensemble, including additional percussion.'
     + (exclusions.length ? ' Avoid ' + join(exclusions) + '.' : '');
-  return [openingParagraph, ensembleParagraph, musicParagraph, closing].join('\n\n');
+  // Keep the four existing paragraphs and every music instruction unchanged.
+  // A short heading on its own line makes Suno Simple easy to read alongside
+  // the four correspondingly titled Traditional Chinese reference sections.
+  // Smart A/B/C instructions are still inserted into the same body paragraph.
+  return [
+    'STYLE & GROOVE\n' + openingParagraph,
+    'INSTRUMENTS & ROLES\n' + ensembleParagraph,
+    'HARMONY & PERFORMANCE\n' + musicParagraph,
+    'RECORDING & CONSTRAINTS\n' + closing,
+  ].join('\n\n');
 }
