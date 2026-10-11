@@ -1,7 +1,7 @@
 {
-  "name": "FlowMusic Prompt Generator",
-  "short_name": "FlowMusic",
-  "description": "離線建立 Google Flow Music 英文 Jazz prompt",
+  "name": "Jazz Prompt Generator",
+  "short_name": "Jazz Prompts",
+  "description": "離線生成 Suno Simple 及 Google Flow Music Jazz Prompts",
   "lang": "zh-HK",
   "start_url": "./",
   "scope": "./",

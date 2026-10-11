@@ -32,7 +32,7 @@ function serviceWorkerPlugin(mode: string, base: string): Plugin {
   const template = readFileSync(serviceWorkerTemplatePath, 'utf8');
   const renderServiceWorker = () => template.replaceAll('__FLOWMUSIC_BUILD_ID__', id);
   return {
-    name: 'flowmusic-versioned-service-worker',
+    name: 'jazz-versioned-service-worker',
     configureServer(server) {
       const workerPath = base + 'sw.js';
       server.middlewares.use((request, response, next) => {
@@ -49,7 +49,11 @@ function serviceWorkerPlugin(mode: string, base: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const base = mode === 'pages' ? '/flowmusic-prompt-generator/' : '/';
+  // GitHub provides the active repo name during Actions builds; supports an eventual
+  // rename without shipping a bundle with the old Pages project path.
+  const repositoryName = process.env.GITHUB_REPOSITORY?.split('/').at(-1)
+    ?? 'flowmusic-prompt-generator'; // Compatibility when building pages locally.
+  const base = mode === 'pages' ? '/' + repositoryName + '/' : '/';
   return {
     base,
     plugins: [serviceWorkerPlugin(mode, base)],

@@ -1,4 +1,4 @@
-const CACHE_PREFIX = 'flowmusic-prompt-generator-';
+const CACHE_PREFIX = 'jazz-prompt-generator-';
 const CACHE_NAME = CACHE_PREFIX + '__FLOWMUSIC_BUILD_ID__';
 
 async function responseForAudioRange(response, rangeHeader) {
