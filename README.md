@@ -35,6 +35,23 @@ browser configurations and presets; do not rename those keys without migration.
 - A regression suite checks that each selectable setting reaches the actual
   Flow and Suno compilers. The output is model guidance, not a guarantee of audio.
 
+## Bilingual prompt reading (offline)
+
+The preview column offers a global **英文原文 / 繁中解讀 / 中英對照**
+selector for both the main output and Smart A/B/C interpretations.
+All jazz families have curated Traditional Chinese variation descriptions.
+
+Chinese full-prompt content is a structured music interpretation generated
+locally from the **same user configuration**, not a word-for-word translation
+of every original provider-specific English sentence. Especially with the
+legacy Flow compiler, some formula wording is not translated literally.
+This distinction is explicitly labelled in the app.
+
+**Copy always copies the unchanged English provider prompt**; in environments
+without Clipboard access, the interface reveals English and selects it for
+manual copying. The language choice is view-only, does not alter any preset,
+and uses no network translation, LLM, or additional API subscription.
+
 ## Features
 
 - Searchable, data-driven Jazz styles, including historical genres and clearly labelled modern descriptors such as Cozy Jazz and Brisk Jazz.
