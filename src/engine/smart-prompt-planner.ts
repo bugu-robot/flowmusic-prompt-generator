@@ -3,6 +3,8 @@ import { compilePrompt } from './prompt-compiler';
 import { compileSunoSimple } from './suno-simple-compiler';
 import type { SunoInterpretation } from './suno-simple-compiler';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { describeSmartIntentZh } from '../i18n/smart-intent-zh-HK';
+import type { FocusOverride } from '../i18n/smart-intent-zh-HK';
 import type { MusicConfiguration } from '../models/types';
 
 export type PromptProvider = 'flow' | 'suno';
@@ -12,6 +14,7 @@ export interface SmartPrompt {
   title: string;
   labelZh: string;
   intent: string;
+  intentZh: string;
   prompt: string;
 }
 export interface SmartPromptResult {
@@ -101,9 +104,11 @@ export function generateSmartPrompts(
   const titles = ['Melodic Focus', 'Rhythmic Focus', 'Harmonic Focus'] as const;
   const safeSeed = Number.isSafeInteger(seed) ? Math.abs(seed) : 0;
   const offset = safeSeed % 3;
-  const continuity = CONTINUITY_CHOICES[Math.floor(safeSeed / 3) % CONTINUITY_CHOICES.length]!;
+  const continuityIndex = Math.floor(safeSeed / 3) % CONTINUITY_CHOICES.length;
+  const continuity = CONTINUITY_CHOICES[continuityIndex]!;
   const prompts = (['A', 'B', 'C'] as const).map((id, index) => {
-    const detail = ALTERNATE_DETAILS[index]![((offset + index) % 3)]!;
+    const detailIndex = (offset + index) % 3;
+    const detail = ALTERNATE_DETAILS[index]![detailIndex]!;
     const styleFocus = index === 1 && style.family === 'gypsy' && enabled.some(part => part.behaviour.toLowerCase().includes('la pompe'))
       ? 'Bring out the selected la pompe guitar rhythm while retaining all other explicitly selected percussion and accompaniment.'
       : focuses[index]!;
@@ -117,12 +122,17 @@ export function generateSmartPrompts(
         : focus === 'rhythm' && !style.grooves.some(g => g.id === configuration.grooveId)
           ? 'Shape rhythmic articulation around the explicitly selected groove rather than a different style groove.'
           : styleFocus;
+    const override: FocusOverride = focus === 'harmony' && !availableHarmony ? 'no-harmony'
+      : focus === 'rhythm' && !availableRhythm ? 'no-rhythm'
+        : focus === 'rhythm' && !style.grooves.some(g => g.id === configuration.grooveId) ? 'custom-groove'
+          : index === 1 && style.family === 'gypsy' && enabled.some(part => part.behaviour.toLowerCase().includes('la pompe')) ? 'gypsy-pompe' : 'none';
     const safeDetail = focus === 'harmony' && !availableHarmony
       ? 'Use register, note choice and phrase endings to suggest harmony without chordal accompaniment.'
       : detail;
     const intent = safeStyleFocus + ' ' + safeDetail + ' ' + continuity + ' ' + intensityText[strength];
+    const intentZh = describeSmartIntentZh(style.family, index, detailIndex, continuityIndex, strength, override);
     return {
-      id, title: titles[index]!, labelZh: names[index]!, intent,
+      id, title: titles[index]!, labelZh: names[index]!, intent, intentZh,
       prompt: provider === 'suno'
         ? compileSunoSimple(configuration, { target: focus, instruction: intent })
         : compileFlowWithInterpretation(configuration, focus, intent),
