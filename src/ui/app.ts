@@ -189,7 +189,7 @@ function render(): void {
   const categories = [...new Set(INSTRUMENTS.map((instrument) => instrument.category))];
   const categoryLabels: Record<string, string> = { guitar: 'Guitar', keyboard: 'Piano / Keyboard', brass: 'Brass', woodwind: 'Woodwind', strings: 'Strings', bass: 'Bass', percussion: 'Percussion', electronic: 'Electronic', texture: 'Texture' };
   root.innerHTML = '<div class="app-shell"><header class="site-header"><a class="brand" href="#" aria-label="' + t.appName + '"><span class="brand-mark" aria-hidden="true">♪</span><span><strong>' + t.appName + '</strong><small>' + t.eyebrow + '</small></span></a><div class="header-pills"><span><i class="status-dot"></i><span id="offline-status" aria-live="polite">' + t.offlinePreparing + '</span></span><span>' + t.noApi + '</span></div></header>'
-    + '<main class="page"><section class="hero"><div><p class="eyebrow">A LOCAL MUSIC TOOL</p><h1>把音樂想法，寫成清晰的 Jazz 音樂 Prompt。</h1><p>' + t.subtitle + '</p></div><span class="hero-note" aria-hidden="true"><i>♬</i><span>STYLE<br>·<br>SPACE<br>·<br>SOUND</span></span></section>'
+    + '<main class="page"><section class="hero"><div><p class="eyebrow">A LOCAL MUSIC TOOL</p><h1>把細粒的音樂想法，寫成清晰的 Jazz 音樂 Prompt。</h1><p>' + t.subtitle + '</p></div><span class="hero-note" aria-hidden="true"><i>♬</i><span>STYLE<br>·<br>SPACE<br>·<br>SOUND</span></span></section>'
     + '<div class="studio-layout"><div class="configuration-column"><section class="panel style-panel" aria-labelledby="style-heading"><div class="panel-heading"><div><p class="eyebrow">01 · STYLE</p><h2 id="style-heading">' + t.styleTitle + '</h2><p class="section-help">' + t.styleHint + '</p></div></div>'
     + '<label class="search-field"><span aria-hidden="true">⌕</span><input id="style-search" type="search" aria-label="' + t.searchStyle + '" placeholder="' + t.searchStyle + '" autocomplete="off"></label><div class="style-grid" id="style-grid">' + renderStyleCards('') + '</div>'
     + (style.id === 'custom' ? '<label class="custom-name-field"><span>' + t.customStyleName + '</span><input type="text" data-field="customStyleName" value="' + escapeHtml(configuration.customStyleName ?? '') + '" placeholder="' + t.customStylePlaceholder + '"></label>' : '') + '</section>'
@@ -229,7 +229,7 @@ function render(): void {
 
 interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; promptView: PromptView; smartStrength: VariationStrength; smartSeed: number; toastTimer?: number; }
 const root = document.querySelector<HTMLElement>('#app')!;
-const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'flow', promptView: 'en', smartStrength: 'balanced', smartSeed: 0 };
+const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'suno', promptView: 'en', smartStrength: 'balanced', smartSeed: 0 };
 function persist(): void { try { saveCurrentConfiguration(appState.configuration); } catch { /* Storage may be disabled in private browsing. */ } }
 function selectEnglishForManualCopy(id: string): void {
   if (appState.promptView === 'zh') { appState.promptView = 'en'; render(); }
