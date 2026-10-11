@@ -104,7 +104,7 @@ export const zhHK = {
   structureSections: '傳統段落 Traditional Sections',
   structureCustom: '自訂 Custom',
   productionTitle: '製作風格',
-  productionHint: '挑選能夠分辨嘅錄音質感；溫暖、復古及類比效果可按需要組合。'
+  productionHint: '挑選能夠分辨嘅錄音質感；溫暖、復古及類比效果可按需要組合。',
   constraintsTitle: '避免項目',
   instrumentalOnly: '純音樂（Instrumental）',
   constraintsHint: '精簡列出重要限制，避免負面指示蓋過音樂描述。',
