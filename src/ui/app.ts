@@ -229,6 +229,13 @@ interface AppState { configuration: MusicConfiguration; variations: MusicConfigu
 const root = document.querySelector<HTMLElement>('#app')!;
 const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'flow', promptView: 'en', smartStrength: 'balanced', smartSeed: 0 };
 function persist(): void { try { saveCurrentConfiguration(appState.configuration); } catch { /* Storage may be disabled in private browsing. */ } }
+function selectEnglishForManualCopy(id: string): void {
+  if (appState.promptView === 'zh') { appState.promptView = 'en'; render(); }
+  const source = document.querySelector<HTMLTextAreaElement>('#' + id);
+  source?.focus();
+  source?.select();
+  notify(t.promptCopiedFallback);
+}
 function notify(message: string): void {
   const toast = document.querySelector<HTMLElement>('#toast');
   if (!toast) return;
