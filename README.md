@@ -66,7 +66,12 @@ The catalog has 38 options: 37 fixed built-in styles plus Custom. The 12 expande
 ## Flow Music / Suno Simple and Smart A/B/C prompts
 
 The output selector switches between the **original, unchanged Flow Music compiler** and a new
-single-text-box **Suno Simple** natural-language compiler. Suno Simple does not depend on
+single-text-box **Suno Simple** natural-language compiler.
+Suno Simple displays four titled sections — **STYLE & GROOVE**, **INSTRUMENTS & ROLES**,
+**HARMONY & PERFORMANCE**, and **RECORDING & CONSTRAINTS** — matching the existing
+four Traditional Chinese reading sections. Headings are included in copied English
+Suno prompts; they are for readability, not Suno-specific control syntax. The
+musical prose and Smart A/B/C placement within those paragraphs are unchanged. Suno Simple does not depend on
 Custom Mode, Exclude, an LLM, external credentials, or any paid API. It keeps the selected
 style, groove, metre, BPM, instruments and roles, harmony, mood, duration and other settings,
 and includes a concise no-extra-instruments/no-vocals instruction.
