@@ -93,7 +93,10 @@ export function generateSmartPrompts(
   const locks = 'Maintain the exact selected jazz style, BPM, metre, groove, tonality, harmony, instrumental lineup and roles, instrument behaviours, mood, energy, melody density, improvisation, foreground interplay, arrangement, recording choices, duration and restrictions. No added instruments or vocals.';
   const prompts = (['A', 'B', 'C'] as const).map((id, index) => {
     const detail = ALTERNATE_DETAILS[index]![((offset + index) % 3)]!;
-    const intent = focuses[index]! + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
+    const styleFocus = index === 1 && style.family === 'gypsy' && enabled.some(part => part.behaviour.toLowerCase().includes('la pompe'))
+      ? 'Bring out the selected la pompe guitar rhythm while retaining all other explicitly selected percussion and accompaniment.'
+      : focuses[index]!;
+    const intent = styleFocus + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
     return {
       id, title: titles[index]!, labelZh: names[index]!, intent,
       prompt: core + '\n\n' + 'Performance interpretation — ' + titles[index] + ': ' + intent + '\n\n' + locks,
