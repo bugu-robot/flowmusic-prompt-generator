@@ -51,6 +51,7 @@ export const zhHK = {
   prominenceClear: '清晰前景',
   prominenceFeatured: '明顯突出',
   optionsSimplified: '已精簡重複設定；進階控制仍可按需要展開。',
+  limitReached: '目前選擇已達原版 Flow Music Prompt 可有效表達的數量上限；先取消一項再選其他。',
   deprecatedStructure: '舊版自訂結構（保留原設定）',
   sixthAlias: 'Major 6th / 6th',
   behaviour: '演奏方式',
