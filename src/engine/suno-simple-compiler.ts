@@ -26,8 +26,9 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
     ? { ...recommended, ...normalized, instruments: explicitParts ? normalized.instruments : recommended.instruments }
     : recommended;
   const style = getStyle(config.styleId);
-  const opening = style.id === 'custom' && english(config.customStyleName) && clean(config.customStyleName)
-    ? clean(config.customStyleName) : style.name;
+  const opening = style.id === 'custom'
+    ? (english(config.customStyleName) && clean(config.customStyleName) ? clean(config.customStyleName) : 'user-defined jazz')
+    : style.name;
   const influence = config.secondaryStyleId ? ' with subtle ' + getStyle(config.secondaryStyleId).name + ' influence' : '';
   const groove = style.grooves.find(g => g.id === config.grooveId)
     ?? JAZZ_STYLES.flatMap(s => s.grooves).find(g => g.id === config.grooveId);
