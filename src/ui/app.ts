@@ -4,6 +4,9 @@ import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
+import { compileSunoSimple } from '../engine/suno-simple-compiler';
+import { generateSmartPrompts } from '../engine/smart-prompt-planner';
+import type { PromptProvider, VariationStrength } from '../engine/smart-prompt-planner';
 import { recommendConfiguration } from '../engine/recommendation-engine';
 import { generateVariations } from '../engine/variation-engine';
 import { deletePreset, exportPresetJson, importPresetJson, isValidMeter, listPresets, loadCurrentConfiguration, saveCurrentConfiguration, savePreset } from '../storage/local-storage';
@@ -109,6 +112,23 @@ function renderVariations(): string {
     return '<article class="variation-card"><span class="variation-kicker">OPTION ' + String.fromCharCode(65 + index) + '</span><h3>' + escapeHtml(lead ? INSTRUMENT_BY_ID.get(lead.instrumentId)?.nameZh : '') + ' ' + t.roleLead + '</h3><p>' + escapeHtml(names) + '</p><button class="button button-small" type="button" data-action="apply-variation" data-index="' + index + '">' + t.applyVariation + '</button></article>';
   }).join('') + '</div>';
 }
+
+function compileForProvider(configuration: MusicConfiguration): string {
+  return appState.provider === 'suno' ? compileSunoSimple(configuration) : compilePrompt(configuration);
+}
+
+function renderSmartPrompts(): string {
+  const result = generateSmartPrompts(appState.configuration, appState.provider, appState.smartStrength, appState.smartSeed);
+  if (result.warning) return '<p class="smart-empty" role="status">' + escapeHtml(result.warning) + '</p>';
+  return '<div class="smart-grid">' + result.prompts.map((p) =>
+    '<article class="smart-prompt-card"><h3>Prompt ' + p.id + ' · ' + escapeHtml(p.labelZh) + '</h3>'
+    + '<p class="smart-intent">' + escapeHtml(p.intent) + '</p>'
+    + '<label class="visually-hidden" for="smart-output-' + p.id + '">Prompt ' + p.id + '</label>'
+    + '<textarea readonly spellcheck="false" id="smart-output-' + p.id + '">' + escapeHtml(p.prompt) + '</textarea>'
+    + '<button class="button button-secondary" type="button" data-action="copy-smart" data-id="' + p.id + '">' + t.smartCopy + '</button></article>'
+  ).join('') + '</div>';
+}
+
 function renderPreset(preset: UserPreset): string {
   return '<article class="preset-row" data-preset-id="' + escapeHtml(preset.id) + '"><div class="preset-info"><strong>' + escapeHtml(preset.name) + '</strong><small>' + escapeHtml(STYLE_BY_ID.get(preset.configuration.styleId)?.name ?? '') + ' · ' + new Date(preset.updatedAt).toLocaleDateString('zh-HK') + '</small></div><div class="preset-actions">'
     + '<button type="button" data-action="load-preset" data-id="' + escapeHtml(preset.id) + '">' + t.loadPreset + '</button><button type="button" data-action="rename-preset" data-id="' + escapeHtml(preset.id) + '">' + t.renamePreset + '</button><button type="button" data-action="duplicate-preset" data-id="' + escapeHtml(preset.id) + '">' + t.duplicatePreset + '</button><button type="button" data-action="export-preset" data-id="' + escapeHtml(preset.id) + '">' + t.exportPreset + '</button><button type="button" class="danger-text" data-action="delete-preset" data-id="' + escapeHtml(preset.id) + '">' + t.deletePreset + '</button></div></article>';
@@ -149,7 +169,7 @@ function render(): void {
   const categories = [...new Set(INSTRUMENTS.map((instrument) => instrument.category))];
   const categoryLabels: Record<string, string> = { guitar: 'Guitar', keyboard: 'Piano / Keyboard', brass: 'Brass', woodwind: 'Woodwind', strings: 'Strings', bass: 'Bass', percussion: 'Percussion', electronic: 'Electronic', texture: 'Texture' };
   root.innerHTML = '<div class="app-shell"><header class="site-header"><a class="brand" href="#" aria-label="' + t.appName + '"><span class="brand-mark" aria-hidden="true">♪</span><span><strong>' + t.appName + '</strong><small>' + t.eyebrow + '</small></span></a><div class="header-pills"><span><i class="status-dot"></i><span id="offline-status" aria-live="polite">' + t.offlinePreparing + '</span></span><span>' + t.noApi + '</span></div></header>'
-    + '<main class="page"><section class="hero"><div><p class="eyebrow">A LOCAL MUSIC TOOL</p><h1>把音樂想法，寫成清晰的 Flow Music prompt。</h1><p>' + t.subtitle + '</p></div><span class="hero-note" aria-hidden="true"><i>♬</i><span>STYLE<br>·<br>SPACE<br>·<br>SOUND</span></span></section>'
+    + '<main class="page"><section class="hero"><div><p class="eyebrow">A LOCAL MUSIC TOOL</p><h1>把音樂想法，寫成清晰的 Jazz 音樂 Prompt。</h1><p>' + t.subtitle + '</p></div><span class="hero-note" aria-hidden="true"><i>♬</i><span>STYLE<br>·<br>SPACE<br>·<br>SOUND</span></span></section>'
     + '<div class="studio-layout"><div class="configuration-column"><section class="panel style-panel" aria-labelledby="style-heading"><div class="panel-heading"><div><p class="eyebrow">01 · STYLE</p><h2 id="style-heading">' + t.styleTitle + '</h2><p class="section-help">' + t.styleHint + '</p></div></div>'
     + '<label class="search-field"><span aria-hidden="true">⌕</span><input id="style-search" type="search" aria-label="' + t.searchStyle + '" placeholder="' + t.searchStyle + '" autocomplete="off"></label><div class="style-grid" id="style-grid">' + renderStyleCards('') + '</div>'
     + (style.id === 'custom' ? '<label class="custom-name-field"><span>' + t.customStyleName + '</span><input type="text" data-field="customStyleName" value="' + escapeHtml(configuration.customStyleName ?? '') + '" placeholder="' + t.customStylePlaceholder + '"></label>' : '') + '</section>'
@@ -173,7 +193,7 @@ function render(): void {
     + renderCompatibility(configuration)
     + '<section class="panel" aria-labelledby="variation-heading"><div class="panel-heading"><div><p class="eyebrow">08 · EXPLORE</p><h2 id="variation-heading">' + t.variationsTitle + '</h2></div><button class="button button-secondary" type="button" data-action="generate-variations">' + t.generateVariations + '</button></div>' + renderVariations() + '</section>'
     + renderPresets() + '<footer class="site-footer">' + t.footer + '</footer></div>'
-    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">FLOW MUSIC · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p><label class="visually-hidden" for="prompt-output">Generated English Flow Music prompt</label><textarea id="prompt-output" readonly spellcheck="false">' + escapeHtml(compilePrompt(configuration)) + '</textarea><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>音樂描述先行。只保留少量必要限制，令 Flow Music 更容易掌握整體方向。</p></div></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
+    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">' + (appState.provider === 'suno' ? 'SUNO SIMPLE' : 'FLOW MUSIC') + ' · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p>' + '<div class="provider-control"><label for="prompt-provider">' + t.providerTitle + '</label><select id="prompt-provider"><option value="flow"' + (appState.provider === 'flow' ? ' selected' : '') + '>' + t.providerFlow + '</option><option value="suno"' + (appState.provider === 'suno' ? ' selected' : '') + '>' + t.providerSuno + '</option></select></div>' + '<label class="visually-hidden" for="prompt-output">Generated English music prompt</label><textarea id="prompt-output" readonly spellcheck="false">' + escapeHtml(compileForProvider(configuration)) + '</textarea><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>優先描述清晰音樂意圖，再加入必要限制；生成結果會根據所選 Flow Music 或 Suno Simple 格式。</p></div>' + '<section class="smart-prompts-panel" aria-labelledby="smart-heading"><div class="panel-heading"><div><p class="eyebrow">SMART A / B / C</p><h2 id="smart-heading">' + t.smartTitle + '</h2><p class="section-help">' + t.smartHint + '</p></div></div>' + '<div class="smart-controls"><label for="smart-strength">' + t.smartStrength + '<select id="smart-strength"><option value="conservative"' + (appState.smartStrength === 'conservative' ? ' selected' : '') + '>' + t.smartConservative + '</option><option value="balanced"' + (appState.smartStrength === 'balanced' ? ' selected' : '') + '>' + t.smartBalanced + '</option><option value="creative"' + (appState.smartStrength === 'creative' ? ' selected' : '') + '>' + t.smartCreative + '</option></select></label><button class="button button-secondary" type="button" data-action="reroll-smart">' + t.smartAgain + '</button></div>' + '<p class="section-help">' + t.smartLock + '</p><div id="smart-prompt-list">' + renderSmartPrompts() + '</div><p class="smart-caption">' + t.smartLimit + '</p></section></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
   const advanced = root.querySelector<HTMLDetailsElement>('.advanced-controls');
   if (advanced && advancedWasOpen) advanced.open = true;
   if (previousFocus) {
@@ -185,9 +205,9 @@ function render(): void {
   }
 }
 
-interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; toastTimer?: number; }
+interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; smartStrength: VariationStrength; smartSeed: number; toastTimer?: number; }
 const root = document.querySelector<HTMLElement>('#app')!;
-const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [] };
+const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'flow', smartStrength: 'balanced', smartSeed: 0 };
 function persist(): void { try { saveCurrentConfiguration(appState.configuration); } catch { /* Storage may be disabled in private browsing. */ } }
 function notify(message: string): void {
   const toast = document.querySelector<HTMLElement>('#toast');
@@ -197,7 +217,9 @@ function notify(message: string): void {
 }
 function refreshDynamicAreas(): void {
   const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
-  if (output) output.value = compilePrompt(appState.configuration);
+  if (output) output.value = compileForProvider(appState.configuration);
+  const smart = document.querySelector<HTMLElement>('#smart-prompt-list');
+  if (smart) smart.innerHTML = renderSmartPrompts();
   const compatibility = document.querySelector<HTMLElement>('#compatibility-panel');
   if (compatibility) { const wrapper = document.createElement('div'); wrapper.innerHTML = renderCompatibility(appState.configuration); compatibility.replaceWith(wrapper.firstElementChild!); }
   const previewMeta = document.querySelector<HTMLElement>('.preview-metadata');
@@ -272,7 +294,12 @@ function handleClick(event: MouseEvent): void {
     const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
     if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
     else if (output) { output.select(); notify(t.promptCopiedFallback); }
-  } else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
+  } else if (action === 'copy-smart') {
+    const output = document.querySelector<HTMLTextAreaElement>('#smart-output-' + button.dataset.id);
+    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
+    else if (output) { output.select(); notify(t.promptCopiedFallback); }
+  } else if (action === 'reroll-smart') { appState.smartSeed += 1; refreshDynamicAreas(); }
+  else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
   else if (action === 'generate-variations') { appState.variations = generateVariations(appState.configuration); render(); }
   else if (action === 'apply-variation') {
     const variation = appState.variations[Number(button.dataset.index)];
@@ -301,6 +328,16 @@ function handleClick(event: MouseEvent): void {
 }
 function handleChange(event: Event): void {
   const target = event.target as HTMLInputElement | HTMLSelectElement;
+  if (target.id === 'prompt-provider') {
+    appState.provider = target.value === 'suno' ? 'suno' : 'flow';
+    render();
+    return;
+  }
+  if (target.id === 'smart-strength') {
+    appState.smartStrength = target.value === 'conservative' || target.value === 'creative' ? target.value : 'balanced';
+    refreshDynamicAreas();
+    return;
+  }
   if (target.matches('[data-part-index][data-part-field]')) {
     const part = appState.configuration.instruments[Number(target.dataset.partIndex)]; if (!part) return;
     const field = target.dataset.partField;

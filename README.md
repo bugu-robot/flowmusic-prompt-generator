@@ -13,6 +13,27 @@ FlowMusic Prompt Generator is a local-first Progressive Web App for building cle
 
 The catalog has 38 options: 37 fixed built-in styles plus Custom. The 12 expanded styles are Lo-fi Jazz / Chill Jazz, Acid Jazz, Big Band Jazz, Samba Jazz, Jazz Waltz, Piano Jazz / Café Piano Jazz, Contemporary Jazz, Free Jazz / Avant-Garde Jazz, Jazz-Hop / Hip-Hop Jazz, Neo-Soul Jazz, Dark Jazz / Noir Jazz, and Third Stream Jazz.
 
+## Flow Music / Suno Simple and Smart A/B/C prompts
+
+The output selector switches between the **original, unchanged Flow Music compiler** and a new
+single-text-box **Suno Simple** natural-language compiler. Suno Simple does not depend on
+Custom Mode, Exclude, an LLM, external credentials, or any paid API. It keeps the selected
+style, groove, metre, BPM, instruments and roles, harmony, mood, duration and other settings,
+and includes a concise no-extra-instruments/no-vocals instruction.
+
+The Smart 3-Prompt Generator shows three copyable interpretations at once:
+**A — melodic focus**, **B — rhythmic focus**, **C — harmonic focus**.
+The default variation strength is **Balanced**; Conservative and Creative remain inside
+the same explicit configuration. The planner is deterministic and uses the selected jazz
+style's idiomatic performance guidelines. Clicking "Regenerate three" changes
+performance details, not the selected settings. If no viable melodic/harmonic instrument
+is enabled, it reports the limitation rather than inventing an instrument.
+
+The earlier A/B/C **instrument-configuration variations** remain available separately.
+Smart prompts do not mutate saved configurations, presets, or the 242 audio-preview assets.
+Generated text gives model guidance; actual instrument compliance or duration cannot
+be guaranteed by Flow Music or Suno.
+
 ## Local development
 
 Node.js 24 LTS is recommended and used in CI. Node.js 22.13+ is also supported; Node.js 22.0–22.12 is unsupported by the lint toolchain.

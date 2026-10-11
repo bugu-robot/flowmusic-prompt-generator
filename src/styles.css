@@ -305,3 +305,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .audio-review-filters #review-filter-status { flex-basis: 100%; margin-left: 0; }
   .audio-review-section > summary { padding: 14px; }
 }
+
+/* Provider choice and three independent, copyable music interpretations. */
+.provider-control { display: grid; gap: 6px; margin-top: 14px; }
+.provider-control label, .smart-controls label { font-size: 11px; font-weight: 650; color: #4a6b69; }
+.provider-control select, .smart-controls select { width: 100%; border: 1px solid #dfe8e4; border-radius: 8px; padding: 10px; background: #f9faf6; color: #244954; }
+.smart-prompts-panel { margin-top: 14px; padding: 17px; border: 1px solid #dfe8e4; border-radius: 13px; background: #fffefa; }
+.smart-prompts-panel h2 { font-size: 15px; margin: 0; }
+.smart-prompts-panel .section-help { margin-top: 8px; }
+.smart-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; justify-content: space-between; margin: 12px 0; }
+.smart-controls label { flex: 1; min-width: 120px; display: grid; gap: 5px; }
+.smart-grid { display: grid; gap: 10px; }
+.smart-prompt-card { border: 1px solid #e4e9e5; border-radius: 10px; padding: 13px; background: #f9faf6; min-width: 0; }
+.smart-prompt-card h3 { font-size: 12px; margin: 0; color: #355d5b; }
+.smart-prompt-card .smart-intent { margin: 7px 0; color: #667b78; font-size: 10px; line-height: 1.65; }
+.smart-prompt-card textarea { display: block; width: 100%; box-sizing: border-box; height: 124px; resize: vertical; margin: 8px 0; border: 1px solid #dfe8e4; border-radius: 7px; padding: 9px; background: white; color: #2f494e; font: 10px/1.6 "Segoe UI", "Noto Sans HK", sans-serif; }
+.smart-prompt-card button { width: 100%; }
+.smart-empty { color: #996a48; font-size: 11px; line-height: 1.6; }
+.smart-caption { color: #83918e; font-size: 10px; line-height: 1.6; margin: 11px 0 0; }
+@media (max-width: 760px) {
+  .smart-prompts-panel { padding: 14px; }
+  .smart-prompt-card textarea { height: 100px; }
+}
