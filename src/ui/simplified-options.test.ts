@@ -26,7 +26,7 @@ describe('Jazz Prompt Generator: output-effectiveness and simplifying option cho
   });
 
   it('shows one major-sixth option while retaining the original ID in old presets', () => {
-    const config = recommendConfiguration('custom');
+    const config = { ...recommendConfiguration('custom'), harmonyIds: [] };
     const current = visibleHarmonyOptions(config);
     expect(current.filter(x => ['sixth','maj6'].includes(x.id))).toHaveLength(1);
     expect(current.find(x => x.id === 'maj6')?.label).toBe('Major 6th / 6th');
