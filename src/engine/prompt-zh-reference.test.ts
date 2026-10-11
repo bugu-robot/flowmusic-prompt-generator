@@ -72,6 +72,7 @@ describe('Offline Traditional Chinese prompt reading', () => {
 
   it('keeps HTML-like user-supplied custom prose as data, not markup', () => {
     const config = recommendConfiguration('custom');
+    config.sceneId = 'custom';
     config.customSceneName = '<script>alert(1)</script>';
     const explanation = describePromptZh(config);
     expect(explanation).toContain('<script>alert(1)</script>');
