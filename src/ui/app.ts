@@ -25,7 +25,7 @@ const STYLE_CLASS: Record<JazzStyle['classification'], string> = {
 };
 const MATCH_LABEL: Record<string, string> = { excellent: t.matchExcellent, good: t.matchGood, unusual: t.matchUnusual, conflict: t.matchConflict };
 const DYNAMICS = [['very-stable', t.dynamicsVeryStable], ['stable', t.dynamicsStable], ['gentle-evolution', t.dynamicsGentle], ['gradual-build', t.dynamicsBuild], ['dynamic', t.dynamicsDynamic]];
-const STRUCTURES = [['continuous', t.structureContinuous], ['gentle-evolution', t.structureEvolution], ['traditional-sections', t.structureSections], ['custom', t.structureCustom]];
+const STRUCTURES = [['continuous', t.structureContinuous], ['gentle-evolution', t.structureEvolution], ['traditional-sections', t.structureSections], ['custom', t.structureCustom]] as const;
 const ROLE_LABEL: Record<InstrumentRole, string> = { lead: t.roleLead, response: t.roleResponse, harmony: t.roleHarmony, bass: t.roleBass, rhythm: t.roleRhythm, texture: t.roleTexture, countermelody: t.roleCountermelody };
 const TEMPO_FEELS = [
   ['auto', t.tempoAuto], ['very-slow', t.feelVerySlow], ['very-relaxed', t.feelRelaxed], ['relaxed', t.feelEasy],
@@ -259,8 +259,15 @@ function toggleValue(group: string, value: string): void {
   if (group === 'foregroundRule') appState.configuration.foregroundRule = value as MusicConfiguration['foregroundRule'];
   else {
     const target = appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'];
-    const index = target.indexOf(value);
-    if (index >= 0) target.splice(index, 1); else target.push(value);
+    if (group === 'harmonyIds' && (value === 'sixth' || value === 'maj6')) {
+      const aliases = ['sixth', 'maj6'];
+      const active = aliases.some(id => target.includes(id));
+      for (const alias of aliases) { const index = target.indexOf(alias); if (index >= 0) target.splice(index, 1); }
+      if (!active) target.push(value);
+    } else {
+      const index = target.indexOf(value);
+      if (index >= 0) target.splice(index, 1); else target.push(value);
+    }
   }
   persist(); refreshDynamicAreas();
   for (const chip of root.querySelectorAll<HTMLButtonElement>('[data-action="toggle-chip"]')) {
@@ -353,8 +360,6 @@ function handleChange(event: Event): void {
     persist();
     target.closest('.instrument-row')?.classList.toggle('is-disabled', !part.enabled);
     if (field === 'behaviour' && part) { const instrument = INSTRUMENT_BY_ID.get(part.instrumentId); const preview = target.closest('.instrument-row')?.querySelector<HTMLButtonElement>('[data-preview-category="behaviour"]'); if (preview && instrument) { const label = instrumentBehaviourLabelZhHK(part.behaviour); preview.dataset.previewKey = instrument.id + '::' + part.behaviour; preview.dataset.previewName = instrument.nameZh + ' · ' + label; preview.setAttribute('aria-label', (preview.dataset.previewIdle ?? t.preview) + ' ' + instrument.nameZh + ' · ' + label); } }
-    const prominenceLabel = target.closest('label')?.querySelector('span');
-    if (field === 'prominence' && prominenceLabel) prominenceLabel.textContent = t.prominence + ' · ' + part.prominence;
     refreshDynamicAreas(); return;
   }
   if (target.id === 'instrument-picker' && target.value) {
