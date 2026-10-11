@@ -30,7 +30,7 @@ browser configurations and presets; do not rename those keys without migration.
 - The misleading generic "Custom" arrangement is no longer offered to new
   configurations. Imported legacy presets selecting it still have their
   original selection and output preserved.
-- Tempo Feel remains available in advanced settings because it has a
+- Multi-select chips disable additional choices once an original Flow compiler\n  output limit is reached: **4 moods, 6 harmony types, 3 recording traits,\n  4 other production details**. All previously imported selections remain\n  available for review and deselection; nothing is silently deleted.\n- Tempo Feel remains available in advanced settings because it has a
   distinct effect separate from BPM; other meaningful musical controls remain.
 - A regression suite checks that each selectable setting reaches the actual
   Flow and Suno compilers. The output is model guidance, not a guarantee of audio.
