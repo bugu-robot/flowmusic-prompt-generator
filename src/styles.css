@@ -344,3 +344,5 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 960px) {
   .prompt-reading-grid.is-bilingual { grid-template-columns: minmax(0, 1fr); }
 }
+
+.prompt-reading-caption { font-size: 10px; font-weight: 650; margin: 0 0 7px; color: #55726e; }
