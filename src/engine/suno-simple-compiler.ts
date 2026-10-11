@@ -16,14 +16,15 @@ export interface SunoInterpretation {
   instruction: string;
 }
 
-function instrumentSentence(name: string, role: MusicConfiguration['instruments'][number]['role'], behaviour: string, prominence: number): string {
+function instrumentSentence(name: string, role: MusicConfiguration['instruments'][number]['role'], behaviour: string, prominence: number, alternateLead: boolean): string {
   const action: Record<MusicConfiguration['instruments'][number]['role'], string> = {
     lead: 'leads', response: 'responds', countermelody: 'weaves a countermelody',
     harmony: 'supports the harmony', bass: 'anchors the bass line',
     rhythm: 'maintains the pulse', texture: 'adds background texture',
   };
   const emphasis = prominence < 35 ? 'very quietly' : prominence < 65 ? 'subtly' : prominence > 82 ? 'prominently' : 'clearly';
-  return capitalise(name) + ' ' + action[role] + ' ' + emphasis + (behaviour ? ' with ' + behaviour : '') + '.';
+  const verb = alternateLead ? 'takes alternating featured lead turns' : action[role];
+  return capitalise(name) + ' ' + verb + ' ' + emphasis + (behaviour ? ' with ' + behaviour : '') + '.';
 }
 const tempoFeel: Record<MusicConfiguration['tempoFeelId'], string> = { auto: 'tempo-appropriate', 'very-slow': 'very slow', 'very-relaxed': 'very relaxed', relaxed: 'relaxed', moderate: 'moderate', brisk: 'brisk', fast: 'fast' };
 const clean = (value: string): string => value.trim().replace(/\s+/g, ' ').replace(/[. ]+$/g, '');
@@ -60,10 +61,9 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const parts = active.map(part => {
     const name = INSTRUMENT_BY_ID.get(part.instrumentId)!.wording;
     const behaviour = clean(part.behaviour);
-    // Retain every selected lead assignment: a single-foreground arrangement uses alternating solos.
-    const role = part.role === 'lead' && part !== primaryLead && config.foregroundRule === 'single'
-      ? 'response' : part.role;
-    return instrumentSentence(name, role, behaviour, part.prominence);
+    // Single-foreground mode alternates lead turns rather than reassigning any selected role.
+    const alternateLead = part.role === 'lead' && part !== primaryLead && config.foregroundRule === 'single';
+    return instrumentSentence(name, part.role, behaviour, part.prominence, alternateLead);
   });
   const harm = config.harmonyIds.map(id => HARMONY_BY_ID.get(id)?.prompt).filter((v): v is string => !!v);
   const harmony = harm.length ? join(harm) + ' harmony' : 'jazz harmony';
