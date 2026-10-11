@@ -4,7 +4,7 @@ import { JAZZ_STYLES } from '../data/jazz-styles';
 import { recommendConfiguration } from '../engine/recommendation-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { compileSunoSimple } from '../engine/suno-simple-compiler';
-import { PROMINENCE_OPTIONS, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
+import { PROMINENCE_OPTIONS, canSelectOption, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
 
 const compilers = [compilePrompt, compileSunoSimple] as const;
 
@@ -87,6 +87,21 @@ describe('Jazz Prompt Generator: output-effectiveness and simplifying option cho
         expect(new Set(prompts).size, style.id).toBe(style.grooves.length);
       }
     }
+  });
+
+  it('prevents new selections that would be silently ignored by original Flow output caps', () => {
+    expect(canSelectOption('moodIds', ['warm','cozy','calm','peaceful'], 'intimate')).toBe(false);
+    expect(canSelectOption('moodIds', ['warm','cozy','calm','peaceful'], 'warm')).toBe(true);
+    expect(canSelectOption('harmonyIds', ['maj7','min7','add9','dom7','min9','dom9'], '13th')).toBe(false);
+    expect(canSelectOption('harmonyIds', ['maj7','min7','add9','dom7','min9'], '13th')).toBe(true);
+    expect(canSelectOption('harmonyIds', ['maj7','min7','add9','dom7','min9','sixth'], 'maj6')).toBe(true);
+    expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'clean')).toBe(false);
+    expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'warm')).toBe(true);
+    expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'room')).toBe(true);
+    expect(canSelectOption('productionIds', ['room','vintage','round-bass','smooth-highs'], 'analog')).toBe(false);
+    expect(canSelectOption('constraintIds', ['electronic'], 'bright-brass')).toBe(true);
+    // Legacy configurations remain intact and can always remove existing selections.
+    expect(canSelectOption('moodIds', MOODS.map(m => m.id), 'warm')).toBe(true);
   });
 
   it('honours advanced tempo feel without repeating it as a basic BPM duplicate', () => {
