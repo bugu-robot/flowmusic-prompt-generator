@@ -98,7 +98,7 @@ npm run preview
 
 ## GitHub Pages
 
-The deployment workflow builds to /flowmusic-prompt-generator/ and publishes the static dist directory. In the repository settings, set Pages to use GitHub Actions. A push to main deploys the checked and tested build. Pull requests run dependency audit, verification and both builds without publishing. Concurrency groups are isolated by event and ref so PR verification cannot cancel a main deployment.
+The deployment workflow builds to the project path derived from GITHUB_REPOSITORY (currently /flowmusic-prompt-generator/; after owner-led rename /jazz-prompt-generator/) and publishes the static dist directory. In the repository settings, set Pages to use GitHub Actions. A push to main deploys the checked and tested build. Pull requests run dependency audit, verification and both builds without publishing. Concurrency groups are isolated by event and ref so PR verification cannot cancel a main deployment.
 
 ## Install and offline use
 
