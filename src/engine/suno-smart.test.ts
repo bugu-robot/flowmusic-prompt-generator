@@ -14,7 +14,7 @@ describe('Suno Simple and smart prompt outputs', () => {
       const config = recommendConfiguration(style.id);
       const prompt = compileSunoSimple(config);
       expect(prompt, style.id).toBe(compileSunoSimple(config));
-      expect(prompt, style.id).toContain(style.name);
+      expect(prompt, style.id).toContain(style.id === 'custom' ? 'user-defined jazz' : style.name);
       expect(prompt, style.id).toContain(config.tempo + ' BPM');
       expect(prompt, style.id).toContain('4 to 5 minutes');
       expect(prompt, style.id).toContain('No vocals or singing');
@@ -56,6 +56,30 @@ describe('Suno Simple and smart prompt outputs', () => {
       }
     }
     expect(JSON.stringify(config)).toBe(frozen);
+    expect(generateSmartPrompts(config, 'suno', 'balanced', 9).prompts).toEqual(generateSmartPrompts(config, 'suno', 'balanced', 0).prompts);
+  });
+
+  it('keeps every user-controlled Simple parameter, not just the style and tempo', () => {
+    const config = recommendConfiguration('cool-jazz');
+    config.tempoFeelId = 'very-relaxed';
+    config.energy = 17;
+    config.melodyDensity = 61;
+    config.improvisation = 52;
+    config.melodyComplexity = 'virtuosic';
+    config.phraseLength = 'long';
+    config.breathingSpace = 'high';
+    config.trackDurationId = '6-8';
+    config.instruments[0]!.prominence = 37;
+    const prompt = compileSunoSimple(config);
+    expect(prompt).toContain('very relaxed feel');
+    expect(prompt).toContain('17/100 energy');
+    expect(prompt).toContain('61/100 density');
+    expect(prompt).toContain('52/100');
+    expect(prompt).toContain('virtuosic complexity');
+    expect(prompt).toContain('long phrases');
+    expect(prompt).toContain('high breathing space');
+    expect(prompt).toContain('prominence 37/100');
+    expect(prompt).toContain('6 to 8 minutes');
   });
 
   it('keeps user-supplied ensemble restrictions for both providers, including disabled parts', () => {
