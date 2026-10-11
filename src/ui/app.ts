@@ -6,7 +6,7 @@ import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { describePromptZh } from '../engine/prompt-zh-reference';
 import type { PromptView } from '../engine/prompt-zh-reference';
-import { PROMINENCE_OPTIONS, canSelectOption, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
+import { PROMINENCE_OPTIONS, canSelectOption, selectionLimitNotice, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
 import { compileSunoSimple } from '../engine/suno-simple-compiler';
 import { generateSmartPrompts } from '../engine/smart-prompt-planner';
 import type { PromptProvider, VariationStrength } from '../engine/smart-prompt-planner';
@@ -60,11 +60,13 @@ function meterLabel(configuration: MusicConfiguration): string {
   return configuration.meter === 'custom' ? configuration.customMeter ?? '4/4' : configuration.meter;
 }
 function chipGroup(group: string, items: { id: string; label: string }[], selected: string[], className = ''): string {
+  const notice = selectionLimitNotice(group, selected, appState.provider);
   return '<div class="chips ' + className + '" role="group" aria-label="' + escapeHtml(CHIP_GROUP_LABEL[group] ?? group) + '">' + items.map((item) => {
     const active = selected.includes(item.id);
-    const canChoose = canSelectOption(group, selected, item.id);
+    const canChoose = canSelectOption(group, selected, item.id, appState.provider);
     return '<button type="button"' + (canChoose ? '' : ' disabled title="' + escapeHtml(t.limitReached) + '"') + ' class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
-  }).join('') + '</div>';
+  }).join('') + '</div>'
+    + (notice ? '<p class="chip-limit-notice" data-limit-group="' + escapeHtml(group) + '" role="status">' + escapeHtml(notice) + '</p>' : '');
 }
 function renderStyleCards(filter: string): string {
   const query = filter.trim().toLocaleLowerCase();
@@ -289,7 +291,7 @@ function toggleValue(group: string, value: string): void {
   if (group === 'foregroundRule') appState.configuration.foregroundRule = value as MusicConfiguration['foregroundRule'];
   else {
     const target = appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'];
-    if (!canSelectOption(group, target, value)) { notify(t.limitReached); return; }
+    if (!canSelectOption(group, target, value, appState.provider)) { notify(t.limitReached); return; }
     if (group === 'harmonyIds' && (value === 'sixth' || value === 'maj6')) {
       const aliases = ['sixth', 'maj6'];
       const active = aliases.some(id => target.includes(id));
@@ -303,11 +305,23 @@ function toggleValue(group: string, value: string): void {
   persist(); refreshDynamicAreas();
   for (const chip of root.querySelectorAll<HTMLButtonElement>('[data-action="toggle-chip"]')) {
     if (chip.dataset.group !== group) continue;
+    const selectedValues = group === 'foregroundRule'
+      ? [] : appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'];
+    const id = chip.dataset.value ?? '';
     const selected = group === 'foregroundRule'
-      ? appState.configuration.foregroundRule === chip.dataset.value
-      : appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'].includes(chip.dataset.value ?? '');
+      ? appState.configuration.foregroundRule === id
+      : selectedValues.includes(id);
     chip.classList.toggle('is-selected', selected);
     chip.setAttribute('aria-pressed', String(selected));
+    const permitted = group === 'foregroundRule' || canSelectOption(group, selectedValues, id, appState.provider);
+    chip.disabled = !permitted;
+    if (permitted) chip.removeAttribute('title');
+    else chip.title = t.limitReached;
+  }
+  for (const note of root.querySelectorAll<HTMLElement>('.chip-limit-notice')) {
+    if (note.dataset.limitGroup !== group) continue;
+    const values = appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds'];
+    note.textContent = selectionLimitNotice(group, values, appState.provider);
   }
 }
 function downloadJson(name: string, json: string): void {
