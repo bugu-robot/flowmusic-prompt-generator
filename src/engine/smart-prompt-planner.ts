@@ -1,6 +1,7 @@
 import { getStyle } from './recommendation-engine';
 import { compilePrompt } from './prompt-compiler';
 import { compileSunoSimple } from './suno-simple-compiler';
+import type { SunoInterpretation } from './suno-simple-compiler';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import type { MusicConfiguration } from '../models/types';
 
@@ -71,6 +72,18 @@ const intensityText: Record<VariationStrength, string> = {
   creative: 'Make this focus prominent through expressive phrasing, without changing any selected musical settings.',
 };
 
+type SmartTarget = SunoInterpretation['target'];
+
+function compileFlowWithInterpretation(configuration: MusicConfiguration, target: SmartTarget, instruction: string): string {
+  // Preserve the already-approved Flow compiler exactly; inject the variation into
+  // the relevant existing paragraph, not as another footer of instructions.
+  const paragraphs = compilePrompt(configuration).split('\n\n');
+  const index = target === 'rhythm' ? 1 : paragraphs.length - (target === 'harmony' ? 7 : 6);
+  if (!paragraphs[index]) throw new Error('Flow prompt paragraph structure changed');
+  paragraphs[index] += ' ' + instruction;
+  return paragraphs.join('\n\n');
+}
+
 export function generateSmartPrompts(
   configuration: MusicConfiguration,
   provider: PromptProvider = 'suno',
@@ -84,22 +97,32 @@ export function generateSmartPrompts(
   }
   const style = getStyle(configuration.styleId);
   const focuses = FAMILY_FOCUSES[style.family] ?? FAMILY_FOCUSES.custom!;
-  const core = provider === 'suno' ? compileSunoSimple(configuration) : compilePrompt(configuration);
   const names = ['旋律演繹', '節奏律動', '和聲與空間'] as const;
   const titles = ['Melodic Focus', 'Rhythmic Focus', 'Harmonic Focus'] as const;
   const safeSeed = Number.isSafeInteger(seed) ? Math.abs(seed) : 0;
   const offset = safeSeed % 3;
   const continuity = CONTINUITY_CHOICES[Math.floor(safeSeed / 3) % CONTINUITY_CHOICES.length]!;
-  const locks = 'Maintain the exact selected jazz style, BPM, metre, groove, tonality, harmony, instrumental lineup and roles, instrument behaviours, mood, energy, melody density, improvisation, foreground interplay, arrangement, recording choices, duration and restrictions. No added instruments or vocals.';
   const prompts = (['A', 'B', 'C'] as const).map((id, index) => {
     const detail = ALTERNATE_DETAILS[index]![((offset + index) % 3)]!;
     const styleFocus = index === 1 && style.family === 'gypsy' && enabled.some(part => part.behaviour.toLowerCase().includes('la pompe'))
       ? 'Bring out the selected la pompe guitar rhythm while retaining all other explicitly selected percussion and accompaniment.'
       : focuses[index]!;
-    const intent = styleFocus + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
+    const focus: SmartTarget = index === 0 ? 'melody' : index === 1 ? 'rhythm' : 'harmony';
+    const availableHarmony = enabled.some(part => part.role === 'harmony' || part.role === 'bass');
+    const availableRhythm = enabled.some(part => part.role === 'rhythm');
+    const safeStyleFocus = focus === 'harmony' && !availableHarmony
+      ? 'Shape tonal colour through the existing selected melodic voice, without adding chordal accompaniment.'
+      : focus === 'rhythm' && !availableRhythm
+        ? 'Shape rhythmic placement using only the selected instruments, without adding a drum or percussion part.'
+        : focus === 'rhythm' && !style.grooves.some(g => g.id === configuration.grooveId)
+          ? 'Shape rhythmic articulation around the explicitly selected groove rather than a different style groove.'
+          : styleFocus;
+    const intent = safeStyleFocus + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
     return {
       id, title: titles[index]!, labelZh: names[index]!, intent,
-      prompt: core + '\n\n' + 'Performance interpretation — ' + titles[index] + ': ' + intent + '\n\n' + locks,
+      prompt: provider === 'suno'
+        ? compileSunoSimple(configuration, { target: focus, instruction: intent })
+        : compileFlowWithInterpretation(configuration, focus, intent),
     };
   });
   if (new Set(prompts.map(p => p.intent)).size !== 3) return { prompts: [], warning: '目前設定無法產生三個可區分的演奏方向。' };
