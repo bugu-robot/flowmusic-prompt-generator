@@ -82,7 +82,9 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const production = config.productionIds.map(id => PRODUCTION.find(p => p.id === id)?.prompt).filter((v): v is string => !!v);
   const exclusions = config.constraintIds.map(id => CONSTRAINTS.find(c => c.id === id)?.prompt).filter((v): v is string => !!v);
   const openingParagraph = 'Instrumental ' + opening + influence + ', ' + config.tempo + ' BPM in ' + meter
-    + ', ' + (groove?.prompt ?? 'relaxed jazz groove') + ', ' + tempoFeel[config.tempoFeelId] + ' feel. ' + (moods.length ? join(moods) + ' mood. ' : '')
+    + ', ' + (groove?.prompt ?? 'relaxed jazz groove')
+    + (config.tempoFeelId === 'auto' ? '' : ', ' + tempoFeel[config.tempoFeelId] + ' feel')
+    + '. ' + (moods.length ? join(moods) + ' mood. ' : '')
     + 'A ' + scene + ' atmosphere.';
   const ensembleParagraph = names.length
     ? 'Use only these instruments: ' + join(names) + '. ' + parts.join('; ') + '.'
