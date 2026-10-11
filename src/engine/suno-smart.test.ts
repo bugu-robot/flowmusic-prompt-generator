@@ -112,6 +112,24 @@ describe('Suno Simple and smart prompt outputs', () => {
     expect(gypsy[1]?.intent).toContain('la pompe');
   });
 
+  it('preserves unusual manually selected ensembles without contradictory prohibitions', () => {
+    const config = recommendConfiguration('gypsy-jazz');
+    const drums = INSTRUMENT_BY_ID.get('acoustic-drums')!;
+    config.instruments.push({
+      instrumentId: 'acoustic-drums', enabled: true, role: 'rhythm',
+      prominence: 32, behaviour: drums.behaviours[0]!,
+    });
+    const before = JSON.stringify(config);
+    const smart = generateSmartPrompts(config, 'suno');
+    expect(smart.prompts).toHaveLength(3);
+    expect(smart.prompts[1]?.prompt).toContain(drums.wording);
+    expect(smart.prompts[1]?.intent).not.toContain('without adding drums');
+    expect(JSON.stringify(config)).toBe(before);
+    const percussionOnly = { ...config, instruments: [config.instruments.at(-1)!] };
+    expect(generateSmartPrompts(percussionOnly).prompts).toHaveLength(0);
+    expect(generateSmartPrompts(percussionOnly).warning).toBeTruthy();
+  });
+
   it('inherits all base settings through historical A/B/C arrangement variations', () => {
     for (const style of JAZZ_STYLES) {
       const base = recommendConfiguration(style.id);
