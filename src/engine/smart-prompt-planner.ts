@@ -69,7 +69,7 @@ const CONTINUITY_CHOICES = [
 const intensityText: Record<VariationStrength, string> = {
   conservative: 'Keep this distinction especially understated.',
   balanced: 'Make this focus audible yet controlled.',
-  creative: 'Make this focus prominent through expressive phrasing, without changing any selected musical settings.',
+  creative: 'Make this focus distinct through expressive phrasing while respecting the selected energy and all musical settings.',
 };
 
 type SmartTarget = SunoInterpretation['target'];
@@ -117,7 +117,10 @@ export function generateSmartPrompts(
         : focus === 'rhythm' && !style.grooves.some(g => g.id === configuration.grooveId)
           ? 'Shape rhythmic articulation around the explicitly selected groove rather than a different style groove.'
           : styleFocus;
-    const intent = safeStyleFocus + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
+    const safeDetail = focus === 'harmony' && !availableHarmony
+      ? 'Use register, note choice and phrase endings to suggest harmony without chordal accompaniment.'
+      : detail;
+    const intent = safeStyleFocus + ' ' + safeDetail + ' ' + continuity + ' ' + intensityText[strength];
     return {
       id, title: titles[index]!, labelZh: names[index]!, intent,
       prompt: provider === 'suno'
