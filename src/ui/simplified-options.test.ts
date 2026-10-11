@@ -4,7 +4,7 @@ import { JAZZ_STYLES } from '../data/jazz-styles';
 import { recommendConfiguration } from '../engine/recommendation-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { compileSunoSimple } from '../engine/suno-simple-compiler';
-import { PROMINENCE_OPTIONS, canSelectOption, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
+import { PROMINENCE_OPTIONS, canSelectOption, selectionLimitNotice, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
 
 const compilers = [compilePrompt, compileSunoSimple] as const;
 
@@ -98,10 +98,70 @@ describe('Jazz Prompt Generator: output-effectiveness and simplifying option cho
     expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'clean')).toBe(false);
     expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'warm')).toBe(true);
     expect(canSelectOption('productionIds', ['warm','intimate','acoustic'], 'room')).toBe(true);
-    expect(canSelectOption('productionIds', ['room','vintage','round-bass','smooth-highs'], 'analog')).toBe(false);
+    // Round Bass and Smooth Highs are independently emitted by Flow Music and
+    // must not consume its 4 generic production-effect slots.
+    expect(canSelectOption('productionIds', ['room','vintage','round-bass','smooth-highs'], 'analog')).toBe(true);
+    expect(canSelectOption('productionIds', ['room','vintage','analog','polished'], 'soft-transients')).toBe(false);
+    expect(canSelectOption('productionIds', ['room','vintage','analog','polished'], 'round-bass')).toBe(true);
+    expect(canSelectOption('productionIds', ['room','vintage','analog','polished'], 'smooth-highs')).toBe(true);
     expect(canSelectOption('constraintIds', ['electronic'], 'bright-brass')).toBe(true);
     // Legacy configurations remain intact and can always remove existing selections.
     expect(canSelectOption('moodIds', MOODS.map(m => m.id), 'warm')).toBe(true);
+  });
+
+  it('allows EVERY Feel, Recording, and Harmony choice in Suno Simple irrespective of Flow-only caps', () => {
+    const allMoods = MOODS.map(x => x.id);
+    const allRecording = PRODUCTION.map(x => x.id);
+    const allHarmony = HARMONIES.map(x => x.id);
+    for (const mood of allMoods) expect(canSelectOption('moodIds', allMoods.filter(id => id !== mood), mood, 'suno'), mood).toBe(true);
+    for (const production of allRecording) expect(canSelectOption('productionIds', allRecording.filter(id => id !== production), production, 'suno'), production).toBe(true);
+    for (const harmony of allHarmony) expect(canSelectOption('harmonyIds', allHarmony.filter(id => id !== harmony), harmony, 'suno'), harmony).toBe(true);
+    expect(selectionLimitNotice('moodIds', allMoods, 'suno')).toBe('');
+    expect(selectionLimitNotice('productionIds', allRecording, 'suno')).toBe('');
+    const config = recommendConfiguration('cozy-jazz');
+    config.moodIds = allMoods;
+    config.productionIds = allRecording;
+    config.harmonyIds = allHarmony;
+    const suno = compileSunoSimple(config);
+    expect(suno).toContain('dreamy');
+    expect(suno).toContain('playful');
+    expect(suno).toContain('a polished, understated mix');
+    expect(suno).toContain('close-miked');
+    expect(suno).toContain('major 7th');
+  });
+
+  it('updates Flow availability immediately after removing a previously selected Feel or recording trait', () => {
+    const moods = ['cozy','warm','peaceful','romantic'];
+    expect(canSelectOption('moodIds', moods, 'dreamy', 'flow')).toBe(false);
+    moods.splice(1, 1);
+    expect(canSelectOption('moodIds', moods, 'dreamy', 'flow')).toBe(true);
+    moods.push('dreamy');
+    expect(canSelectOption('moodIds', moods, 'warm', 'flow')).toBe(false);
+
+    const recording = ['warm','intimate','acoustic','room','vintage','soft-transients','analog'];
+    expect(canSelectOption('productionIds', recording, 'spacious', 'flow')).toBe(false);
+    expect(canSelectOption('productionIds', recording, 'polished', 'flow')).toBe(false);
+    recording.splice(recording.indexOf('warm'), 1);
+    expect(canSelectOption('productionIds', recording, 'spacious', 'flow')).toBe(true);
+    recording.splice(recording.indexOf('room'), 1);
+    expect(canSelectOption('productionIds', recording, 'polished', 'flow')).toBe(true);
+    expect(canSelectOption('productionIds', recording, 'round-bass', 'flow')).toBe(true);
+    expect(canSelectOption('productionIds', recording, 'smooth-highs', 'flow')).toBe(true);
+  });
+
+  it('warns clearly when switching a Suno configuration with excess choices back to Flow', () => {
+    const moods = ['cozy','warm','peaceful','romantic','dreamy','playful'];
+    expect(selectionLimitNotice('moodIds', moods, 'flow')).toContain('前 4 個');
+    expect(selectionLimitNotice('moodIds', moods, 'flow')).toContain('6 個');
+    expect(canSelectOption('moodIds', moods, 'cozy', 'flow')).toBe(true);
+    expect(canSelectOption('moodIds', moods, 'nostalgic', 'flow')).toBe(false);
+    const recording = ['warm','intimate','acoustic','clean','room','vintage','soft-transients','analog','polished'];
+    expect(selectionLimitNotice('productionIds', recording, 'flow')).toContain('超額項目');
+    expect(selectionLimitNotice('productionIds', recording, 'suno')).toBe('');
+    const harmony = ['maj7','min7','add9','dom7','min9','dom9','13th'];
+    expect(selectionLimitNotice('harmonyIds', harmony, 'flow')).toContain('前 6 種');
+    expect(canSelectOption('harmonyIds', harmony, 'maj7', 'flow')).toBe(true);
+    expect(canSelectOption('harmonyIds', harmony, 'sus4', 'flow')).toBe(false);
   });
 
   it('honours advanced tempo feel without repeating it as a basic BPM duplicate', () => {
