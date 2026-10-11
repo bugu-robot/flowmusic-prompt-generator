@@ -108,7 +108,7 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
     + ', ' + (groove?.prompt ?? 'relaxed jazz groove')
     + (config.tempoFeelId === 'auto' ? '' : ', ' + tempoFeel[config.tempoFeelId] + ' feel')
     + '. ' + (moods.length ? join(moods) + ' mood. ' : '')
-    + 'A ' + scene + ' atmosphere.'
+    + 'Evoking ' + scene + ' atmosphere.'
     + (interpretation?.target === 'rhythm' ? ' ' + interpretation.instruction : '');
   const ensembleParagraph = names.length
     ? 'Use only these instruments: ' + join(names) + '. ' + parts.join(' ')
