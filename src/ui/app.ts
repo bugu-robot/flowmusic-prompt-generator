@@ -4,6 +4,8 @@ import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
+import { describePromptZh } from '../engine/prompt-zh-reference';
+import type { PromptView } from '../engine/prompt-zh-reference';
 import { PROMINENCE_OPTIONS, canSelectOption, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
 import { compileSunoSimple } from '../engine/suno-simple-compiler';
 import { generateSmartPrompts } from '../engine/smart-prompt-planner';
@@ -119,16 +121,32 @@ function compileForProvider(configuration: MusicConfiguration): string {
   return appState.provider === 'suno' ? compileSunoSimple(configuration) : compilePrompt(configuration);
 }
 
+function renderPromptReading(id: string, english: string, chinese: string): string {
+  const mode = appState.promptView;
+  const enHidden = mode === 'zh' ? ' hidden' : '';
+  const zhHidden = mode === 'en' ? ' hidden' : '';
+  return '<div class="prompt-reading-grid' + (mode === 'both' ? ' is-bilingual' : '') + '">'
+    + '<div class="prompt-reading-en"' + enHidden + '>'
+    + '<p class="prompt-reading-caption" lang="zh-HK">' + t.promptViewEn + ' · 生成輸入</p>'
+    + '<label class="visually-hidden" for="' + id + '">Original English music prompt</label>'
+    + '<textarea readonly spellcheck="false" id="' + id + '">' + escapeHtml(english) + '</textarea></div>'
+    + '<div class="prompt-reading-zh"' + zhHidden + ' lang="zh-HK" role="note">'
+    + '<p class="prompt-reading-caption">' + t.promptViewZh + ' · 閱讀參考</p>'
+    + '<div class="prompt-zh-prose">' + escapeHtml(chinese) + '</div></div></div>';
+}
 function renderSmartPrompts(): string {
   const result = generateSmartPrompts(appState.configuration, appState.provider, appState.smartStrength, appState.smartSeed);
   if (result.warning) return '<p class="smart-empty" role="status">' + escapeHtml(result.warning) + '</p>';
-  return '<div class="smart-grid">' + result.prompts.map((p) =>
-    '<article class="smart-prompt-card"><h3>Prompt ' + p.id + ' · ' + escapeHtml(p.labelZh) + '</h3>'
-    + '<p class="smart-intent">' + escapeHtml(p.intent) + '</p>'
-    + '<label class="visually-hidden" for="smart-output-' + p.id + '">Prompt ' + p.id + '</label>'
-    + '<textarea readonly spellcheck="false" id="smart-output-' + p.id + '">' + escapeHtml(p.prompt) + '</textarea>'
-    + '<button class="button button-secondary" type="button" data-action="copy-smart" data-id="' + p.id + '">' + t.smartCopy + '</button></article>'
-  ).join('') + '</div>';
+  return '<div class="smart-grid">' + result.prompts.map((p, i) => {
+    const englishDescription = appState.promptView !== 'zh'
+      ? '<p class="smart-intent" lang="en">' + escapeHtml(p.intent) + '</p>' : '';
+    const chineseDescription = appState.promptView !== 'en'
+      ? '<p class="smart-intent-zh" lang="zh-HK">' + escapeHtml(p.intentZh) + '</p>' : '';
+    return '<article class="smart-prompt-card"><h3>Prompt ' + p.id + ' · ' + escapeHtml(p.labelZh) + '</h3>'
+      + englishDescription + chineseDescription
+      + renderPromptReading('smart-output-' + p.id, p.prompt, describePromptZh(appState.configuration, p.intentZh, i))
+      + '<button class="button button-secondary" type="button" data-action="copy-smart" data-id="' + p.id + '">' + t.smartCopy + '</button></article>';
+  }).join('') + '</div>';
 }
 
 function renderPreset(preset: UserPreset): string {
@@ -195,7 +213,9 @@ function render(): void {
     + renderCompatibility(configuration)
     + '<section class="panel" aria-labelledby="variation-heading"><div class="panel-heading"><div><p class="eyebrow">08 · EXPLORE</p><h2 id="variation-heading">' + t.variationsTitle + '</h2></div><button class="button button-secondary" type="button" data-action="generate-variations">' + t.generateVariations + '</button></div>' + renderVariations() + '</section>'
     + renderPresets() + '<footer class="site-footer">' + t.footer + '</footer></div>'
-    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">' + (appState.provider === 'suno' ? 'SUNO SIMPLE' : 'FLOW MUSIC') + ' · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p>' + '<div class="provider-control"><label for="prompt-provider">' + t.providerTitle + '</label><select id="prompt-provider"><option value="flow"' + (appState.provider === 'flow' ? ' selected' : '') + '>' + t.providerFlow + '</option><option value="suno"' + (appState.provider === 'suno' ? ' selected' : '') + '>' + t.providerSuno + '</option></select></div>' + '<label class="visually-hidden" for="prompt-output">Generated English music prompt</label><textarea id="prompt-output" readonly spellcheck="false">' + escapeHtml(compileForProvider(configuration)) + '</textarea><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>優先描述清晰音樂意圖，再加入必要限制；生成結果會根據所選 Flow Music 或 Suno Simple 格式。</p></div>' + '<section class="smart-prompts-panel" aria-labelledby="smart-heading"><div class="panel-heading"><div><p class="eyebrow">SMART A / B / C</p><h2 id="smart-heading">' + t.smartTitle + '</h2><p class="section-help">' + t.smartHint + '</p></div></div>' + '<div class="smart-controls"><label for="smart-strength">' + t.smartStrength + '<select id="smart-strength"><option value="conservative"' + (appState.smartStrength === 'conservative' ? ' selected' : '') + '>' + t.smartConservative + '</option><option value="balanced"' + (appState.smartStrength === 'balanced' ? ' selected' : '') + '>' + t.smartBalanced + '</option><option value="creative"' + (appState.smartStrength === 'creative' ? ' selected' : '') + '>' + t.smartCreative + '</option></select></label><button class="button button-secondary" type="button" data-action="reroll-smart">' + t.smartAgain + '</button></div>' + '<p class="section-help">' + t.smartLock + '</p><div id="smart-prompt-list">' + renderSmartPrompts() + '</div><p class="smart-caption">' + t.smartLimit + '</p></section></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
+    + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">' + (appState.provider === 'suno' ? 'SUNO SIMPLE' : 'FLOW MUSIC') + ' · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p>' + '<div class="provider-control"><label for="prompt-provider">' + t.providerTitle + '</label><select id="prompt-provider"><option value="flow"' + (appState.provider === 'flow' ? ' selected' : '') + '>' + t.providerFlow + '</option><option value="suno"' + (appState.provider === 'suno' ? ' selected' : '') + '>' + t.providerSuno + '</option></select></div>' + '<div class="provider-control"><label for="prompt-view">' + t.promptViewLabel + '</label><select id="prompt-view"><option value="en"' + (appState.promptView === 'en' ? ' selected' : '') + '>' + t.promptViewEn + '</option><option value="zh"' + (appState.promptView === 'zh' ? ' selected' : '') + '>' + t.promptViewZh + '</option><option value="both"' + (appState.promptView === 'both' ? ' selected' : '') + '>' + t.promptViewBoth + '</option></select></div>'
+    + renderPromptReading('prompt-output', compileForProvider(configuration), describePromptZh(configuration))
+    + '<p class="prompt-reading-note">' + t.promptZhNote + ' ' + t.copyEnglishHint + '</p><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>優先描述清晰音樂意圖，再加入必要限制；生成結果會根據所選 Flow Music 或 Suno Simple 格式。</p></div>' + '<section class="smart-prompts-panel" aria-labelledby="smart-heading"><div class="panel-heading"><div><p class="eyebrow">SMART A / B / C</p><h2 id="smart-heading">' + t.smartTitle + '</h2><p class="section-help">' + t.smartHint + '</p></div></div>' + '<div class="smart-controls"><label for="smart-strength">' + t.smartStrength + '<select id="smart-strength"><option value="conservative"' + (appState.smartStrength === 'conservative' ? ' selected' : '') + '>' + t.smartConservative + '</option><option value="balanced"' + (appState.smartStrength === 'balanced' ? ' selected' : '') + '>' + t.smartBalanced + '</option><option value="creative"' + (appState.smartStrength === 'creative' ? ' selected' : '') + '>' + t.smartCreative + '</option></select></label><button class="button button-secondary" type="button" data-action="reroll-smart">' + t.smartAgain + '</button></div>' + '<p class="section-help">' + t.smartLock + '</p><div id="smart-prompt-list">' + renderSmartPrompts() + '</div><p class="smart-caption">' + t.smartLimit + '</p></section></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
   const advanced = root.querySelector<HTMLDetailsElement>('.advanced-controls');
   if (advanced && advancedWasOpen) advanced.open = true;
   if (previousFocus) {
@@ -207,10 +227,17 @@ function render(): void {
   }
 }
 
-interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; smartStrength: VariationStrength; smartSeed: number; toastTimer?: number; }
+interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; promptView: PromptView; smartStrength: VariationStrength; smartSeed: number; toastTimer?: number; }
 const root = document.querySelector<HTMLElement>('#app')!;
-const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'flow', smartStrength: 'balanced', smartSeed: 0 };
+const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'flow', promptView: 'en', smartStrength: 'balanced', smartSeed: 0 };
 function persist(): void { try { saveCurrentConfiguration(appState.configuration); } catch { /* Storage may be disabled in private browsing. */ } }
+function selectEnglishForManualCopy(id: string): void {
+  if (appState.promptView === 'zh') { appState.promptView = 'en'; render(); }
+  const source = document.querySelector<HTMLTextAreaElement>('#' + id);
+  source?.focus();
+  source?.select();
+  notify(t.promptCopiedFallback);
+}
 function notify(message: string): void {
   const toast = document.querySelector<HTMLElement>('#toast');
   if (!toast) return;
@@ -220,6 +247,8 @@ function notify(message: string): void {
 function refreshDynamicAreas(): void {
   const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
   if (output) output.value = compileForProvider(appState.configuration);
+  const zhText = document.querySelector<HTMLElement>('.preview-card .prompt-zh-prose');
+  if (zhText) zhText.textContent = describePromptZh(appState.configuration);
   const smart = document.querySelector<HTMLElement>('#smart-prompt-list');
   if (smart) smart.innerHTML = renderSmartPrompts();
   const compatibility = document.querySelector<HTMLElement>('#compatibility-panel');
@@ -302,12 +331,13 @@ function handleClick(event: MouseEvent): void {
   else if (action === 'remove-instrument') { appState.configuration.instruments.splice(Number(button.dataset.index), 1); persist(); render(); }
   else if (action === 'copy-prompt') {
     const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
-    else if (output) { output.select(); notify(t.promptCopiedFallback); }
+    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy('prompt-output'));
+    else if (output) selectEnglishForManualCopy('prompt-output');
   } else if (action === 'copy-smart') {
-    const output = document.querySelector<HTMLTextAreaElement>('#smart-output-' + button.dataset.id);
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
-    else if (output) { output.select(); notify(t.promptCopiedFallback); }
+    const id = 'smart-output-' + button.dataset.id;
+    const output = document.querySelector<HTMLTextAreaElement>('#' + id);
+    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy(id));
+    else if (output) selectEnglishForManualCopy(id);
   } else if (action === 'reroll-smart') { appState.smartSeed += 1; refreshDynamicAreas(); }
   else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
   else if (action === 'generate-variations') { appState.variations = generateVariations(appState.configuration); render(); }
@@ -338,6 +368,11 @@ function handleClick(event: MouseEvent): void {
 }
 function handleChange(event: Event): void {
   const target = event.target as HTMLInputElement | HTMLSelectElement;
+  if (target.id === 'prompt-view') {
+    appState.promptView = target.value === 'zh' || target.value === 'both' ? target.value : 'en';
+    render();
+    return;
+  }
   if (target.id === 'prompt-provider') {
     appState.provider = target.value === 'suno' ? 'suno' : 'flow';
     render();
