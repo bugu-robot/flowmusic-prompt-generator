@@ -1,6 +1,39 @@
-# FlowMusic Prompt Generator
+# Jazz Prompt Generator
 
-FlowMusic Prompt Generator is a local-first Progressive Web App for building clear English Jazz prompts for Google Flow Music. Its controls, presets and guidance use Hong Kong Traditional Chinese. Prompt generation runs in the browser using deterministic TypeScript rules; the app does not call an AI API or require a server.
+Jazz Prompt Generator is a local-first Progressive Web App for producing English jazz music prompts for Suno Simple and Google Flow Music. Its controls, presets and guidance use Hong Kong Traditional Chinese. Prompt generation runs in the browser using deterministic TypeScript rules; the app does not call an AI API or require a server.
+
+## Project identity and repository rename
+
+The user-facing product, browser title, PWA manifest and npm package are named
+**Jazz Prompt Generator**. The GitHub repository is currently
+`bugu-robot/flowmusic-prompt-generator` until an administrator renames it in
+**Settings → General → Repository name → jazz-prompt-generator**. This repository
+rename cannot be completed by the connected read/write code integration (no repository
+administration capability). Do not create an empty replacement repository or change
+the configured remote manually.
+
+GitHub Pages uses a project-specific base path and is derived from
+`GITHUB_REPOSITORY` in GitHub Actions builds, so the project can use
+`/jazz-prompt-generator/` after the rename. Confirm the Pages URL and the
+Pages environment after changing the repository name. The old project URL may
+stop serving content after the rename; update bookmarks and external links.
+LocalStorage keys retain their old `flowmusic.*` prefix to preserve existing
+browser configurations and presets; do not rename those keys without migration.
+
+## Simplified choices
+
+- Three qualitative instrument prominence selections replace misleading
+  0–100 micro-adjustments in the main UI; stored numeric values still load.
+- The synonymous `maj6` and `sixth` harmony choices are shown as **one**
+  Major 6th / 6th choice; existing configuration IDs keep their exact
+  original prompt meaning and continue to round-trip.
+- The misleading generic "Custom" arrangement is no longer offered to new
+  configurations. Imported legacy presets selecting it still have their
+  original selection and output preserved.
+- Tempo Feel remains available in advanced settings because it has a
+  distinct effect separate from BPM; other meaningful musical controls remain.
+- A regression suite checks that each selectable setting reaches the actual
+  Flow and Suno compilers. The output is model guidance, not a guarantee of audio.
 
 ## Features
 
