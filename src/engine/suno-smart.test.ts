@@ -9,6 +9,43 @@ import { generateVariations } from './variation-engine';
 import { normalizeConfiguration } from '../storage/local-storage';
 
 describe('Suno Simple and smart prompt outputs', () => {
+  it('uses exactly four English headings aligned to the four Chinese reference sections across all styles', () => {
+    const titles = [
+      'STYLE & GROOVE',
+      'INSTRUMENTS & ROLES',
+      'HARMONY & PERFORMANCE',
+      'RECORDING & CONSTRAINTS',
+    ];
+    for (const style of JAZZ_STYLES) {
+      const config = recommendConfiguration(style.id);
+      const base = compileSunoSimple(config);
+      const paragraphs = base.split('\n\n');
+      expect(paragraphs, style.id).toHaveLength(4);
+      paragraphs.forEach((p, index) => {
+        const lines = p.split('\n');
+        expect(lines[0], style.id + ' section ' + index).toBe(titles[index]);
+        expect(lines.slice(1).join('\n').trim().length, style.id).toBeGreaterThan(25);
+      });
+      expect(paragraphs[0], style.id).toContain(String(config.tempo) + ' BPM');
+      expect(paragraphs[1], style.id).toContain('Use only these instruments:');
+      expect(paragraphs[2], style.id).toContain('Harmony:');
+      expect(paragraphs[2], style.id).toContain('Melody:');
+      expect(paragraphs[3], style.id).toContain('No vocals or singing.');
+      // The section headings must remain stable in every A/B/C variant,
+      // and variations must stay inside the corresponding body paragraph.
+      for (const [i, variant] of generateSmartPrompts(config, 'suno').prompts.entries()) {
+        const sections = variant.prompt.split('\n\n');
+        expect(sections).toHaveLength(4);
+        sections.forEach((section, j) => expect(section.split('\n')[0], style.id).toBe(titles[j]));
+        expect(sections[i === 1 ? 0 : 2], style.id).toContain(variant.intent);
+        expect(sections[3], style.id).toBe(paragraphs[3]);
+        expect(variant.prompt.match(/STYLE & GROOVE/g), style.id).toHaveLength(1);
+      }
+      // The legacy Flow Music compiler must not receive Suno-specific headings.
+      expect(compilePrompt(config), style.id).not.toContain('RECORDING & CONSTRAINTS');
+    }
+  });
+
   it('supports all 37 fixed styles and Custom as deterministic, copy-ready English', () => {
     for (const style of JAZZ_STYLES) {
       const config = recommendConfiguration(style.id);
