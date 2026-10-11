@@ -30,8 +30,22 @@ describe('Suno Simple and smart prompt outputs', () => {
       expect(b.prompts, style.id).toHaveLength(3);
       expect(new Set(a.prompts.map(x => x.prompt)).size, style.id).toBe(3);
       expect(new Set(b.prompts.map(x => x.prompt)).size, style.id).toBe(3);
-      expect(a.prompts.every(x => x.prompt.startsWith(compilePrompt(config))), style.id).toBe(true);
-      expect(b.prompts.every(x => x.prompt.startsWith(prompt)), style.id).toBe(true);
+      const flowBase = compilePrompt(config);
+      for (const smart of a.prompts) {
+        expect(smart.prompt.split('\n\n').length, style.id).toBe(flowBase.split('\n\n').length);
+        expect(smart.prompt, style.id).toContain(smart.intent);
+        expect(smart.prompt, style.id).not.toContain('Performance interpretation');
+        expect(smart.prompt, style.id).not.toContain('Maintain the exact selected');
+        expect(smart.prompt.split('\n\n').at(-1), style.id).toBe(flowBase.split('\n\n').at(-1));
+      }
+      for (const smart of b.prompts) {
+        expect(smart.prompt.split('\n\n').length, style.id).toBe(prompt.split('\n\n').length);
+        expect(smart.prompt, style.id).toContain(smart.intent);
+        expect(smart.prompt, style.id).not.toContain('Performance interpretation');
+        expect(smart.prompt, style.id).not.toContain('Maintain the exact selected');
+        expect(smart.prompt.split('\n\n').at(-1), style.id).toBe(prompt.split('\n\n').at(-1));
+        expect(smart.prompt, style.id).not.toMatch(/\b\d+\/100\b/);
+      }
     }
   });
 
@@ -51,7 +65,7 @@ describe('Suno Simple and smart prompt outputs', () => {
         for (const p of first.prompts) {
           expect(p.prompt).toContain('54 BPM');
           expect(p.prompt).toContain('5 to 6 minutes');
-          expect(p.prompt).toContain('No added instruments or vocals');
+          expect(p.prompt).toContain(provider === 'suno' ? 'No instruments beyond the listed ensemble' : 'Use only the instruments explicitly selected in this arrangement');
         }
       }
     }
@@ -72,14 +86,62 @@ describe('Suno Simple and smart prompt outputs', () => {
     config.instruments[0]!.prominence = 37;
     const prompt = compileSunoSimple(config);
     expect(prompt).toContain('very relaxed feel');
-    expect(prompt).toContain('17/100 energy');
-    expect(prompt).toContain('61/100 density');
-    expect(prompt).toContain('52/100');
-    expect(prompt).toContain('virtuosic complexity');
-    expect(prompt).toContain('long phrases');
-    expect(prompt).toContain('high breathing space');
-    expect(prompt).toContain('prominence 37/100');
+    expect(prompt).toContain('very restrained energy');
+    expect(prompt).toContain('moderately spaced');
+    expect(prompt).toContain('measured improvisation');
+    expect(prompt).toContain('virtuosic long, flowing phrases');
+    expect(prompt).toContain('generous breathing space');
+    expect(prompt).toContain('subtly');
+    expect(prompt).not.toMatch(/\b\d+\/100\b/);
+    expect(prompt).not.toContain('prominence ');
+    expect(prompt).not.toContain('density)');
     expect(prompt).toContain('6 to 8 minutes');
+  });
+
+  it('inserts differences into the corresponding musical paragraphs without duplicating the original prompt', () => {
+    const config = recommendConfiguration('slow-bossa');
+    const sunoBase = compileSunoSimple(config).split('\n\n');
+    const flowBase = compilePrompt(config).split('\n\n');
+    for (const provider of ['flow', 'suno'] as const) {
+      const smart = generateSmartPrompts(config, provider);
+      for (const [index, result] of smart.prompts.entries()) {
+        const base = provider === 'suno' ? sunoBase : flowBase;
+        const paragraphs = result.prompt.split('\n\n');
+        const target = provider === 'suno' ? (index === 1 ? 0 : 2)
+          : (index === 1 ? 1 : paragraphs.length - (index === 2 ? 7 : 6));
+        expect(paragraphs).toHaveLength(base.length);
+        expect(paragraphs[target]).toContain(result.intent);
+        for (let i = 0; i < base.length; i++) {
+          if (i !== target) expect(paragraphs[i], provider + ' ' + result.id).toBe(base[i]);
+        }
+        expect(result.prompt.split(result.intent)).toHaveLength(2);
+      }
+    }
+    expect(compileSunoSimple(config).split('\n\n')).toEqual(sunoBase);
+    expect(compilePrompt(config).split('\n\n')).toEqual(flowBase);
+  });
+
+  it('respects manual single-foreground choice and does not reassign selected lead roles', () => {
+    const config = recommendConfiguration('free-jazz');
+    config.foregroundRule = 'single';
+    config.instruments.push({ ...config.instruments[0]!, instrumentId: 'piano', role: 'lead', prominence: 50 });
+    const prompt = compileSunoSimple(config);
+    expect(prompt).toContain('Only one foreground melodic voice at a time.');
+    expect(prompt).toContain('alternating featured lead turns');
+    expect(prompt).not.toContain('no permanent lead hierarchy');
+  });
+
+  it('keeps the active configuration even when the style suggests unavailable instrumental parts', () => {
+    const base = recommendConfiguration('bebop');
+    base.instruments = [base.instruments[0]!];
+    base.grooveId = 'soft-straight';
+    for (const provider of ['flow', 'suno'] as const) {
+      const prompts = generateSmartPrompts(base, provider).prompts;
+      expect(prompts).toHaveLength(3);
+      expect(prompts[1]?.intent).toContain('without adding a drum or percussion part');
+      expect(prompts[2]?.intent).toContain('without adding chordal accompaniment');
+      expect(prompts[1]?.intent).not.toContain('up-tempo swing articulation');
+    }
   });
 
   it('keeps user-supplied ensemble restrictions for both providers, including disabled parts', () => {
