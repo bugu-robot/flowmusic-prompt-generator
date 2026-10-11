@@ -7,18 +7,32 @@ import { normalizeConfiguration } from '../storage/local-storage';
 import type { MusicConfiguration } from '../models/types';
 
 const join = (items: string[]): string => items.join(', ');
+const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+const degree = (value: number, low: number, high: number, labels: readonly [string, string, string]): string =>
+  value <= low ? labels[0] : value >= high ? labels[2] : labels[1];
+
+export interface SunoInterpretation {
+  target: 'melody' | 'rhythm' | 'harmony';
+  instruction: string;
+}
+
+function instrumentSentence(name: string, role: MusicConfiguration['instruments'][number]['role'], behaviour: string, prominence: number): string {
+  const action: Record<MusicConfiguration['instruments'][number]['role'], string> = {
+    lead: 'leads', response: 'responds', countermelody: 'weaves a countermelody',
+    harmony: 'supports the harmony', bass: 'anchors the bass line',
+    rhythm: 'maintains the pulse', texture: 'adds background texture',
+  };
+  const emphasis = prominence < 35 ? 'very quietly' : prominence < 65 ? 'subtly' : prominence > 82 ? 'prominently' : 'clearly';
+  return capitalise(name) + ' ' + action[role] + ' ' + emphasis + (behaviour ? ' with ' + behaviour : '') + '.';
+}
 const tempoFeel: Record<MusicConfiguration['tempoFeelId'], string> = { auto: 'tempo-appropriate', 'very-slow': 'very slow', 'very-relaxed': 'very relaxed', relaxed: 'relaxed', moderate: 'moderate', brisk: 'brisk', fast: 'fast' };
 const clean = (value: string): string => value.trim().replace(/\s+/g, ' ').replace(/[. ]+$/g, '');
 const english = (value: unknown): value is string => typeof value === 'string' && !/[\u3400-\u9fff<>]/u.test(value);
-const labelForRole: Record<MusicConfiguration['instruments'][number]['role'], string> = {
-  lead: 'lead', response: 'response', countermelody: 'countermelody',
-  harmony: 'harmony', bass: 'bass', rhythm: 'rhythm', texture: 'texture',
-};
 
 // One natural-language prompt for the Suno Simple text box. No Suno Custom, Exclude,
 // Lyrics or provider-specific controls are added; all selections remain positive
 // musical guidance with a short final instrumental/instrumentation restriction.
-export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfiguration> | null | undefined): string {
+export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfiguration> | null | undefined, interpretation?: SunoInterpretation): string {
   const normalized = normalizeConfiguration(input);
   const recommended = recommendConfiguration(normalized?.styleId ?? 'cozy-jazz');
   const explicitParts = typeof input === 'object' && input !== null && Array.isArray(input.instruments);
@@ -46,26 +60,35 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const parts = active.map(part => {
     const name = INSTRUMENT_BY_ID.get(part.instrumentId)!.wording;
     const behaviour = clean(part.behaviour);
-    const role = part.role === 'lead' && part !== primaryLead && config.foregroundRule === 'single' ? 'response' : labelForRole[part.role];
-    return name + ' (' + role + ', prominence ' + Math.round(part.prominence) + '/100)' + (behaviour ? ': ' + behaviour : '');
+    // Retain every selected lead assignment: a single-foreground arrangement uses alternating solos.
+    const role = part.role === 'lead' && part !== primaryLead && config.foregroundRule === 'single'
+      ? 'response' : part.role;
+    return instrumentSentence(name, role, behaviour, part.prominence);
   });
   const harm = config.harmonyIds.map(id => HARMONY_BY_ID.get(id)?.prompt).filter((v): v is string => !!v);
   const harmony = harm.length ? join(harm) + ' harmony' : 'jazz harmony';
-  const interaction = style.id === 'free-jazz'
-    ? 'Coherent collective improvisation with no permanent lead hierarchy.'
-    : ['new-orleans', 'dixieland'].includes(style.id)
-      ? 'Maintain interlocking collective front-line improvisation, with overlapping voices only from the selected instruments.'
-      : style.id === 'big-band'
-        ? (['trumpet','trombone'].some(id => active.some(p => p.instrumentId === id)) && active.some(p => p.instrumentId.includes('sax'))
-          ? 'Use coordinated arranged sections and sectional call-and-response around one featured soloist.'
-          : 'Use arranged sectional phrasing only among the selected parts.')
-        : config.foregroundRule === 'collective'
-          ? 'Keep coherent overlapping collective lines from the selected instruments.'
-          : config.foregroundRule === 'gentle'
-            ? 'Gentle call-and-response between selected instruments.'
-            : 'Only one foreground melodic voice at a time.';
-  const density = config.melodyDensity < 30 ? 'sparse' : config.melodyDensity > 75 ? 'dense and active' : 'moderately spaced';
-  const improvisation = config.improvisation < 25 ? 'minimal' : config.improvisation > 75 ? 'high' : 'measured';
+  const interaction = config.foregroundRule === 'single'
+    ? 'Only one foreground melodic voice at a time.'
+    : config.foregroundRule === 'gentle'
+      ? 'Gentle call-and-response between selected instruments.'
+      : style.id === 'free-jazz'
+        ? 'Coherent collective improvisation with no permanent lead hierarchy.'
+        : ['new-orleans', 'dixieland'].includes(style.id)
+          ? 'Maintain interlocking collective front-line improvisation, with overlapping voices only from the selected instruments.'
+          : style.id === 'big-band'
+            ? (['trumpet','trombone'].some(id => active.some(p => p.instrumentId === id)) && active.some(p => p.instrumentId.includes('sax'))
+              ? 'Use coordinated arranged sections and sectional call-and-response around one featured soloist.'
+              : 'Use arranged sectional phrasing only among the selected parts.')
+            : 'Keep coherent overlapping collective lines from the selected instruments.';
+  const density = degree(config.melodyDensity, 30, 76, ['sparse and understated', 'moderately spaced', 'active and intricate']);
+  const improvisation = degree(config.improvisation, 25, 76, ['minimal', 'measured', 'expressive and adventurous']);
+  const energy = degree(config.energy, 25, 76, ['very restrained', 'moderate', 'confident and energetic']);
+  const complexity = {
+    minimal: 'minimal', simple: 'simple', moderate: 'moderately developed',
+    complex: 'complex', virtuosic: 'virtuosic',
+  }[config.melodyComplexity];
+  const phrases = { short: 'short motifs', medium: 'balanced phrases', long: 'long, flowing phrases' }[config.phraseLength];
+  const breathing = { high: 'generous breathing space', medium: 'natural breathing space', low: 'closely connected phrases' }[config.breathingSpace];
   const dynamics = {
     'very-stable': 'very soft, steady dynamics',
     stable: 'consistent restrained dynamics',
@@ -85,15 +108,19 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
     + ', ' + (groove?.prompt ?? 'relaxed jazz groove')
     + (config.tempoFeelId === 'auto' ? '' : ', ' + tempoFeel[config.tempoFeelId] + ' feel')
     + '. ' + (moods.length ? join(moods) + ' mood. ' : '')
-    + 'A ' + scene + ' atmosphere.';
+    + 'A ' + scene + ' atmosphere.'
+    + (interpretation?.target === 'rhythm' ? ' ' + interpretation.instruction : '');
   const ensembleParagraph = names.length
-    ? 'Use only these instruments: ' + join(names) + '. ' + parts.join('; ') + '.'
+    ? 'Use only these instruments: ' + join(names) + '. ' + parts.join(' ')
     : 'No instruments are selected; do not invent an ensemble.';
-  const musicParagraph = 'Keep ' + tonality + key + ' with ' + harmony + '. '
+  const harmonySentence = 'Harmony: ' + tonality + key + ' with ' + harmony + '. '
     + (style.harmonyGuidance ? clean(style.harmonyGuidance) + '. ' : '')
-    + density + ' melodic phrasing (' + config.melodyDensity + '/100 density), ' + config.melodyComplexity + ' complexity, ' + config.phraseLength + ' phrases, ' + config.breathingSpace + ' breathing space, '
-    + improvisation + ' improvisation (' + config.improvisation + '/100) and ' + config.energy + '/100 energy. '
-    + interaction + ' ' + (dynamics ?? 'controlled dynamics') + ', ' + (structure ?? 'natural arrangement') + '.';
+    + (interpretation?.target === 'harmony' ? interpretation.instruction + ' ' : '');
+  const melodySentence = 'Melody: ' + density + ', ' + complexity + ' ' + phrases + ', '
+    + breathing + ', ' + improvisation + ' improvisation and ' + energy + ' energy. '
+    + (interpretation?.target === 'melody' ? interpretation.instruction + ' ' : '');
+  const musicParagraph = harmonySentence + melodySentence + interaction + ' '
+    + (dynamics ?? 'controlled dynamics') + ', ' + (structure ?? 'natural arrangement') + '.';
   const closing = (production.length ? 'Recording: ' + join(production) + '. ' : '')
     + trackDurationPrompt(config.trackDurationId) + ' No vocals or singing. '
     + 'No instruments beyond the listed ensemble, including additional percussion.'
