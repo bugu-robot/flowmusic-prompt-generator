@@ -4,7 +4,7 @@ import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
-import { PROMINENCE_OPTIONS, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
+import { PROMINENCE_OPTIONS, canSelectOption, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
 import { compileSunoSimple } from '../engine/suno-simple-compiler';
 import { generateSmartPrompts } from '../engine/smart-prompt-planner';
 import type { PromptProvider, VariationStrength } from '../engine/smart-prompt-planner';
@@ -60,7 +60,8 @@ function meterLabel(configuration: MusicConfiguration): string {
 function chipGroup(group: string, items: { id: string; label: string }[], selected: string[], className = ''): string {
   return '<div class="chips ' + className + '" role="group" aria-label="' + escapeHtml(CHIP_GROUP_LABEL[group] ?? group) + '">' + items.map((item) => {
     const active = selected.includes(item.id);
-    return '<button type="button" class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
+    const canChoose = canSelectOption(group, selected, item.id);
+    return '<button type="button"' + (canChoose ? '' : ' disabled title="' + escapeHtml(t.limitReached) + '"') + ' class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
   }).join('') + '</div>';
 }
 function renderStyleCards(filter: string): string {
@@ -259,6 +260,7 @@ function toggleValue(group: string, value: string): void {
   if (group === 'foregroundRule') appState.configuration.foregroundRule = value as MusicConfiguration['foregroundRule'];
   else {
     const target = appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'];
+    if (!canSelectOption(group, target, value)) { notify(t.limitReached); return; }
     if (group === 'harmonyIds' && (value === 'sixth' || value === 'maj6')) {
       const aliases = ['sixth', 'maj6'];
       const active = aliases.some(id => target.includes(id));
