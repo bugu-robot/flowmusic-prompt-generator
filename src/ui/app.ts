@@ -329,12 +329,13 @@ function handleClick(event: MouseEvent): void {
   else if (action === 'remove-instrument') { appState.configuration.instruments.splice(Number(button.dataset.index), 1); persist(); render(); }
   else if (action === 'copy-prompt') {
     const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
-    else if (output) { output.select(); notify(t.promptCopiedFallback); }
+    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy('prompt-output'));
+    else if (output) selectEnglishForManualCopy('prompt-output');
   } else if (action === 'copy-smart') {
-    const output = document.querySelector<HTMLTextAreaElement>('#smart-output-' + button.dataset.id);
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => { output.select(); notify(t.promptCopiedFallback); });
-    else if (output) { output.select(); notify(t.promptCopiedFallback); }
+    const id = 'smart-output-' + button.dataset.id;
+    const output = document.querySelector<HTMLTextAreaElement>('#' + id);
+    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy(id));
+    else if (output) selectEnglishForManualCopy(id);
   } else if (action === 'reroll-smart') { appState.smartSeed += 1; refreshDynamicAreas(); }
   else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
   else if (action === 'generate-variations') { appState.variations = generateVariations(appState.configuration); render(); }
