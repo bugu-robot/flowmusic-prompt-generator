@@ -127,9 +127,11 @@ function renderPromptReading(id: string, english: string, chinese: string): stri
   const zhHidden = mode === 'en' ? ' hidden' : '';
   return '<div class="prompt-reading-grid' + (mode === 'both' ? ' is-bilingual' : '') + '">'
     + '<div class="prompt-reading-en"' + enHidden + '>'
+    + '<p class="prompt-reading-caption" lang="zh-HK">' + t.promptViewEn + ' · 生成輸入</p>'
     + '<label class="visually-hidden" for="' + id + '">Original English music prompt</label>'
     + '<textarea readonly spellcheck="false" id="' + id + '">' + escapeHtml(english) + '</textarea></div>'
     + '<div class="prompt-reading-zh"' + zhHidden + ' lang="zh-HK" role="note">'
+    + '<p class="prompt-reading-caption">' + t.promptViewZh + ' · 閱讀參考</p>'
     + '<div class="prompt-zh-prose">' + escapeHtml(chinese) + '</div></div></div>';
 }
 function renderSmartPrompts(): string {
