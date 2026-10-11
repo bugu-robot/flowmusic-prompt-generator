@@ -128,7 +128,7 @@ export const zhHK = {
   smartCopy: '複製此 Prompt',
   smartLock: '固定所有已選音樂設定；只改變相容的演奏重點。',
   smartLimit: 'Prompt 只係音樂生成指示，實際演奏及曲長仍由生成模型決定。',
-  previewHint: '即時更新；生成內容為英文，貼到 Google Flow Music 使用。',
+  previewHint: '即時更新英文 Prompt，可按選擇貼到 Google Flow Music 或 Suno Simple 使用。',
   copyPrompt: '複製 Prompt',
   copied: '已複製 Prompt',
   compileAgain: '重新產生格式',
