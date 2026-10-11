@@ -30,7 +30,17 @@ browser configurations and presets; do not rename those keys without migration.
 - The misleading generic "Custom" arrangement is no longer offered to new
   configurations. Imported legacy presets selecting it still have their
   original selection and output preserved.
-- Multi-select chips disable additional choices once an original Flow compiler\n  output limit is reached: **4 moods, 6 harmony types, 3 recording traits,\n  4 other production details**. All previously imported selections remain\n  available for review and deselection; nothing is silently deleted.\n- Tempo Feel remains available in advanced settings because it has a
+- **Suno Simple** allows all Feel/Mood, Harmony and Recording selections; its
+  compiler includes all selected options without the Flow-only caps.
+- **Flow Music** retains the original effective output limits: 4 Mood tags,
+  6 Harmony types, 3 recording-character traits and 4 generic recording
+  effects. **Round Bass** and **Smooth Highs** are independent controls and
+  never consume one of the 4 generic effect slots.
+- Flow-specific limits are shown beneath the chips and update after each
+  selection/deselection. Switching from Suno with more selections to Flow
+  shows a warning that only the first supported choices affect Flow output.
+  Previously selected values and imported presets are never deleted.
+- Tempo Feel remains available in advanced settings because it has a
   distinct effect separate from BPM; other meaningful musical controls remain.
 - A regression suite checks that each selectable setting reaches the actual
   Flow and Suno compilers. The output is model guidance, not a guarantee of audio.
