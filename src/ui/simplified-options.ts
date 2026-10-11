@@ -33,3 +33,22 @@ export function structureOptions(current: string, all: readonly (readonly [strin
     .map(([id, label]) => ({ id, label }))
     .concat(current === 'custom' ? [{ id: 'custom', label: t.deprecatedStructure }] : []);
 }
+
+const RECORDING_CHARACTER = new Set(['warm','intimate','acoustic','clean','spacious','dark','airy','close-mic']);
+
+// The historical Flow compiler uses up to four moods, six harmonies, three
+// recording-character traits and four production descriptors. Prevent users
+// from selecting hidden/no-effect extras; existing presets are not truncated.
+export function canSelectOption(group: string, selected: readonly string[], id: string): boolean {
+  if (selected.includes(id)) return true;
+  if (group === 'harmonyIds') {
+    if ((id === 'sixth' || id === 'maj6') && selected.some(value => value === 'sixth' || value === 'maj6')) return true;
+    return selected.length < 6;
+  }
+  if (group === 'moodIds') return selected.length < 4;
+  if (group === 'productionIds') {
+    const isCharacter = RECORDING_CHARACTER.has(id);
+    return selected.filter(value => RECORDING_CHARACTER.has(value) === isCharacter).length < (isCharacter ? 3 : 4);
+  }
+  return true;
+}
