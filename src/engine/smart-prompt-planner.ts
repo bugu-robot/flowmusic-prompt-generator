@@ -60,6 +60,11 @@ const ALTERNATE_DETAILS: readonly [readonly string[], readonly string[], readonl
   ['Make the first and last accents of each phrase feel connected to the selected pulse.', 'Use deliberate rests and attacks to define the existing rhythmic pattern.', 'Build rhythmic momentum through articulation rather than additional layers.'],
   ['Let chord spacing and voice connection supply the contrast.', 'Keep transitions between existing harmonic colours coherent and uncluttered.', 'Use the chosen accompaniment voicings as the main source of subtle colour.'],
 ];
+const CONTINUITY_CHOICES = [
+  'Revisit the central idea with subtly different attack and placement.',
+  'Keep the recurring idea recognisable while connecting each phrase naturally.',
+  'Give the interpretation continuity through restrained internal repetition.',
+] as const;
 const intensityText: Record<VariationStrength, string> = {
   conservative: 'Keep this distinction especially understated.',
   balanced: 'Make this focus audible yet controlled.',
@@ -82,11 +87,13 @@ export function generateSmartPrompts(
   const core = provider === 'suno' ? compileSunoSimple(configuration) : compilePrompt(configuration);
   const names = ['旋律演繹', '節奏律動', '和聲與空間'] as const;
   const titles = ['Melodic Focus', 'Rhythmic Focus', 'Harmonic Focus'] as const;
-  const offset = Number.isSafeInteger(seed) ? Math.abs(seed) % 3 : 0;
+  const safeSeed = Number.isSafeInteger(seed) ? Math.abs(seed) : 0;
+  const offset = safeSeed % 3;
+  const continuity = CONTINUITY_CHOICES[Math.floor(safeSeed / 3) % CONTINUITY_CHOICES.length]!;
   const locks = 'Maintain the exact selected jazz style, BPM, metre, groove, tonality, harmony, instrumental lineup and roles, instrument behaviours, mood, energy, melody density, improvisation, foreground interplay, arrangement, recording choices, duration and restrictions. No added instruments or vocals.';
   const prompts = (['A', 'B', 'C'] as const).map((id, index) => {
     const detail = ALTERNATE_DETAILS[index]![((offset + index) % 3)]!;
-    const intent = focuses[index]! + ' ' + detail + ' ' + intensityText[strength];
+    const intent = focuses[index]! + ' ' + detail + ' ' + continuity + ' ' + intensityText[strength];
     return {
       id, title: titles[index]!, labelZh: names[index]!, intent,
       prompt: core + '\n\n' + 'Performance interpretation — ' + titles[index] + ': ' + intent + '\n\n' + locks,
