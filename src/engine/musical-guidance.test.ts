@@ -24,8 +24,20 @@ describe('genre-aware jazz guidance and explicit-only optimizations', () => {
     const cfg = recommendConfiguration('cozy-jazz');
     expect(guidanceLevel(cfg, 'moodIds', 'energetic')).toBe('exploratory');
     cfg.energy = 95;
-    expect(guidanceLevel(cfg, 'moodIds', 'peaceful')).toBe('recommended');
+    expect(guidanceLevel(cfg, 'moodIds', 'peaceful')).toBe('caution');
     expect(analyzeMusicalGuidance(cfg).some(x => x.id === 'high-energy-calm-mood')).toBe(true);
+  });
+  it('applying all independent recording removals does not resurrect previous conflicts', () => {
+    const cfg = recommendConfiguration('slow-bossa');
+    cfg.instruments = cfg.instruments.filter(part => part.role !== 'bass');
+    cfg.instruments.push({ instrumentId: 'distorted-guitar', role: 'lead', enabled: true, prominence: 50, behaviour: '' });
+    cfg.productionIds = ['warm','round-bass','acoustic','room'];
+    const suggestions = suggestOptimizations(cfg);
+    expect(suggestions.map(x => x.id)).toEqual(expect.arrayContaining(['remove-orphan-round-bass','clarify-recording']));
+    const updated = applyOptimizations(cfg, suggestions);
+    expect(updated.productionIds).toEqual(['warm','room']);
+    expect(cfg.productionIds).toContain('acoustic');
+    expect(cfg.productionIds).toContain('round-bass');
   });
   it('does not treat legitimate intimate/spacious or warm/vintage mixtures as contradictions', () => {
     const cfg = recommendConfiguration('cool-jazz');

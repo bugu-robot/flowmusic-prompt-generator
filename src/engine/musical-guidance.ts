@@ -26,7 +26,6 @@ export const STYLE_GUIDANCE_MATRIX = Object.fromEntries(
 ) as Record<string, { moodIds: string[]; productionIds: string[] }>;
 
 export function guidanceLevel(config: MusicConfiguration, group: GuidanceGroup, id: string): GuidanceLevel {
-  if (STYLE_GUIDANCE_MATRIX[config.styleId]?.[group].includes(id)) return 'recommended';
   const active = config.instruments.filter(part => part.enabled);
   const electronic = active.some(part => ['synth', 'distorted-guitar'].includes(part.instrumentId));
   const bass = active.some(part => part.role === 'bass');
@@ -35,6 +34,7 @@ export function guidanceLevel(config: MusicConfiguration, group: GuidanceGroup, 
     if (id === 'acoustic' && electronic) return 'caution';
   }
   if (group === 'moodIds' && config.energy >= 70 && ['peaceful', 'calm', 'reflective'].includes(id)) return 'caution';
+  if (STYLE_GUIDANCE_MATRIX[config.styleId]?.[group].includes(id)) return 'recommended';
   return 'exploratory';
 }
 
@@ -100,7 +100,11 @@ export function applyOptimizations(config: MusicConfiguration, suggestions: read
   return suggestions.reduce<MusicConfiguration>((current, suggestion) => ({
     ...current,
     ...suggestion.changes,
-    moodIds: suggestion.changes.moodIds ? [...suggestion.changes.moodIds] : current.moodIds,
-    productionIds: suggestion.changes.productionIds ? [...suggestion.changes.productionIds] : current.productionIds,
+    // Combine independent removal suggestions against the CURRENT state, not
+    // the original snapshot; otherwise one removal can restore another.
+    moodIds: suggestion.changes.moodIds
+      ? current.moodIds.filter(id => suggestion.changes.moodIds!.includes(id)) : current.moodIds,
+    productionIds: suggestion.changes.productionIds
+      ? current.productionIds.filter(id => suggestion.changes.productionIds!.includes(id)) : current.productionIds,
   }), { ...config, moodIds: [...config.moodIds], productionIds: [...config.productionIds], instruments: config.instruments.map(part => ({ ...part })) });
 }
