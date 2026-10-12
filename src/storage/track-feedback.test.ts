@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { recommendConfiguration } from '../engine/recommendation-engine';
 import type { StorageLike } from './local-storage';
-import { feedbackSummary, listTrackFeedback, removeTrackFeedback, saveTrackFeedback } from './track-feedback';
+import { clearTrackFeedback, feedbackSummary, listTrackFeedback, removeTrackFeedback, saveTrackFeedback } from './track-feedback';
 
 class FakeStore implements StorageLike {
   data = new Map<string, string>();
@@ -31,5 +31,8 @@ describe('device-only actual-generation ratings', () => {
     const store = new FakeStore(), config = recommendConfiguration('cool-jazz');
     for (let i=0;i<104;i++) saveTrackFeedback({provider:'flow',configuration:config,ratings,note:'test'},store);
     expect(listTrackFeedback(store)).toHaveLength(100);
+    clearTrackFeedback(store);
+    expect(listTrackFeedback(store)).toHaveLength(0);
+    expect(store.data.has('flowmusic.promptGenerator.presets.v1')).toBe(false);
   });
 });

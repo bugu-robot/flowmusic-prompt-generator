@@ -6,7 +6,7 @@ import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
 import { STYLE_GUIDANCE_MATRIX, analyzeMusicalGuidance, suggestOptimizations, applyOptimizations } from '../engine/musical-guidance';
 import { flowOmittedOptions } from '../engine/flow-overflow';
-import { feedbackSummary, listTrackFeedback, saveTrackFeedback, removeTrackFeedback, RATING_LABELS, type FeedbackRatings } from '../storage/track-feedback';
+import { feedbackSummary, listTrackFeedback, saveTrackFeedback, removeTrackFeedback, clearTrackFeedback, RATING_LABELS, type FeedbackRatings } from '../storage/track-feedback';
 import { synchronizeChoiceButtons } from './chip-controller';
 import { describePromptZh } from '../engine/prompt-zh-reference';
 import type { PromptView } from '../engine/prompt-zh-reference';
@@ -102,6 +102,7 @@ function renderFeedbackPanel():string {
   return '<section class="panel compact-panel" id="feedback-panel" aria-labelledby="feedback-heading"><div class="panel-heading"><div><p class="eyebrow">AFTER LISTENING · DEVICE ONLY</p><h2 id="feedback-heading">音樂結果評分</h2></div></div>'
     +'<p class="quiet">生成並實際聆聽作品後才評分；不會上傳或分析音訊。資料只儲存在這部裝置，最多 100 筆。</p>'
     +'<p class="feedback-summary">目前風格＋平台：'+summary.count+' 筆'+(summary.average===null?'':' · 整體平均 '+summary.average.toFixed(1)+'/5')+'</p>'
+    +'<button class="button button-quiet" type="button" data-action="clear-track-feedback">清空全部本機評分</button>'
     +'<details class="feedback-details"><summary>記錄新作品評分</summary><div class="feedback-fields">'
     +RATING_LABELS.map(([key,label])=>'<label><span>'+label+'</span><select data-feedback-score="'+key+'">'+[1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===3?' selected':'')+'>'+n+'/5</option>').join('')+'</select></label>').join('')+'</div>'
     +'<label class="feedback-note"><span>作品備註（可選）</span><textarea id="feedback-note" maxlength="300" rows="2" placeholder="例如：第二版的結他旋律較自然"></textarea></label>'
@@ -259,6 +260,7 @@ function render(): void {
     + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">' + (appState.provider === 'suno' ? 'SUNO SIMPLE' : 'FLOW MUSIC') + ' · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p>' + '<div class="provider-control"><label for="prompt-provider">' + t.providerTitle + '</label><select id="prompt-provider"><option value="flow"' + (appState.provider === 'flow' ? ' selected' : '') + '>' + t.providerFlow + '</option><option value="suno"' + (appState.provider === 'suno' ? ' selected' : '') + '>' + t.providerSuno + '</option></select></div>' + '<div class="provider-control"><label for="prompt-view">' + t.promptViewLabel + '</label><select id="prompt-view"><option value="en"' + (appState.promptView === 'en' ? ' selected' : '') + '>' + t.promptViewEn + '</option><option value="zh"' + (appState.promptView === 'zh' ? ' selected' : '') + '>' + t.promptViewZh + '</option><option value="both"' + (appState.promptView === 'both' ? ' selected' : '') + '>' + t.promptViewBoth + '</option></select></div>'
     + renderFlowOverflowPanel() + renderPromptReading('prompt-output', compileForProvider(configuration), describePromptZh(configuration))
     + '<p class="prompt-reading-note">' + t.promptZhNote + ' ' + t.copyEnglishHint + '</p><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>優先描述清晰音樂意圖，再加入必要限制；生成結果會根據所選 Flow Music 或 Suno Simple 格式。</p></div>' + '<section class="smart-prompts-panel" aria-labelledby="smart-heading"><div class="panel-heading"><div><p class="eyebrow">SMART A / B / C</p><h2 id="smart-heading">' + t.smartTitle + '</h2><p class="section-help">' + t.smartHint + '</p></div></div>' + '<div class="smart-controls"><label for="smart-strength">' + t.smartStrength + '<select id="smart-strength"><option value="conservative"' + (appState.smartStrength === 'conservative' ? ' selected' : '') + '>' + t.smartConservative + '</option><option value="balanced"' + (appState.smartStrength === 'balanced' ? ' selected' : '') + '>' + t.smartBalanced + '</option><option value="creative"' + (appState.smartStrength === 'creative' ? ' selected' : '') + '>' + t.smartCreative + '</option></select></label><button class="button button-secondary" type="button" data-action="reroll-smart">' + t.smartAgain + '</button></div>' + '<p class="section-help">' + t.smartLock + '</p><div id="smart-prompt-list">' + renderSmartPrompts() + '</div><p class="smart-caption">' + t.smartLimit + '</p></section></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
+  synchronizeChoiceButtons(root, appState.configuration, appState.provider);
   const advanced = root.querySelector<HTMLDetailsElement>('.advanced-controls');
   if (advanced && advancedWasOpen) advanced.open = true;
   if (previousFocus) {
@@ -399,6 +401,11 @@ function handleClick(event: MouseEvent): void {
     const note=root.querySelector<HTMLTextAreaElement>('#feedback-note')?.value??'';
     try{saveTrackFeedback({configuration:appState.configuration,provider:appState.provider,ratings,note});render();notify('已在本機儲存聆聽評分。');}
     catch{notify('評分儲存失敗，請檢查本機儲存權限。');}
+  } else if (action === 'clear-track-feedback') {
+    if(window.confirm('確定清空這部裝置的全部作品評分？此操作不會影響 Preset。')) {
+      try {clearTrackFeedback();render();notify('全部本機評分已清空。');}
+      catch {notify('未能清空本機評分。');}
+    }
   } else if (action === 'delete-track-feedback') {
     if(window.confirm('確定刪除這筆評分？')){removeTrackFeedback(id);render();notify('已刪除評分。');}
   } else if (action === 'save-preset') {

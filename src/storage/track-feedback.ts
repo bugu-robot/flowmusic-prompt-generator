@@ -80,6 +80,9 @@ export function saveTrackFeedback(input: NewTrackFeedback, storage: StorageLike 
 export function removeTrackFeedback(id: string, storage: StorageLike = browserStorage()): void {
   storage.setItem(KEY, JSON.stringify(listTrackFeedback(storage).filter(entry => entry.id !== id)));
 }
+export function clearTrackFeedback(storage: StorageLike = browserStorage()): void {
+  storage.removeItem(KEY);
+}
 export function feedbackSummary(styleId: string, provider: FeedbackProvider, storage: StorageLike = browserStorage()): {count: number; average: number | null} {
   const ratings = listTrackFeedback(storage).filter(x => x.configuration.styleId === styleId && x.provider === provider);
   return {
