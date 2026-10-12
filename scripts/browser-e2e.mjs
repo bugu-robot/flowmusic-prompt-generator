@@ -1,4 +1,4 @@
-/* global process, setTimeout, fetch, console, localStorage */
+/* global process, setTimeout, fetch, console, localStorage, document */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -28,7 +28,14 @@ try{
   const page=await context.newPage();
   const errors=[];
   page.on('pageerror',err=>errors.push(err.message));
-  await page.goto(pageUrl,{waitUntil:'networkidle'});
+  const response=await page.goto(pageUrl,{waitUntil:'networkidle'});
+  await page.waitForTimeout(900);
+  const state=await page.evaluate(()=>({
+    title:document.title, appText:document.querySelector('#app')?.textContent?.slice(0,300),
+    scripts:[...document.querySelectorAll('script')].map(node=>node.getAttribute('src')),
+  }));
+  console.log('BOOT DIAGNOSTIC',JSON.stringify({status:response?.status(),url:page.url(),state,errors,serverOutput:serverOutput.slice(0,500)}));
+  if(!(await page.locator('#prompt-provider').count()))throw Error('App failed to mount provider control; diagnostic above');
   await page.locator('#prompt-provider').waitFor();
   assert.equal(await page.locator('#prompt-provider').inputValue(),'suno');
   console.log('PASS: Suno Simple is default; page booted');
