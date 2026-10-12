@@ -176,3 +176,7 @@ All npm packages are development tools, not runtime services. The shipped bundle
 - The Flow preview explicitly lists names of values that its unchanged compiler omits, in actual user selection order.
 - Listening feedback records five manually assigned 1–5 ratings, an optional note, a configuration snapshot, provider, and date. It stays in a separate browser-local key, is capped at 100 entries, and is never sent to an API.
 - New DOM-state adapter regressions cover disabled, pressed, deselect, and provider switching; manual real-device UAT remains necessary.
+
+## Browser E2E (PR only)
+
+`.github/workflows/browser-e2e.yml` runs actual headless Chromium and a production Pages preview using a pinned test-only Playwright install (no package-lock update). It asserts Suno default, successful clipboard-to-snapshot capture (Main and Smart B), Flow chip disabling/deselection/provider switching and omitted options, provenance of ratings across configuration edits and reload, and mobile-viewport visible statuses/accessibility labels. This is browser automation, **not** iOS Safari verification. Physical iPhone UAT is still required. No production deployment is performed by any PR workflow.
