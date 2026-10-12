@@ -28,9 +28,9 @@ export const STYLE_GUIDANCE_MATRIX = Object.fromEntries(
 export function guidanceLevel(config: MusicConfiguration, group: GuidanceGroup, id: string): GuidanceLevel {
   const active = config.instruments.filter(part => part.enabled);
   const electronic = active.some(part => ['synth', 'distorted-guitar'].includes(part.instrumentId));
-  const bass = active.some(part => part.role === 'bass');
+  const upright = active.some(part => part.role === 'bass' && part.instrumentId === 'upright-bass');
   if (group === 'productionIds') {
-    if (id === 'round-bass' && !bass) return 'caution';
+    if (id === 'round-bass' && !upright) return 'caution';
     if (id === 'acoustic' && electronic) return 'caution';
   }
   if (group === 'moodIds' && config.energy >= 70 && ['peaceful', 'calm', 'reflective'].includes(id)) return 'caution';
@@ -41,8 +41,13 @@ export function guidanceLevel(config: MusicConfiguration, group: GuidanceGroup, 
 export function analyzeMusicalGuidance(config: MusicConfiguration): GuidanceIssue[] {
   const result: GuidanceIssue[] = [];
   const active = config.instruments.filter(part => part.enabled);
-  if (config.productionIds.includes('round-bass') && !active.some(part => part.role === 'bass')) {
-    result.push({ id: 'round-bass-without-bass', level: 'caution', message: '已選 Round Bass，但編制沒有啟用 Bass 角色；此描述可能暗示額外低音樂器。' });
+  const bassParts = active.filter(part => part.role === 'bass');
+  if (config.productionIds.includes('round-bass')) {
+    if (bassParts.length === 0) {
+      result.push({ id: 'round-bass-without-bass', level: 'caution', message: '已選 Round Bass，但編制沒有啟用 Bass 角色；Suno 的現有描述會提及 Upright Bass。' });
+    } else if (!bassParts.some(part => part.instrumentId === 'upright-bass')) {
+      result.push({ id: 'round-bass-mismatch', level: 'caution', message: 'Round Bass 在 Suno Prompt 中指明 Upright Bass，但目前低音角色沒有 Upright Bass。請移除這個 Recording 選項，避免暗示未選樂器。' });
+    }
   }
   if (config.productionIds.includes('acoustic') && active.some(part => ['synth', 'distorted-guitar'].includes(part.instrumentId))) {
     result.push({ id: 'acoustic-with-electronic', level: 'exploratory', message: 'Acoustic 與合成／失真樂器屬實驗性混合；若希望純原聲，可移除 Acoustic 或電子音色其中一方。' });
@@ -69,10 +74,10 @@ export function suggestOptimizations(config: MusicConfiguration): OptimizationSu
       changes: { energy: Math.min(45, baseline + 10) },
     });
   }
-  if (issues.has('round-bass-without-bass')) {
+  if (issues.has('round-bass-without-bass') || issues.has('round-bass-mismatch')) {
     suggestions.push({
       id: 'remove-orphan-round-bass', label: '移除不適用的 Round Bass',
-      reason: '沒有 Bass 角色時避免在 Recording 中暗示額外低音樂器。',
+      reason: '現有 Suno 描述會指向 Upright Bass；如未選 Upright Bass，移除此標籤以保持編制一致。',
       changes: { productionIds: config.productionIds.filter(id => id !== 'round-bass') },
     });
   }

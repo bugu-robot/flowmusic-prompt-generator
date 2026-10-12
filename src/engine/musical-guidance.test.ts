@@ -39,6 +39,23 @@ describe('genre-aware jazz guidance and explicit-only optimizations', () => {
     expect(cfg.productionIds).toContain('acoustic');
     expect(cfg.productionIds).toContain('round-bass');
   });
+  it('checks Round Bass against actual upright/electric/tuba role and keeps the compiler unchanged', () => {
+    const cfg = recommendConfiguration('cozy-jazz');
+    cfg.productionIds=['round-bass'];
+    const bass=cfg.instruments.find(part=>part.role==='bass')!;
+    expect(bass.instrumentId).toBe('upright-bass');
+    expect(analyzeMusicalGuidance(cfg).some(x=>x.id.startsWith('round-bass'))).toBe(false);
+    for (const id of ['electric-bass','tuba','bari-sax']) {
+      bass.instrumentId=id;
+      expect(analyzeMusicalGuidance(cfg).some(x=>x.id==='round-bass-mismatch'),id).toBe(true);
+      expect(guidanceLevel(cfg,'productionIds','round-bass')).toBe('caution');
+      expect(suggestOptimizations(cfg).some(x=>x.id==='remove-orphan-round-bass')).toBe(true);
+    }
+    cfg.instruments=cfg.instruments.filter(part=>part.role!=='bass');
+    expect(analyzeMusicalGuidance(cfg).some(x=>x.id==='round-bass-without-bass')).toBe(true);
+    cfg.productionIds=[];
+    expect(analyzeMusicalGuidance(cfg).some(x=>x.id.startsWith('round-bass'))).toBe(false);
+  });
   it('does not treat legitimate intimate/spacious or warm/vintage mixtures as contradictions', () => {
     const cfg = recommendConfiguration('cool-jazz');
     cfg.productionIds = ['intimate', 'spacious', 'warm', 'vintage'];
