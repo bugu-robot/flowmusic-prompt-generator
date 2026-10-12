@@ -161,7 +161,7 @@ describe('Jazz Prompt Generator: output-effectiveness and simplifying option cho
     const harmony = ['maj7','min7','add9','dom7','min9','dom9','13th'];
     expect(selectionLimitNotice('harmonyIds', harmony, 'flow')).toContain('前 6 種');
     expect(canSelectOption('harmonyIds', harmony, 'maj7', 'flow')).toBe(true);
-    expect(canSelectOption('harmonyIds', harmony, 'sus4', 'flow')).toBe(false);
+    expect(canSelectOption('harmonyIds', harmony, 'altered', 'flow')).toBe(false);
   });
 
   it('honours advanced tempo feel without repeating it as a basic BPM duplicate', () => {

@@ -169,3 +169,10 @@ Target track duration is selectable under basic music settings, with a default o
 The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. V1 always compiles `Instrumental only, no vocals.`; the interface shows a fixed instrumental indication, and optional avoidance selections emit only the selected restrictions. Preset imports validate IDs against the shared catalogs while preserving globally valid grooves and tonalities retained after a style change.
 
 All npm packages are development tools, not runtime services. The shipped bundle contains only the browser application; security audit findings in test/build tools still matter because those tools run with developer or CI permissions. See STATUS.md for the audit triage and verification results.
+
+## Genre-aware guidance, exact Flow omissions, and local feedback
+- Derived guidance matrix uses the recommended Feel and Recording seeds of all 38 available styles (including Custom). It is advisory, not a creative veto.
+- Feel/Recording offer recommended or all-option views; already-selected unusual choices stay visible. Optional optimizations are deterministic, reviewable, apply only after a click and do not mutate saved presets.
+- The Flow preview explicitly lists names of values that its unchanged compiler omits, in actual user selection order.
+- Listening feedback records five manually assigned 1–5 ratings, an optional note, a configuration snapshot, provider, and date. It stays in a separate browser-local key, is capped at 100 entries, and is never sent to an API.
+- New DOM-state adapter regressions cover disabled, pressed, deselect, and provider switching; manual real-device UAT remains necessary.

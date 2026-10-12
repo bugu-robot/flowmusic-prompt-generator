@@ -4,6 +4,10 @@ import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
+import { STYLE_GUIDANCE_MATRIX, analyzeMusicalGuidance, suggestOptimizations, applyOptimizations } from '../engine/musical-guidance';
+import { flowOmittedOptions } from '../engine/flow-overflow';
+import { feedbackSummary, listTrackFeedback, saveTrackFeedback, removeTrackFeedback, RATING_LABELS, type FeedbackRatings } from '../storage/track-feedback';
+import { synchronizeChoiceButtons } from './chip-controller';
 import { describePromptZh } from '../engine/prompt-zh-reference';
 import type { PromptView } from '../engine/prompt-zh-reference';
 import { PROMINENCE_OPTIONS, canSelectOption, selectionLimitNotice, prominenceChoice, structureOptions, visibleHarmonyOptions } from './simplified-options';
@@ -67,6 +71,42 @@ function chipGroup(group: string, items: { id: string; label: string }[], select
     return '<button type="button"' + (canChoose ? '' : ' disabled title="' + escapeHtml(t.limitReached) + '"') + ' class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
   }).join('') + '</div>'
     + (notice ? '<p class="chip-limit-notice" data-limit-group="' + escapeHtml(group) + '" role="status">' + escapeHtml(notice) + '</p>' : '');
+}
+
+function guidedChipGroup(group: 'moodIds' | 'productionIds', items: {id:string;label:string}[], selected:string[]):string {
+  const rec=STYLE_GUIDANCE_MATRIX[appState.configuration.styleId]?.[group] ?? [];
+  const visible=appState.optionView==='all'?items:items.filter(item=>rec.includes(item.id)||selected.includes(item.id));
+  return '<div class="guided-options-header"><span class="quiet">推薦為常見配搭，其他選項亦可自由使用。</span>'
+    + '<div class="option-view-switch" role="group" aria-label="選項檢視">'
+    + '<button type="button" data-action="option-view" data-view="recommended" aria-pressed="'+(appState.optionView==='recommended')+'">風格推薦</button>'
+    + '<button type="button" data-action="option-view" data-view="all" aria-pressed="'+(appState.optionView==='all')+'">全部選項</button></div></div>'
+    + chipGroup(group,visible,selected);
+}
+function renderGuidancePanel():string {
+  const issues=analyzeMusicalGuidance(appState.configuration),suggestions=suggestOptimizations(appState.configuration);
+  return '<section class="panel compact-panel" id="guidance-panel" aria-labelledby="guidance-heading"><div class="panel-heading"><div><p class="eyebrow">STYLE-AWARE · OPTIONAL</p><h2 id="guidance-heading">智能音樂配置建議</h2></div></div>'
+    + '<p class="quiet">以現有 38 種 Jazz Style 的推薦資料為基礎；實驗性配搭仍可使用，建議不會自動改動設定。</p>'
+    + (issues.length?'<ul class="guidance-issues">'+issues.map(x=>'<li><strong>'+(x.level==='caution'?'留意':'創作提示')+'</strong> '+escapeHtml(x.message)+'</li>').join('')+'</ul>':'<p class="quiet">未發現已知設定矛盾。</p>')
+    + (suggestions.length?'<div class="optimization-list">'+suggestions.map(x=>'<div class="optimization-item"><div><strong>'+escapeHtml(x.label)+'</strong><small>'+escapeHtml(x.reason)+'</small></div><button class="button button-small" type="button" data-action="apply-optimization" data-id="'+escapeHtml(x.id)+'">套用這項</button></div>').join('')+'</div><button class="button button-secondary" type="button" data-action="apply-all-optimizations">套用全部建議（'+suggestions.length+'）</button>':'')
+    + '</section>';
+}
+function renderFlowOverflowPanel():string {
+  const omitted=appState.provider==='flow'?flowOmittedOptions(appState.configuration):[];
+  return '<div id="flow-overflow-panel"'+(omitted.length?' class="flow-overflow-panel" role="status" aria-live="polite"':'')+'>'
+    +(omitted.length?'<strong>Flow Music：部分選項未輸出</strong><p>只輸出實際最先選取的項目，而非畫面左至右的項目。以下設定保留於配置，但不會進入這次 Flow Prompt：</p><ul>'
+      +omitted.map(x=>'<li><strong>'+escapeHtml(x.group)+'：</strong>'+escapeHtml(x.omitted.join('、'))+'</li>').join('')+'</ul>':'')+'</div>';
+}
+function renderFeedbackPanel():string {
+  const style=appState.configuration.styleId,summary=feedbackSummary(style,appState.provider);
+  const recent=listTrackFeedback().filter(x=>x.configuration.styleId===style&&x.provider===appState.provider).slice(-3).reverse();
+  return '<section class="panel compact-panel" id="feedback-panel" aria-labelledby="feedback-heading"><div class="panel-heading"><div><p class="eyebrow">AFTER LISTENING · DEVICE ONLY</p><h2 id="feedback-heading">音樂結果評分</h2></div></div>'
+    +'<p class="quiet">生成並實際聆聽作品後才評分；不會上傳或分析音訊。資料只儲存在這部裝置，最多 100 筆。</p>'
+    +'<p class="feedback-summary">目前風格＋平台：'+summary.count+' 筆'+(summary.average===null?'':' · 整體平均 '+summary.average.toFixed(1)+'/5')+'</p>'
+    +'<details class="feedback-details"><summary>記錄新作品評分</summary><div class="feedback-fields">'
+    +RATING_LABELS.map(([key,label])=>'<label><span>'+label+'</span><select data-feedback-score="'+key+'">'+[1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===3?' selected':'')+'>'+n+'/5</option>').join('')+'</select></label>').join('')+'</div>'
+    +'<label class="feedback-note"><span>作品備註（可選）</span><textarea id="feedback-note" maxlength="300" rows="2" placeholder="例如：第二版的結他旋律較自然"></textarea></label>'
+    +'<button class="button button-secondary" type="button" data-action="save-track-feedback">儲存聆聽評分</button></details>'
+    +(recent.length?'<div class="feedback-history"><strong>最近紀錄</strong>'+recent.map(x=>'<div class="feedback-entry"><span>'+escapeHtml(x.createdAt.slice(0,10))+' · '+x.ratings.overall+'/5 · '+escapeHtml(x.note)+'</span><button type="button" class="danger-text" data-action="delete-track-feedback" data-id="'+escapeHtml(x.id)+'">刪除</button></div>').join('')+'</div>':'')+'</section>';
 }
 function renderStyleCards(filter: string): string {
   const query = filter.trim().toLocaleLowerCase();
@@ -208,15 +248,16 @@ function render(): void {
     + '<div class="full-field"><span>' + t.recommendedHarmony + '</span>' + chipGroup('harmonyIds', visibleHarmonyOptions(configuration), configuration.harmonyIds, 'checkbox-chips') + '</div><div class="full-field"><span>' + t.foreground + '</span>' + chipGroup('foregroundRule', [{ id: 'single', label: t.singleLead }, { id: 'gentle', label: t.gentleInteraction }, { id: 'collective', label: t.collectiveInteraction }], [configuration.foregroundRule], 'segmented-chips') + '</div>'
     + '<label><span>' + t.phraseLength + '</span><select data-field="phraseLength">' + selectOptions([{ id: 'short', label: t.short }, { id: 'medium', label: t.medium }, { id: 'long', label: t.long }], configuration.phraseLength) + '</select></label><label><span>' + t.breathingSpace + '</span><select data-field="breathingSpace">' + selectOptions([{ id: 'high', label: t.high }, { id: 'medium', label: t.middle }, { id: 'low', label: t.low }], configuration.breathingSpace) + '</select></label>'
     + '<label><span>' + t.melodyComplexity + '</span><select data-field="melodyComplexity">' + selectOptions([{ id: 'minimal', label: t.minimal }, { id: 'simple', label: t.simple }, { id: 'moderate', label: t.moderate }, { id: 'complex', label: t.complex }, { id: 'virtuosic', label: t.virtuosic }], configuration.melodyComplexity) + '</select></label></div></details></section>'
-    + '<section class="panel" aria-labelledby="scene-heading"><div class="panel-heading"><div><p class="eyebrow">04 · FEEL</p><h2 id="scene-heading">' + t.moodsScenes + '</h2></div></div><div class="field-block"><span>' + t.moods + '</span>' + chipGroup('moodIds', MOODS, configuration.moodIds) + '</div><div class="scene-controls"><label><span>' + t.scene + '</span><select data-field="sceneId">' + selectOptions(SCENES, configuration.sceneId) + '</select></label>' + (configuration.sceneId === 'custom' ? '<label><span>' + t.customScene + '</span><input type="text" data-field="customSceneName" value="' + escapeHtml(configuration.customSceneName ?? '') + '" placeholder="A quiet room on a rainy evening"></label>' : '') + '</div></section>'
+    + '<section class="panel" aria-labelledby="scene-heading"><div class="panel-heading"><div><p class="eyebrow">04 · FEEL</p><h2 id="scene-heading">' + t.moodsScenes + '</h2></div></div><div class="field-block"><span>' + t.moods + '</span>' + guidedChipGroup('moodIds', MOODS, configuration.moodIds) + '</div><div class="scene-controls"><label><span>' + t.scene + '</span><select data-field="sceneId">' + selectOptions(SCENES, configuration.sceneId) + '</select></label>' + (configuration.sceneId === 'custom' ? '<label><span>' + t.customScene + '</span><input type="text" data-field="customSceneName" value="' + escapeHtml(configuration.customSceneName ?? '') + '" placeholder="A quiet room on a rainy evening"></label>' : '') + '</div></section>'
     + '<section class="panel" aria-labelledby="arrangement-heading"><div class="panel-heading"><div><p class="eyebrow">05 · FORM</p><h2 id="arrangement-heading">' + t.arrangementTitle + '</h2></div></div><div class="control-grid"><label><span>' + t.dynamics + '</span><select data-field="dynamics">' + selectOptions(DYNAMICS.map(([id, label]) => ({ id: id as string, label: label as string })), configuration.dynamics) + '</select></label><label><span>' + t.structure + '</span><select data-field="structure">' + selectOptions(structureOptions(configuration.structure, STRUCTURES), configuration.structure) + '</select></label></div></section>'
-    + '<section class="panel" aria-labelledby="production-heading"><div class="panel-heading"><div><p class="eyebrow">06 · RECORDING</p><h2 id="production-heading">' + t.productionTitle + '</h2><p class="section-help">' + t.productionHint + '</p></div></div>' + chipGroup('productionIds', PRODUCTION, configuration.productionIds) + '</section>'
+    + '<section class="panel" aria-labelledby="production-heading"><div class="panel-heading"><div><p class="eyebrow">06 · RECORDING</p><h2 id="production-heading">' + t.productionTitle + '</h2><p class="section-help">' + t.productionHint + '</p></div></div>' + guidedChipGroup('productionIds', PRODUCTION, configuration.productionIds) + '</section>'
     + '<section class="panel" aria-labelledby="constraints-heading"><div class="panel-heading"><div><p class="eyebrow">07 · GUARDRAILS</p><h2 id="constraints-heading">' + t.constraintsTitle + '</h2><p class="section-help">' + t.constraintsHint + '</p><p class="section-help">' + t.instrumentalOnly + '</p></div></div>' + chipGroup('constraintIds', CONSTRAINTS, configuration.constraintIds) + '</section>'
     + renderCompatibility(configuration)
+     + renderGuidancePanel()
     + '<section class="panel" aria-labelledby="variation-heading"><div class="panel-heading"><div><p class="eyebrow">08 · EXPLORE</p><h2 id="variation-heading">' + t.variationsTitle + '</h2></div><button class="button button-secondary" type="button" data-action="generate-variations">' + t.generateVariations + '</button></div>' + renderVariations() + '</section>'
-    + renderPresets() + '<footer class="site-footer">' + t.footer + '</footer></div>'
+    + renderPresets() + renderFeedbackPanel() + '<footer class="site-footer">' + t.footer + '</footer></div>'
     + '<aside class="preview-column"><section class="preview-card" aria-labelledby="preview-heading"><div class="preview-heading"><div><p class="eyebrow">' + (appState.provider === 'suno' ? 'SUNO SIMPLE' : 'FLOW MUSIC') + ' · ENGLISH OUTPUT</p><h2 id="preview-heading">' + t.previewTitle + '</h2></div><span class="live-indicator"><i></i>LIVE</span></div><p class="preview-help">' + t.previewHint + '</p>' + '<div class="provider-control"><label for="prompt-provider">' + t.providerTitle + '</label><select id="prompt-provider"><option value="flow"' + (appState.provider === 'flow' ? ' selected' : '') + '>' + t.providerFlow + '</option><option value="suno"' + (appState.provider === 'suno' ? ' selected' : '') + '>' + t.providerSuno + '</option></select></div>' + '<div class="provider-control"><label for="prompt-view">' + t.promptViewLabel + '</label><select id="prompt-view"><option value="en"' + (appState.promptView === 'en' ? ' selected' : '') + '>' + t.promptViewEn + '</option><option value="zh"' + (appState.promptView === 'zh' ? ' selected' : '') + '>' + t.promptViewZh + '</option><option value="both"' + (appState.promptView === 'both' ? ' selected' : '') + '>' + t.promptViewBoth + '</option></select></div>'
-    + renderPromptReading('prompt-output', compileForProvider(configuration), describePromptZh(configuration))
+    + renderFlowOverflowPanel() + renderPromptReading('prompt-output', compileForProvider(configuration), describePromptZh(configuration))
     + '<p class="prompt-reading-note">' + t.promptZhNote + ' ' + t.copyEnglishHint + '</p><div class="preview-actions"><button class="button button-primary copy-button" type="button" data-action="copy-prompt"><span aria-hidden="true">▣</span> ' + t.copyPrompt + '</button><button class="button button-quiet" type="button" data-action="recompile">' + t.compileAgain + '</button></div><p class="preview-metadata"><span>' + escapeHtml(style.name) + '</span><span>·</span><span>' + configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(configuration)) + '</span></p></section><div class="preview-side-note"><span class="note-symbol">✳</span><p>優先描述清晰音樂意圖，再加入必要限制；生成結果會根據所選 Flow Music 或 Suno Simple 格式。</p></div>' + '<section class="smart-prompts-panel" aria-labelledby="smart-heading"><div class="panel-heading"><div><p class="eyebrow">SMART A / B / C</p><h2 id="smart-heading">' + t.smartTitle + '</h2><p class="section-help">' + t.smartHint + '</p></div></div>' + '<div class="smart-controls"><label for="smart-strength">' + t.smartStrength + '<select id="smart-strength"><option value="conservative"' + (appState.smartStrength === 'conservative' ? ' selected' : '') + '>' + t.smartConservative + '</option><option value="balanced"' + (appState.smartStrength === 'balanced' ? ' selected' : '') + '>' + t.smartBalanced + '</option><option value="creative"' + (appState.smartStrength === 'creative' ? ' selected' : '') + '>' + t.smartCreative + '</option></select></label><button class="button button-secondary" type="button" data-action="reroll-smart">' + t.smartAgain + '</button></div>' + '<p class="section-help">' + t.smartLock + '</p><div id="smart-prompt-list">' + renderSmartPrompts() + '</div><p class="smart-caption">' + t.smartLimit + '</p></section></aside></div><div class="toast" id="toast" role="status" aria-live="polite"></div><div class="update-banner" id="update-banner" hidden><span>' + t.updateAvailable + '</span><button type="button" data-action="reload-update">' + t.reload + '</button></div></main></div>';
   const advanced = root.querySelector<HTMLDetailsElement>('.advanced-controls');
   if (advanced && advancedWasOpen) advanced.open = true;
@@ -229,9 +270,9 @@ function render(): void {
   }
 }
 
-interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; promptView: PromptView; smartStrength: VariationStrength; smartSeed: number; toastTimer?: number; }
+interface AppState { configuration: MusicConfiguration; variations: MusicConfiguration[]; provider: PromptProvider; promptView: PromptView; smartStrength: VariationStrength; smartSeed: number; optionView: 'recommended' | 'all'; toastTimer?: number; }
 const root = document.querySelector<HTMLElement>('#app')!;
-const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'suno', promptView: 'en', smartStrength: 'balanced', smartSeed: 0 };
+const appState: AppState = { configuration: loadCurrentConfiguration() ?? recommendConfiguration('cozy-jazz'), variations: [], provider: 'suno', promptView: 'en', smartStrength: 'balanced', smartSeed: 0, optionView: 'recommended' };
 function persist(): void { try { saveCurrentConfiguration(appState.configuration); } catch { /* Storage may be disabled in private browsing. */ } }
 function selectEnglishForManualCopy(id: string): void {
   if (appState.promptView === 'zh') { appState.promptView = 'en'; render(); }
@@ -255,6 +296,13 @@ function refreshDynamicAreas(): void {
   if (smart) smart.innerHTML = renderSmartPrompts();
   const compatibility = document.querySelector<HTMLElement>('#compatibility-panel');
   if (compatibility) { const wrapper = document.createElement('div'); wrapper.innerHTML = renderCompatibility(appState.configuration); compatibility.replaceWith(wrapper.firstElementChild!); }
+  for (const [selector, html] of [
+    ['#guidance-panel', renderGuidancePanel()], ['#flow-overflow-panel', renderFlowOverflowPanel()],
+  ] as const) {
+    const element=document.querySelector<HTMLElement>(selector);
+    if (element) {const container=document.createElement('div');container.innerHTML=html;element.replaceWith(container.firstElementChild!);}
+  }
+  synchronizeChoiceButtons(root,appState.configuration,appState.provider);
   const previewMeta = document.querySelector<HTMLElement>('.preview-metadata');
   if (previewMeta) previewMeta.innerHTML = '<span>' + escapeHtml(STYLE_BY_ID.get(appState.configuration.styleId)?.name ?? '') + '</span><span>·</span><span>' + appState.configuration.tempo + ' BPM</span><span>·</span><span>' + escapeHtml(meterLabel(appState.configuration)) + '</span><span>·</span><span>' + escapeHtml(appState.configuration.trackDurationId) + ' min</span>';
   const feel = document.querySelector<HTMLElement>('#tempo-feel');
@@ -303,26 +351,7 @@ function toggleValue(group: string, value: string): void {
     }
   }
   persist(); refreshDynamicAreas();
-  for (const chip of root.querySelectorAll<HTMLButtonElement>('[data-action="toggle-chip"]')) {
-    if (chip.dataset.group !== group) continue;
-    const selectedValues = group === 'foregroundRule'
-      ? [] : appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds' | 'constraintIds'];
-    const id = chip.dataset.value ?? '';
-    const selected = group === 'foregroundRule'
-      ? appState.configuration.foregroundRule === id
-      : selectedValues.includes(id);
-    chip.classList.toggle('is-selected', selected);
-    chip.setAttribute('aria-pressed', String(selected));
-    const permitted = group === 'foregroundRule' || canSelectOption(group, selectedValues, id, appState.provider);
-    chip.disabled = !permitted;
-    if (permitted) chip.removeAttribute('title');
-    else chip.title = t.limitReached;
-  }
-  for (const note of root.querySelectorAll<HTMLElement>('.chip-limit-notice')) {
-    if (note.dataset.limitGroup !== group) continue;
-    const values = appState.configuration[group as 'harmonyIds' | 'moodIds' | 'productionIds'];
-    note.textContent = selectionLimitNotice(group, values, appState.provider);
-  }
+  synchronizeChoiceButtons(root,appState.configuration,appState.provider);
 }
 function downloadJson(name: string, json: string): void {
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -341,6 +370,8 @@ function handleClick(event: MouseEvent): void {
     appState.configuration.styleId = id; appState.variations = []; persist(); render();
   } else if (action === 'apply-recommendation') {
     appState.configuration = recommendConfiguration(appState.configuration.styleId); appState.variations = []; persist(); render(); notify(t.recommendedApplied);
+  } else if (action === 'option-view') {
+    appState.optionView = button.dataset.view === 'all' ? 'all' : 'recommended'; render();
   } else if (action === 'toggle-chip') toggleValue(button.dataset.group ?? '', button.dataset.value ?? '');
   else if (action === 'remove-instrument') { appState.configuration.instruments.splice(Number(button.dataset.index), 1); persist(); render(); }
   else if (action === 'copy-prompt') {
@@ -358,6 +389,18 @@ function handleClick(event: MouseEvent): void {
   else if (action === 'apply-variation') {
     const variation = appState.variations[Number(button.dataset.index)];
     if (variation) { appState.configuration = { ...appState.configuration, instruments: variation.instruments }; persist(); render(); }
+  } else if (action === 'apply-optimization' || action === 'apply-all-optimizations') {
+    const choices=suggestOptimizations(appState.configuration);
+    const selected=action==='apply-all-optimizations'?choices:choices.filter(x=>x.id===id);
+    if(selected.length){appState.configuration=applyOptimizations(appState.configuration,selected);persist();render();notify('已套用建議，原有 Preset 不變。');}
+  } else if (action === 'save-track-feedback') {
+    const ratings={} as FeedbackRatings;
+    for(const [key] of RATING_LABELS) ratings[key]=Number(root.querySelector<HTMLSelectElement>('[data-feedback-score="'+key+'"]')?.value??0);
+    const note=root.querySelector<HTMLTextAreaElement>('#feedback-note')?.value??'';
+    try{saveTrackFeedback({configuration:appState.configuration,provider:appState.provider,ratings,note});render();notify('已在本機儲存聆聽評分。');}
+    catch{notify('評分儲存失敗，請檢查本機儲存權限。');}
+  } else if (action === 'delete-track-feedback') {
+    if(window.confirm('確定刪除這筆評分？')){removeTrackFeedback(id);render();notify('已刪除評分。');}
   } else if (action === 'save-preset') {
     const input = document.querySelector<HTMLInputElement>('#preset-name');
     if (!input?.value.trim()) { notify(t.presetNameRequired); input?.focus(); return; }
