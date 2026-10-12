@@ -1,3 +1,4 @@
+/* global process, setTimeout, fetch, console, localStorage */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -14,7 +15,7 @@ server.stderr.on('data',data=>{serverOutput+=String(data);});
 async function waitServer() {
   for(let i=0;i<90;i++){
     if(server.exitCode!==null)throw Error('Preview server stopped: '+serverOutput);
-    try { const response=await fetch(pageUrl);if(response.ok)return; }catch {}
+    try { const response=await fetch(pageUrl);if(response.ok)return; }catch { /* preview has not started yet */ }
     await sleep(500);
   }
   throw Error('Preview server unavailable: '+serverOutput);
