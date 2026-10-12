@@ -378,3 +378,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .feedback-entry{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .feedback-entry span{overflow-wrap:anywhere}
 @media(max-width:600px){.optimization-item{align-items:flex-start;flex-direction:column}.guided-options-header{align-items:flex-start}}
+
+/* Visible, touch-friendly status badges; not dependent on hover-only tooltips. */
+.chip .choice-status{display:inline-flex;margin-inline-start:6px;padding:2px 5px;border-radius:7px;background:#f1f3ed;color:#56666a;font-size:10px;font-weight:650;white-space:nowrap}
+.chip.is-style-recommended .choice-status{color:#245b47;background:#dceee2}
+.chip.is-caution .choice-status{color:#805316;background:#fff0cc}
+.chip .chip-label{white-space:normal}
+.feedback-source{display:grid;gap:6px;margin:10px 0;font-size:12px}
+.feedback-source select{max-width:100%;width:100%;padding:8px;border:1px solid #a6b9b3;border-radius:8px}
+.chip:focus-visible,.option-view-switch button:focus-visible{outline:3px solid #31748d;outline-offset:3px}
+@media(pointer:coarse){.option-view-switch button{min-height:42px}.chips button{min-height:42px}}

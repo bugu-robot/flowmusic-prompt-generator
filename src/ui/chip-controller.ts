@@ -19,6 +19,11 @@ export function synchronizeChoiceButtons(root: Pick<ParentNode,'querySelectorAll
       const level = guidanceLevel(config, group, id);
       chip.classList.toggle('is-style-recommended', level === 'recommended');
       chip.classList.toggle('is-caution', level === 'caution');
+      const badge = chip.querySelector<HTMLElement>('.choice-status');
+      const status = level === 'recommended' ? '推薦' : level === 'caution' ? '留意' : '實驗';
+      if (badge) badge.textContent = status;
+      const label = chip.querySelector<HTMLElement>('.chip-label')?.textContent ?? id;
+      chip.setAttribute('aria-label', label + ' · ' + status);
       chip.title = !enabled ? t.limitReached : level === 'recommended' ? '此 Jazz Style 的推薦選項' :
         level === 'caution' ? '可能與目前配置衝突；仍可自由選擇' : '可作實驗性創作配搭';
     } else if (enabled) chip.removeAttribute('title');

@@ -68,7 +68,15 @@ function chipGroup(group: string, items: { id: string; label: string }[], select
   return '<div class="chips ' + className + '" role="group" aria-label="' + escapeHtml(CHIP_GROUP_LABEL[group] ?? group) + '">' + items.map((item) => {
     const active = selected.includes(item.id);
     const canChoose = canSelectOption(group, selected, item.id, appState.provider);
-    return '<button type="button"' + (canChoose ? '' : ' disabled title="' + escapeHtml(t.limitReached) + '"') + ' class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group) + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '">' + escapeHtml(item.label) + '</button>';
+    const guided = group === 'moodIds' || group === 'productionIds';
+    const level = guided ? guidanceLevel(appState.configuration, group, item.id) : undefined;
+    const status = level === 'recommended' ? '推薦' : level === 'caution' ? '留意' : level === 'exploratory' ? '實驗' : '';
+    return '<button type="button"' + (canChoose ? '' : ' disabled title="' + escapeHtml(t.limitReached) + '"')
+      + ' class="chip' + (active ? ' is-selected' : '') + '" data-action="toggle-chip" data-group="' + escapeHtml(group)
+      + '" data-value="' + escapeHtml(item.id) + '" aria-pressed="' + active + '"'
+      + (guided ? ' aria-label="' + escapeHtml(item.label + ' · ' + status) + '"' : '') + '>'
+      + '<span class="chip-label">' + escapeHtml(item.label) + '</span>'
+      + (guided ? '<span class="choice-status" aria-hidden="true">' + status + '</span>' : '') + '</button>';
   }).join('') + '</div>'
     + (notice ? '<p class="chip-limit-notice" data-limit-group="' + escapeHtml(group) + '" role="status">' + escapeHtml(notice) + '</p>' : '');
 }

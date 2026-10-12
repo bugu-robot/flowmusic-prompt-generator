@@ -3,9 +3,10 @@ import { recommendConfiguration } from '../engine/recommendation-engine';
 import { synchronizeChoiceButtons } from './chip-controller';
 import { flowOmittedOptions } from '../engine/flow-overflow';
 function chip(group:string,value:string) {
-  const classes=new Set<string>(), attrs:Record<string,string>={};
+  const classes=new Set<string>(), attrs:Record<string,string>={}, badge={textContent:''};
   return {dataset:{group,value},disabled:false,title:'',classes,attrs,
     classList:{toggle(name:string,on:boolean){if(on)classes.add(name);else classes.delete(name);}},
+    querySelector(selector:string){return selector==='.choice-status'?badge:selector==='.chip-label'?{textContent:value}:null;},
     setAttribute(name:string,v:string){attrs[name]=v;},removeAttribute(name:string){if(name==='title')this.title='';}};
 }
 function dom(buttons: ReturnType<typeof chip>[], group:string) {
@@ -19,6 +20,8 @@ describe('DOM chip controller regressions',()=>{
     const a=chip('moodIds','cozy'),b=chip('moodIds','dreamy'),{root,note}=dom([a,b],'moodIds');
     synchronizeChoiceButtons(root,cfg,'flow');
     expect(a.attrs['aria-pressed']).toBe('true');expect(b.disabled).toBe(true);
+    expect(b.attrs['aria-label']).toContain('實驗');
+    expect(a.attrs['aria-label']).toContain('推薦');
     cfg.moodIds.splice(1,1);synchronizeChoiceButtons(root,cfg,'flow');
     expect(b.disabled).toBe(false);expect(note.textContent).toContain('3/4');
     cfg.moodIds.push('dreamy');synchronizeChoiceButtons(root,cfg,'suno');
