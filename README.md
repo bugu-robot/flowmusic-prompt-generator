@@ -30,7 +30,17 @@ browser configurations and presets; do not rename those keys without migration.
 - The misleading generic "Custom" arrangement is no longer offered to new
   configurations. Imported legacy presets selecting it still have their
   original selection and output preserved.
-- Multi-select chips disable additional choices once an original Flow compiler\n  output limit is reached: **4 moods, 6 harmony types, 3 recording traits,\n  4 other production details**. All previously imported selections remain\n  available for review and deselection; nothing is silently deleted.\n- Tempo Feel remains available in advanced settings because it has a
+- **Suno Simple** allows all Feel/Mood, Harmony and Recording selections; its
+  compiler includes all selected options without the Flow-only caps.
+- **Flow Music** retains the original effective output limits: 4 Mood tags,
+  6 Harmony types, 3 recording-character traits and 4 generic recording
+  effects. **Round Bass** and **Smooth Highs** are independent controls and
+  never consume one of the 4 generic effect slots.
+- Flow-specific limits are shown beneath the chips and update after each
+  selection/deselection. Switching from Suno with more selections to Flow
+  shows a warning that only the first supported choices affect Flow output.
+  Previously selected values and imported presets are never deleted.
+- Tempo Feel remains available in advanced settings because it has a
   distinct effect separate from BPM; other meaningful musical controls remain.
 - A regression suite checks that each selectable setting reaches the actual
   Flow and Suno compilers. The output is model guidance, not a guarantee of audio.
@@ -159,3 +169,14 @@ Target track duration is selectable under basic music settings, with a default o
 The style and instrument catalogs contain musical recommendations. Each style can provide a musical `promptStyle` opening; classification metadata remains for UI and documentation. Flow Music prompt rules live separately in src/engine/prompt-rules.ts and src/engine/prompt-compiler.ts. V1 always compiles `Instrumental only, no vocals.`; the interface shows a fixed instrumental indication, and optional avoidance selections emit only the selected restrictions. Preset imports validate IDs against the shared catalogs while preserving globally valid grooves and tonalities retained after a style change.
 
 All npm packages are development tools, not runtime services. The shipped bundle contains only the browser application; security audit findings in test/build tools still matter because those tools run with developer or CI permissions. See STATUS.md for the audit triage and verification results.
+
+## Genre-aware guidance, exact Flow omissions, and local feedback
+- Derived guidance matrix uses the recommended Feel and Recording seeds of all 38 available styles (including Custom). It is advisory, not a creative veto.
+- Feel/Recording offer recommended or all-option views; already-selected unusual choices stay visible. Optional optimizations are deterministic, reviewable, apply only after a click and do not mutate saved presets.
+- The Flow preview explicitly lists names of values that its unchanged compiler omits, in actual user selection order.
+- Listening feedback records five manually assigned 1–5 ratings, an optional note, a configuration snapshot, provider, and date. It stays in a separate browser-local key, is capped at 100 entries, and is never sent to an API.
+- New DOM-state adapter regressions cover disabled, pressed, deselect, and provider switching; manual real-device UAT remains necessary.
+
+## Browser E2E (PR only)
+
+`.github/workflows/browser-e2e.yml` runs actual headless Chromium and a production Pages preview using a pinned test-only Playwright install (no package-lock update). It asserts Suno default, successful clipboard-to-snapshot capture (Main and Smart B), Flow chip disabling/deselection/provider switching and omitted options, provenance of ratings across configuration edits and reload, and mobile-viewport visible statuses/accessibility labels. This is browser automation, **not** iOS Safari verification. Physical iPhone UAT is still required. No production deployment is performed by any PR workflow.

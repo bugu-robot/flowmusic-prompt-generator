@@ -346,3 +346,45 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .prompt-reading-caption { font-size: 10px; font-weight: 650; margin: 0 0 7px; color: #55726e; }
+
+/* Provider-specific Feel / Recording limits remain understandable on mobile. */
+.chip:disabled { opacity: .48; cursor: not-allowed; border-style: dashed; }
+.chip-limit-notice { margin: 9px 0 0; font-size: 10px; line-height: 1.6; color: #6b7268; }
+
+/* Recommended choices remain optional, never musically hard-disabled. */
+.guided-options-header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.option-view-switch{display:inline-flex;gap:4px}
+.option-view-switch button{border:1px solid #bcc8c1;border-radius:9px;background:transparent;padding:6px 10px;cursor:pointer;font:inherit;font-size:11px}
+.option-view-switch button[aria-pressed="true"]{background:#dde9e2;border-color:#5a8271;font-weight:700}
+.chip.is-style-recommended{border-color:#7c9d87}
+.chip.is-caution:not(.is-selected){border-color:#cfae77;border-style:dashed}
+.guidance-issues{margin:10px 0;padding-left:20px;line-height:1.6}
+.guidance-issues li{margin:7px 0;font-size:12px}
+.optimization-list{display:grid;gap:10px;margin:12px 0}
+.optimization-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid #dbe4dd;border-radius:10px}
+.optimization-item div{min-width:0}
+.optimization-item small{display:block;margin-top:4px;line-height:1.5}
+.flow-overflow-panel{background:#fff5e4;color:#694e2c;border:1px solid #d6c49f;padding:12px;border-radius:12px;margin:12px 0;font-size:12px;line-height:1.6}
+.flow-overflow-panel p{margin:6px 0}
+.flow-overflow-panel ul{margin:6px 0 0;padding-left:20px}
+.feedback-summary{font-size:13px;font-weight:600;margin:8px 0}
+.feedback-details{border-top:1px solid #dce4df;padding-top:10px}
+.feedback-details summary{cursor:pointer;font-weight:600}
+.feedback-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:12px 0}
+.feedback-fields label,.feedback-note{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.feedback-fields select,.feedback-note textarea{width:100%;box-sizing:border-box}
+.feedback-note{margin-bottom:10px}
+.feedback-history{display:grid;gap:6px;margin-top:12px;font-size:12px}
+.feedback-entry{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.feedback-entry span{overflow-wrap:anywhere}
+@media(max-width:600px){.optimization-item{align-items:flex-start;flex-direction:column}.guided-options-header{align-items:flex-start}}
+
+/* Visible, touch-friendly status badges; not dependent on hover-only tooltips. */
+.chip .choice-status{display:inline-flex;margin-inline-start:6px;padding:2px 5px;border-radius:7px;background:#f1f3ed;color:#56666a;font-size:10px;font-weight:650;white-space:nowrap}
+.chip.is-style-recommended .choice-status{color:#245b47;background:#dceee2}
+.chip.is-caution .choice-status{color:#805316;background:#fff0cc}
+.chip .chip-label{white-space:normal}
+.feedback-source{display:grid;gap:6px;margin:10px 0;font-size:12px}
+.feedback-source select{max-width:100%;width:100%;padding:8px;border:1px solid #a6b9b3;border-radius:8px}
+.chip:focus-visible,.option-view-switch button:focus-visible{outline:3px solid #31748d;outline-offset:3px}
+@media(pointer:coarse){.option-view-switch button{min-height:42px}.chips button{min-height:42px}}

@@ -34,21 +34,57 @@ export function structureOptions(current: string, all: readonly (readonly [strin
     .concat(current === 'custom' ? [{ id: 'custom', label: t.deprecatedStructure }] : []);
 }
 
-const RECORDING_CHARACTER = new Set(['warm','intimate','acoustic','clean','spacious','dark','airy','close-mic']);
+const RECORDING_CHARACTER = new Set(['warm', 'intimate', 'acoustic', 'clean', 'spacious', 'dark', 'airy', 'close-mic']);
+const RECORDING_ALWAYS_INCLUDED = new Set(['round-bass', 'smooth-highs']);
+const recordingEffects = (selected: readonly string[]) =>
+  selected.filter(id => !RECORDING_CHARACTER.has(id) && !RECORDING_ALWAYS_INCLUDED.has(id));
+const recordingTraits = (selected: readonly string[]) => selected.filter(id => RECORDING_CHARACTER.has(id));
 
-// The historical Flow compiler uses up to four moods, six harmonies, three
-// recording-character traits and four production descriptors. Prevent users
-// from selecting hidden/no-effect extras; existing presets are not truncated.
-export function canSelectOption(group: string, selected: readonly string[], id: string): boolean {
-  if (selected.includes(id)) return true;
+export type SelectionProvider = 'flow' | 'suno';
+
+// The existing Flow Music formatter deliberately limits the number of
+// descriptors it emits. Suno Simple includes every selected option without
+// those caps. Round Bass and Smooth Highs are independently rendered by
+// Flow and must not consume a generic recording-effect slot.
+export function canSelectOption(
+  group: string, selected: readonly string[], id: string,
+  provider: SelectionProvider = 'flow',
+): boolean {
+  if (provider === 'suno' || selected.includes(id)) return true;
   if (group === 'harmonyIds') {
     if ((id === 'sixth' || id === 'maj6') && selected.some(value => value === 'sixth' || value === 'maj6')) return true;
     return selected.length < 6;
   }
   if (group === 'moodIds') return selected.length < 4;
   if (group === 'productionIds') {
-    const isCharacter = RECORDING_CHARACTER.has(id);
-    return selected.filter(value => RECORDING_CHARACTER.has(value) === isCharacter).length < (isCharacter ? 3 : 4);
+    if (RECORDING_ALWAYS_INCLUDED.has(id)) return true;
+    return RECORDING_CHARACTER.has(id) ? recordingTraits(selected).length < 3 : recordingEffects(selected).length < 4;
   }
   return true;
+}
+
+// Always surface the Flow-specific limitation, including when an imported
+// Suno configuration already exceeds it. No options or presets are deleted.
+export function selectionLimitNotice(
+  group: string, selected: readonly string[], provider: SelectionProvider,
+): string {
+  if (provider !== 'flow') return '';
+  if (group === 'moodIds') {
+    return selected.length > 4
+      ? 'Flow Music 只會使用前 4 個 Feel（目前已選 ' + selected.length + ' 個）；Suno Simple 會保留全部。'
+      : 'Flow Music 最多使用 4 個 Feel（目前 ' + selected.length + '/4）；Suno Simple 不設此限制。';
+  }
+  if (group === 'harmonyIds') {
+    return selected.length > 6
+      ? 'Flow Music 只會使用前 6 種 Harmony（目前已選 ' + selected.length + ' 種）；Suno Simple 會保留全部。'
+      : 'Flow Music 最多使用 6 種 Harmony（目前 ' + selected.length + '/6）；Suno Simple 不設此限制。';
+  }
+  if (group === 'productionIds') {
+    const traits = recordingTraits(selected).length;
+    const effects = recordingEffects(selected).length;
+    return 'Flow Music Recording：音色特徵 ' + traits + '/3，其他效果 ' + effects + '/4'
+      + (traits > 3 || effects > 4 ? '（超額項目只會用於 Suno Simple）' : '')
+      + '。Round Bass 和 Smooth Highs 不計入上限；Suno Simple 不設此限制。';
+  }
+  return '';
 }
