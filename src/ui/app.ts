@@ -4,9 +4,9 @@ import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
 import { compilePrompt } from '../engine/prompt-compiler';
-import { STYLE_GUIDANCE_MATRIX, analyzeMusicalGuidance, suggestOptimizations, applyOptimizations } from '../engine/musical-guidance';
+import { STYLE_GUIDANCE_MATRIX, analyzeMusicalGuidance, suggestOptimizations, applyOptimizations, guidanceLevel } from '../engine/musical-guidance';
 import { flowOmittedOptions } from '../engine/flow-overflow';
-import { feedbackSummary, listTrackFeedback, saveTrackFeedback, removeTrackFeedback, clearTrackFeedback, RATING_LABELS, type FeedbackRatings } from '../storage/track-feedback';
+import { feedbackSummary, listTrackFeedback, saveTrackFeedback, removeTrackFeedback, clearTrackFeedback, listPromptSnapshots, savePromptSnapshot, clearPromptSnapshots, RATING_LABELS, type FeedbackRatings, type PromptKind } from '../storage/track-feedback';
 import { synchronizeChoiceButtons } from './chip-controller';
 import { describePromptZh } from '../engine/prompt-zh-reference';
 import type { PromptView } from '../engine/prompt-zh-reference';
@@ -85,7 +85,7 @@ function guidedChipGroup(group: 'moodIds' | 'productionIds', items: {id:string;l
 function renderGuidancePanel():string {
   const issues=analyzeMusicalGuidance(appState.configuration),suggestions=suggestOptimizations(appState.configuration);
   return '<section class="panel compact-panel" id="guidance-panel" aria-labelledby="guidance-heading"><div class="panel-heading"><div><p class="eyebrow">STYLE-AWARE · OPTIONAL</p><h2 id="guidance-heading">智能音樂配置建議</h2></div></div>'
-    + '<p class="quiet">以現有 38 種 Jazz Style 的推薦資料為基礎；實驗性配搭仍可使用，建議不會自動改動設定。</p>'
+    + '<p class="quiet">以現有 38 種 Jazz Style 的推薦資料為基礎；實驗性配搭仍可使用，以下跨設定一致性提示獨立於上方 100 分匹配分數；建議不會自動改動設定。</p>'
     + (issues.length?'<ul class="guidance-issues">'+issues.map(x=>'<li><strong>'+(x.level==='caution'?'留意':'創作提示')+'</strong> '+escapeHtml(x.message)+'</li>').join('')+'</ul>':'<p class="quiet">未發現已知設定矛盾。</p>')
     + (suggestions.length?'<div class="optimization-list">'+suggestions.map(x=>'<div class="optimization-item"><div><strong>'+escapeHtml(x.label)+'</strong><small>'+escapeHtml(x.reason)+'</small></div><button class="button button-small" type="button" data-action="apply-optimization" data-id="'+escapeHtml(x.id)+'">套用這項</button></div>').join('')+'</div><button class="button button-secondary" type="button" data-action="apply-all-optimizations">套用全部建議（'+suggestions.length+'）</button>':'')
     + '</section>';
@@ -96,19 +96,31 @@ function renderFlowOverflowPanel():string {
     +(omitted.length?'<strong>Flow Music：部分選項未輸出</strong><p>只輸出實際最先選取的項目，而非畫面左至右的項目。以下設定保留於配置，但不會進入這次 Flow Prompt：</p><ul>'
       +omitted.map(x=>'<li><strong>'+escapeHtml(x.group)+'：</strong>'+escapeHtml(x.omitted.join('、'))+'</li>').join('')+'</ul>':'')+'</div>';
 }
+
 function renderFeedbackPanel():string {
   const style=appState.configuration.styleId,summary=feedbackSummary(style,appState.provider);
+  const snapshots=listPromptSnapshots().slice().reverse();
   const recent=listTrackFeedback().filter(x=>x.configuration.styleId===style&&x.provider===appState.provider).slice(-3).reverse();
+  const selector=snapshots.length
+    ? '<label class="feedback-source"><span>選擇當初成功複製的 Prompt（記錄原始內容，而非目前設定）</span><select id="feedback-prompt-source">'
+      + snapshots.map(s=>'<option value="'+escapeHtml(s.id)+'">'+escapeHtml(s.copiedAt.replace('T',' ').slice(0,16)+' UTC · '+s.provider.toUpperCase()+' · '+s.kind+' · '+s.configuration.styleId)+'</option>').join('')+'</select></label>'
+    : '<p class="quiet">尚無複製紀錄。請先成功複製主要 Prompt 或 Smart A/B/C，再按聆聽結果評分。</p>';
   return '<section class="panel compact-panel" id="feedback-panel" aria-labelledby="feedback-heading"><div class="panel-heading"><div><p class="eyebrow">AFTER LISTENING · DEVICE ONLY</p><h2 id="feedback-heading">音樂結果評分</h2></div></div>'
-    +'<p class="quiet">生成並實際聆聽作品後才評分；不會上傳或分析音訊。資料只儲存在這部裝置，最多 100 筆。</p>'
-    +'<p class="feedback-summary">目前風格＋平台：'+summary.count+' 筆'+(summary.average===null?'':' · 整體平均 '+summary.average.toFixed(1)+'/5')+'</p>'
-    +'<button class="button button-quiet" type="button" data-action="clear-track-feedback">清空全部本機評分</button>'
-    +'<details class="feedback-details"><summary>記錄新作品評分</summary><div class="feedback-fields">'
+    +'<p class="quiet">只為實際生成並聆聽過的音樂評分。配置改變不會更改當初複製的 Prompt；全部資料只留在本機。</p>'
+    +'<p class="feedback-summary">目前風格＋平台：'+summary.count+' 筆'+(summary.average===null?'':' · 整體平均 '+summary.average.toFixed(1)+'/5')+' · 已連結原文 '+summary.linkedCount+' 筆</p>'
+    +'<button class="button button-quiet" type="button" data-action="clear-track-feedback">清空全部本機評分</button> '
+    +'<button class="button button-quiet" type="button" data-action="clear-prompt-snapshots">清空複製紀錄</button>'
+    +'<details class="feedback-details"><summary>記錄新作品評分</summary>'+selector+'<div class="feedback-fields">'
     +RATING_LABELS.map(([key,label])=>'<label><span>'+label+'</span><select data-feedback-score="'+key+'">'+[1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===3?' selected':'')+'>'+n+'/5</option>').join('')+'</select></label>').join('')+'</div>'
-    +'<label class="feedback-note"><span>作品備註（可選）</span><textarea id="feedback-note" maxlength="300" rows="2" placeholder="例如：第二版的結他旋律較自然"></textarea></label>'
-    +'<button class="button button-secondary" type="button" data-action="save-track-feedback">儲存聆聽評分</button></details>'
-    +(recent.length?'<div class="feedback-history"><strong>最近紀錄</strong>'+recent.map(x=>'<div class="feedback-entry"><span>'+escapeHtml(x.createdAt.slice(0,10))+' · '+x.ratings.overall+'/5 · '+escapeHtml(x.note)+'</span><button type="button" class="danger-text" data-action="delete-track-feedback" data-id="'+escapeHtml(x.id)+'">刪除</button></div>').join('')+'</div>':'')+'</section>';
+    +'<label class="feedback-note"><span>作品備註（可選）</span><textarea id="feedback-note" maxlength="300" rows="2"></textarea></label>'
+    +'<button class="button button-secondary" type="button" data-action="save-track-feedback"'+(snapshots.length?'':' disabled')+'>儲存聆聽評分</button></details>'
+    +(recent.length?'<div class="feedback-history"><strong>最近紀錄</strong>'+recent.map(x=>'<div class="feedback-entry"><span>'+escapeHtml(x.createdAt.slice(0,10))+' · '+x.ratings.overall+'/5 · '+(x.snapshot?'Prompt '+x.snapshot.kind+' · '+x.snapshot.provider:'舊評分（無 Prompt 快照）')+' · '+escapeHtml(x.note)+'</span><button type="button" class="danger-text" data-action="delete-track-feedback" data-id="'+escapeHtml(x.id)+'">刪除</button></div>').join('')+'</div>':'')+'</section>';
 }
+function refreshFeedbackPanel():void {
+  const current=document.querySelector<HTMLElement>('#feedback-panel');if(!current)return;
+  const wrapper=document.createElement('div');wrapper.innerHTML=renderFeedbackPanel();current.replaceWith(wrapper.firstElementChild!);
+}
+
 function renderStyleCards(filter: string): string {
   const query = filter.trim().toLocaleLowerCase();
   const matches = JAZZ_STYLES.filter((style) => !query || (style.name + ' ' + style.nameZh + ' ' + style.descriptionZh).toLocaleLowerCase().includes(query));
@@ -148,7 +160,7 @@ function renderCompatibility(configuration: MusicConfiguration): string {
   const messages = result.messages.length
     ? result.messages.map((message) => '<li class="' + (message.category === 'conflict' ? 'warning-conflict' : '') + '"><span aria-hidden="true">' + (message.category === 'conflict' ? '!' : '↗') + '</span><div><p>' + escapeHtml(message.message) + '</p>' + (message.suggestions?.length ? '<small>' + t.suggestions + '：' + message.suggestions.map(escapeHtml).join('、') + '</small>' : '') + '</div></li>').join('')
     : '<li class="no-warning">' + t.noWarnings + '</li>';
-  return '<section class="panel compact-panel" id="compatibility-panel" aria-labelledby="compatibility-heading"><div class="panel-heading"><div><p class="eyebrow">RULE-BASED · ADVISORY</p><h2 id="compatibility-heading">' + t.compatibilityTitle + '</h2></div><div class="score-badge score-' + result.label + '"><strong>' + result.score + '</strong><span>/100</span></div></div><p class="quiet">' + t.compatibilityNote + '</p><p class="match-label match-' + result.label + '">' + MATCH_LABEL[result.label] + '</p>'
+  return '<section class="panel compact-panel" id="compatibility-panel" aria-labelledby="compatibility-heading"><div class="panel-heading"><div><p class="eyebrow">RULE-BASED · ADVISORY</p><h2 id="compatibility-heading">' + t.compatibilityTitle + '</h2></div><div class="score-badge score-' + result.label + '"><strong>' + result.score + '</strong><span>/100</span></div></div><p class="quiet">' + t.compatibilityNote + ' 此分數沒有涵蓋下方獨立的跨設定 Feel／Recording 提示。</p><p class="match-label match-' + result.label + '">' + MATCH_LABEL[result.label] + '</p>'
     + '<ul class="warning-list">' + messages + '</ul><details class="factor-details"><summary>' + t.scoreFactors + '</summary><div class="factor-list">' + factors + '</div><small>' + t.confidenceTone + '</small></details></section>';
 }
 function renderVariations(): string {
@@ -376,15 +388,22 @@ function handleClick(event: MouseEvent): void {
     appState.optionView = button.dataset.view === 'all' ? 'all' : 'recommended'; render();
   } else if (action === 'toggle-chip') toggleValue(button.dataset.group ?? '', button.dataset.value ?? '');
   else if (action === 'remove-instrument') { appState.configuration.instruments.splice(Number(button.dataset.index), 1); persist(); render(); }
-  else if (action === 'copy-prompt') {
-    const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy('prompt-output'));
-    else if (output) selectEnglishForManualCopy('prompt-output');
-  } else if (action === 'copy-smart') {
-    const id = 'smart-output-' + button.dataset.id;
-    const output = document.querySelector<HTMLTextAreaElement>('#' + id);
-    if (output && navigator.clipboard?.writeText) navigator.clipboard.writeText(output.value).then(() => notify(t.copied)).catch(() => selectEnglishForManualCopy(id));
-    else if (output) selectEnglishForManualCopy(id);
+  else if (action === 'copy-prompt' || action === 'copy-smart') {
+    const kind:PromptKind = action === 'copy-prompt' ? 'main' :
+      button.dataset.id === 'A' || button.dataset.id === 'B' || button.dataset.id === 'C' ? button.dataset.id : 'main';
+    const targetId=kind==='main'?'prompt-output':'smart-output-'+kind;
+    const output=document.querySelector<HTMLTextAreaElement>('#'+targetId);
+    if(output && navigator.clipboard?.writeText) {
+      const exactText=output.value, frozenConfig=structuredClone(appState.configuration), frozenProvider=appState.provider;
+      const frozenStrength=appState.smartStrength, frozenSeed=appState.smartSeed;
+      navigator.clipboard.writeText(exactText).then(()=>{
+        try{
+          savePromptSnapshot({provider:frozenProvider,kind,promptText:exactText,configuration:frozenConfig,
+            ...(kind==='main'?{}:{smartStrength:frozenStrength,smartSeed:frozenSeed})});
+          refreshFeedbackPanel();notify('已複製並記錄精確 Prompt 供聆聽評分。');
+        }catch{notify('已複製，但無法在本機保存 Prompt Snapshot。');}
+      }).catch(()=>selectEnglishForManualCopy(targetId));
+    } else if(output)selectEnglishForManualCopy(targetId);
   } else if (action === 'reroll-smart') { appState.smartSeed += 1; refreshDynamicAreas(); }
   else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
   else if (action === 'generate-variations') { appState.variations = generateVariations(appState.configuration); render(); }
@@ -396,11 +415,16 @@ function handleClick(event: MouseEvent): void {
     const selected=action==='apply-all-optimizations'?choices:choices.filter(x=>x.id===id);
     if(selected.length){appState.configuration=applyOptimizations(appState.configuration,selected);persist();render();notify('已套用建議，原有 Preset 不變。');}
   } else if (action === 'save-track-feedback') {
+    const promptSnapshotId=root.querySelector<HTMLSelectElement>('#feedback-prompt-source')?.value??'';
     const ratings={} as FeedbackRatings;
     for(const [key] of RATING_LABELS) ratings[key]=Number(root.querySelector<HTMLSelectElement>('[data-feedback-score="'+key+'"]')?.value??0);
     const note=root.querySelector<HTMLTextAreaElement>('#feedback-note')?.value??'';
-    try{saveTrackFeedback({configuration:appState.configuration,provider:appState.provider,ratings,note});render();notify('已在本機儲存聆聽評分。');}
-    catch{notify('評分儲存失敗，請檢查本機儲存權限。');}
+    try{saveTrackFeedback({promptSnapshotId,ratings,note});render();notify('評分已連結到原始複製 Prompt。');}
+    catch{notify('儲存失敗：請選擇複製紀錄並檢查儲存權限。');}
+  } else if (action === 'clear-prompt-snapshots') {
+    if(window.confirm('清空複製 Prompt 紀錄？現有評分所附的快照不會刪除。')) {
+      try{clearPromptSnapshots();render();notify('複製紀錄已清空。');}catch{notify('無法清空複製紀錄。');}
+    }
   } else if (action === 'clear-track-feedback') {
     if(window.confirm('確定清空這部裝置的全部作品評分？此操作不會影響 Preset。')) {
       try {clearTrackFeedback();render();notify('全部本機評分已清空。');}
