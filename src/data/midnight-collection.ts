@@ -100,6 +100,37 @@ export const MIDNIGHT_COLLECTION: readonly CollectionPreset[] = [
       ],
     }),
   },
+  {
+    id: 'slow-piano-trio', name: 'Slow Piano Trio', nameZh: '慢板鋼琴三重奏',
+    descriptionZh: '66 BPM · Acoustic Piano 主奏、Upright Bass 與極輕 Brush Drums；柔和 Swing、留白旋律，適合閱讀與安靜咖啡館。',
+    configuration: configuration('piano-cafe-jazz', {
+      tempo: 66, grooveId: 'soft-swing', tonalityId: 'warm-major', sceneId: 'reading-room',
+      energy: 18, melodyDensity: 22, improvisation: 15,
+      moodIds: ['calm', 'warm', 'intimate'], harmonyIds: ['maj7', 'min7', 'sixth', 'add9'],
+      productionIds: ['warm', 'intimate', 'room', 'soft-transients'],
+      instruments: [
+        part('piano', 'lead', 65, 'understated melodic phrases'),
+        part('upright-bass', 'bass', 40, 'a simple, warm and restrained foundation'),
+        part('brush-drums', 'rhythm', 15, 'a feather-light brushed pulse'),
+      ],
+    }),
+  },
+  {
+    id: 'late-night-saxophone', name: 'Late Night Saxophone', nameZh: '深夜薩克斯風',
+    descriptionZh: '62 BPM · Tenor Sax 主奏、Acoustic Piano 和聲、Upright Bass 與極輕 Brush Drums；克制抒情，適合深夜城市。',
+    configuration: configuration('jazz-ballad', {
+      tempo: 62, grooveId: 'slow-ballad', tonalityId: 'relative-minor', sceneId: 'late-night',
+      energy: 18, melodyDensity: 20, improvisation: 14,
+      moodIds: ['nostalgic', 'reflective', 'intimate'], harmonyIds: ['maj7', 'min7', 'min9', 'add9'],
+      productionIds: ['warm', 'intimate', 'room', 'soft-transients'],
+      instruments: [
+        part('tenor-sax', 'lead', 62, 'warm, restrained lyrical phrases with generous pauses'),
+        part('piano', 'harmony', 30, 'soft, spacious chord voicings'),
+        part('upright-bass', 'bass', 38, 'a simple, warm and restrained foundation'),
+        part('brush-drums', 'rhythm', 12, 'a feather-light brushed pulse'),
+      ],
+    }),
+  },
 ];
 
 export function createMidnightConfiguration(id: string): MusicConfiguration | undefined {
