@@ -3,10 +3,11 @@ import type { VariationStrength } from '../engine/smart-prompt-planner';
 // Local, human-authored translations for every genre-family interpretation.
 // Never auto-translate the provider input; it must remain identical English.
 export const FAMILY_FOCUS_ZH: Record<string, readonly [string, string, string]> = {
+  ambient: ['在充足留白之間，讓少量清晰爵士動機輕柔浮現。', '以安靜音符落點演繹已選稀疏節拍，不增加聲部。', '以開放聲部間距和緩慢連接，延續既定爵士和弦色彩。'],
   cozy: ['以克制旋律動機及細緻樂句結尾，塑造柔和的音樂線條。', '用低調的節奏演繹，為已選的輕柔律動保留呼吸空間。', '著重原有和聲的聲部間距及細微音色變化。'],
   bossa: ['圍繞已選 Bossa 律動，以抒情樂句帶動旋律。', '強調所選 Bossa 伴奏中互相扣連的切分節奏。', '突出柔和延伸和弦的色彩，同時保持 Bossa 律動疏朗。'],
-  cool: ['以精簡而從容的旋律，為各聲部留出位置。', '精準處理克制的 Swing 重音及節奏落點。', '讓原有和聲以通透、平衡的聲部排列呈現。'],
-  swing: ['令已選 Swing 節奏中的主題旋律優雅而清晰。', '著重原有 Swing 律動的咬字與推進感。', '藉聲部安排與樂句位置營造和聲起伏，不加入新樂器。'],
+  cool: ['以精簡而從容的旋律，為各聲部留出位置。', '精準處理明確選定律動的克制咬字及節奏落點。', '讓原有和聲以通透、平衡的聲部排列呈現。'],
+  swing: ['令已選節奏中的主題旋律優雅而清晰。', '著重明確選定律動的咬字與推進感。', '藉聲部安排與樂句位置營造和聲起伏，不加入新樂器。'],
   ballad: ['讓抒情旋律沿著長而具表情的線條自然展開。', '細緻處理原有柔和脈動的音符落點。', '以連貫和弦聲部營造溫暖共鳴。'],
   modal: ['圍繞既定調式中心發展旋律動機。', '維持既定拍感，讓持續的調式樂段自然呼吸。', '在現有調式持續低音與和聲節奏中調整聲部間距。'],
   chamber: ['令已選室內爵士聲部之間的旋律對答更細膩。', '精準平衡已選室內樂聲部的節奏互動。', '理順既有對位旋律及和聲空間，不增加聲部。'],

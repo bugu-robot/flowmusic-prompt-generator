@@ -104,8 +104,77 @@ try{
   await page.locator('[data-action="option-view"][data-view="recommended"]').first().click();
   assert.equal(await page.locator('[data-action="option-view"][data-view="recommended"]').first().getAttribute('aria-pressed'),'true');
   console.log('PASS: mobile-sized viewport exposes semantic labels and recommended/all controls');
+
+  // Built-in collection application must never overwrite user-owned presets.
+  await page.setViewportSize({width:1280,height:850});
+  await page.locator('#preset-name').fill('Existing preset before Midnight');
+  await page.locator('[data-action="save-preset"]').click();
+  const existingPresets=await page.evaluate(()=>localStorage.getItem('flowmusic.promptGenerator.presets.v1'));
+  const profiles=[['midnight-ambient',58],['blue-city-lounge',72],['rainy-night-mellow',62],['silent-minimal',50],['moonlit-guitar',64]];
+  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),5);
+  for(const [id,tempo] of profiles) {
+    await page.locator('[data-action="apply-midnight"][data-id="'+id+'"]').click();
+    assert.equal(Number(await page.locator('#tempo-number').inputValue()),tempo);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('flowmusic.promptGenerator.presets.v1')),existingPresets);
+    for(const provider of ['suno','flow']) {
+      await page.locator('#prompt-provider').selectOption(provider);
+      const prompt=await page.locator('#prompt-output').inputValue();
+      assert.match(prompt,new RegExp(tempo+' BPM'));
+      if(id==='blue-city-lounge') {
+        const b=await page.locator('#smart-output-B').inputValue();
+        assert.match(b,/straight-eighth/);
+        assert.doesNotMatch(b,/\bswing\b/i);
+      }
+      if(id==='rainy-night-mellow'||id==='silent-minimal')assert.match(prompt,/soft felt piano/i);
+    }
+  }
+  console.log('PASS: all five Midnight profiles, both providers, straight groove and existing user presets');
+
+  // Felt is piano-only, survives reload and successful copy, and is explicitly
+  // not advertised as a dedicated audio preview.
+  await page.locator('[data-action="apply-midnight"][data-id="rainy-night-mellow"]').click();
+  await page.locator('#prompt-provider').selectOption('suno');
+  const timbre=page.locator('[data-part-field="timbreId"]');
+  assert.equal(await timbre.count(),1);
+  assert.equal(await timbre.inputValue(),'felt');
+  assert.match(await page.locator('.felt-preview-note').innerText(),/並非專屬 Felt/);
+  await timbre.selectOption('standard');
+  assert.doesNotMatch(await page.locator('#prompt-output').inputValue(),/\bfelt\b/i);
+  await timbre.selectOption('felt');
+  await page.locator('[data-action="copy-prompt"]').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.copiedPrompts.v1')??'[]').length===3);
+  const feltCapture=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.copiedPrompts.v1')??'[]').at(-1));
+  assert.equal(feltCapture.configuration.instruments.find(x=>x.instrumentId==='piano').timbreId,'felt');
+  assert.match(feltCapture.promptText,/soft felt piano/i);
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await timbre.inputValue(),'felt');
+  assert.match(await page.locator('#prompt-output').inputValue(),/soft felt piano/i);
+  console.log('PASS: Felt toggle, honest audio-preview note, copied configuration and reload');
+
+  // The P2 warning is visible without silently removing the selected pads.
+  await page.locator('#instrument-picker').selectOption('ambient-pads');
+  const advanced=page.locator('.advanced-controls');
+  if(!(await advanced.evaluate(node=>node.open)))await advanced.locator('summary').click();
+  const exclusion=page.locator('[data-action="toggle-chip"][data-group="constraintIds"][data-value="electronic"]');
+  await exclusion.click();
+  assert.match(await page.locator('#guidance-panel').innerText(),/互相矛盾/);
+  await page.locator('[data-action="apply-optimization"][data-id="remove-electronic-exclusion"]').click();
+  assert.equal(await exclusion.getAttribute('aria-pressed'),'false');
+  const live=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+  assert.equal(live.instruments.some(x=>x.instrumentId==='ambient-pads'&&x.enabled),true);
+  console.log('PASS: electronic exclusion warning and explicit-only repair preserve selected pads');
+
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('[data-action="apply-midnight"][data-id="silent-minimal"]').click();
+  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),5);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+  await page.locator('#toast.is-visible').waitFor({state:'hidden'});
+  await page.locator('.midnight-collection').screenshot({path:'.artifacts/midnight-collection-mobile.png'});
+  await page.setViewportSize({width:1280,height:850});
+  await page.locator('.midnight-collection').screenshot({path:'.artifacts/midnight-collection-desktop.png'});
+  console.log('PASS: Midnight cards and Felt controls at mobile width without horizontal overflow');
   assert.deepEqual(errors,[]);
-  console.log('PASS: 5 Chromium browser E2E groups, no uncaught page errors');
+  console.log('PASS: 9 Chromium browser E2E groups, no uncaught page errors');
 } finally {
   await browser?.close();
   server.kill('SIGTERM');

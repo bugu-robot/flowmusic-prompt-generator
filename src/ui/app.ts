@@ -1,5 +1,7 @@
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES, TONALITIES } from '../data/options';
 import { INSTRUMENTS, INSTRUMENT_BY_ID } from '../data/instruments';
+import { MIDNIGHT_COLLECTION, createMidnightConfiguration } from '../data/midnight-collection';
+import { PIANO_TIMBRES } from '../data/piano-timbres';
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { TRACK_DURATIONS, normalizeTrackDurationId } from '../data/track-duration';
 import { checkCompatibility } from '../engine/compatibility-engine';
@@ -93,7 +95,7 @@ function guidedChipGroup(group: 'moodIds' | 'productionIds', items: {id:string;l
 function renderGuidancePanel():string {
   const issues=analyzeMusicalGuidance(appState.configuration),suggestions=suggestOptimizations(appState.configuration);
   return '<section class="panel compact-panel" id="guidance-panel" aria-labelledby="guidance-heading"><div class="panel-heading"><div><p class="eyebrow">STYLE-AWARE · OPTIONAL</p><h2 id="guidance-heading">智能音樂配置建議</h2></div></div>'
-    + '<p class="quiet">以現有 38 種 Jazz Style 的推薦資料為基礎；實驗性配搭仍可使用，以下跨設定一致性提示獨立於上方 100 分匹配分數；建議不會自動改動設定。</p>'
+    + '<p class="quiet">' + t.guidanceHint + '</p>'
     + (issues.length?'<ul class="guidance-issues">'+issues.map(x=>'<li><strong>'+(x.level==='caution'?'留意':'創作提示')+'</strong> '+escapeHtml(x.message)+'</li>').join('')+'</ul>':'<p class="quiet">未發現已知設定矛盾。</p>')
     + (suggestions.length?'<div class="optimization-list">'+suggestions.map(x=>'<div class="optimization-item"><div><strong>'+escapeHtml(x.label)+'</strong><small>'+escapeHtml(x.reason)+'</small></div><button class="button button-small" type="button" data-action="apply-optimization" data-id="'+escapeHtml(x.id)+'">套用這項</button></div>').join('')+'</div><button class="button button-secondary" type="button" data-action="apply-all-optimizations">套用全部建議（'+suggestions.length+'）</button>':'')
     + '</section>';
@@ -160,6 +162,7 @@ function renderInstrument(part: InstrumentPart, index: number): string {
   return '<article class="instrument-row' + (part.enabled ? '' : ' is-disabled') + '"><div class="instrument-title"><div><strong>' + escapeHtml(instrument.nameZh) + '</strong><span>' + escapeHtml(instrument.name) + '</span></div><div class="instrument-title-actions"><label class="instrument-enabled"><input type="checkbox" data-part-index="' + index + '" data-part-field="enabled"' + (part.enabled ? ' checked' : '') + '><span>' + t.includeInstrument + '</span></label>' + previewControl('instrument', instrument.id, instrument.nameZh, true) + '<button type="button" class="icon-button" data-action="remove-instrument" data-index="' + index + '" aria-label="' + t.remove + ' ' + escapeHtml(instrument.nameZh) + '">×</button></div></div>'
     + '<div class="instrument-fields"><label><span>' + t.role + '</span><select data-part-index="' + index + '" data-part-field="role">' + selectOptions(roles, part.role) + '</select></label>'
     + '<label><span>' + t.prominence + '</span><select data-part-index="' + index + '" data-part-field="prominence" aria-label="' + t.prominence + ' ' + escapeHtml(instrument.nameZh) + '">' + selectOptions(PROMINENCE_OPTIONS.map(o => ({ id: o.id, label: o.label })), prominenceChoice(part.prominence)) + '</select></label></div>'
+    + (part.instrumentId === 'piano' ? '<label class="piano-timbre"><span>' + t.pianoTimbre + '</span><select data-part-index="' + index + '" data-part-field="timbreId" aria-label="' + t.pianoTimbre + '">' + selectOptions(PIANO_TIMBRES.map(item => ({ id: item.id, label: item.nameZh })), part.timbreId ?? 'standard') + '</select></label>' + (part.timbreId === 'felt' ? '<p class="section-help felt-preview-note" role="note">' + t.feltPreviewNote + '</p>' : '') : '')
     + '<div class="behaviour-controls"><label class="behaviour-field"><span>' + t.behaviour + '</span><select data-part-index="' + index + '" data-part-field="behaviour">' + selectOptions(instrument.behaviours.map((behaviour, i) => ({ id: String(i), label: instrumentBehaviourLabelZhHK(behaviour) })), String(Math.max(0, instrument.behaviours.indexOf(part.behaviour)))) + '</select></label>' + previewControl('behaviour', instrument.id + '::' + part.behaviour, instrument.nameZh + ' · ' + instrumentBehaviourLabelZhHK(part.behaviour)) + '</div></article>';
 }
 function renderCompatibility(configuration: MusicConfiguration): string {
@@ -216,6 +219,10 @@ function renderPreset(preset: UserPreset): string {
   return '<article class="preset-row" data-preset-id="' + escapeHtml(preset.id) + '"><div class="preset-info"><strong>' + escapeHtml(preset.name) + '</strong><small>' + escapeHtml(STYLE_BY_ID.get(preset.configuration.styleId)?.name ?? '') + ' · ' + new Date(preset.updatedAt).toLocaleDateString('zh-HK') + '</small></div><div class="preset-actions">'
     + '<button type="button" data-action="load-preset" data-id="' + escapeHtml(preset.id) + '">' + t.loadPreset + '</button><button type="button" data-action="rename-preset" data-id="' + escapeHtml(preset.id) + '">' + t.renamePreset + '</button><button type="button" data-action="duplicate-preset" data-id="' + escapeHtml(preset.id) + '">' + t.duplicatePreset + '</button><button type="button" data-action="export-preset" data-id="' + escapeHtml(preset.id) + '">' + t.exportPreset + '</button><button type="button" class="danger-text" data-action="delete-preset" data-id="' + escapeHtml(preset.id) + '">' + t.deletePreset + '</button></div></article>';
 }
+function renderMidnightCollection(): string {
+  return '<section class="panel midnight-collection" aria-labelledby="midnight-heading"><div class="panel-heading"><div><p class="eyebrow">MIDNIGHT COLLECTION</p><h2 id="midnight-heading">' + t.midnightTitle + '</h2><p class="section-help">' + t.midnightHint + '</p></div></div><div class="midnight-grid">'
+    + MIDNIGHT_COLLECTION.map(preset => '<article class="midnight-card"><h3>' + escapeHtml(preset.name) + '</h3><strong>' + escapeHtml(preset.nameZh) + '</strong><p>' + escapeHtml(preset.descriptionZh) + '</p><button type="button" class="button button-secondary" data-action="apply-midnight" data-id="' + preset.id + '" aria-label="' + t.applyMidnight + ' ' + escapeHtml(preset.name) + '">' + t.applyMidnight + '</button></article>').join('') + '</div></section>';
+}
 function renderPresets(): string {
   const presets = listPresets();
   return '<section class="panel compact-panel" aria-labelledby="presets-heading"><div class="panel-heading"><div><p class="eyebrow">DEVICE ONLY</p><h2 id="presets-heading">' + t.presetsTitle + '</h2></div><span class="local-lock" aria-label="本機儲存">⌂</span></div>'
@@ -256,7 +263,7 @@ function render(): void {
     + '<div class="studio-layout"><div class="configuration-column"><section class="panel style-panel" aria-labelledby="style-heading"><div class="panel-heading"><div><p class="eyebrow">01 · STYLE</p><h2 id="style-heading">' + t.styleTitle + '</h2><p class="section-help">' + t.styleHint + '</p></div></div>'
     + '<label class="search-field"><span aria-hidden="true">⌕</span><input id="style-search" type="search" aria-label="' + t.searchStyle + '" placeholder="' + t.searchStyle + '" autocomplete="off"></label><div class="style-grid" id="style-grid">' + renderStyleCards('') + '</div>'
     + (style.id === 'custom' ? '<label class="custom-name-field"><span>' + t.customStyleName + '</span><input type="text" data-field="customStyleName" value="' + escapeHtml(configuration.customStyleName ?? '') + '" placeholder="' + t.customStylePlaceholder + '"></label>' : '') + '</section>'
-    + renderRecommendation(style)
+    + renderMidnightCollection() + renderRecommendation(style)
     + '<section class="panel" aria-labelledby="instruments-heading"><div class="panel-heading"><div><p class="eyebrow">02 · ENSEMBLE</p><h2 id="instruments-heading">' + t.instrumentTitle + '</h2><p class="section-help">' + t.instrumentHint + ' ' + t.previewReferenceHint + '</p></div></div><div class="instrument-list">' + (configuration.instruments.length ? configuration.instruments.map(renderInstrument).join('') : '<p class="empty-inline">' + t.noneSelected + '</p>') + '</div>'
     + '<div class="add-instrument-row"><label for="instrument-picker">' + t.addInstrument + '</label><select id="instrument-picker"><option value="">' + t.chooseInstrument + '</option>' + categories.map((category) => '<optgroup label="' + escapeHtml(categoryLabels[category] ?? category) + '">' + INSTRUMENTS.filter((item) => item.category === category && !configuration.instruments.some((part) => part.instrumentId === item.id)).map((instrument) => '<option value="' + escapeHtml(instrument.id) + '">' + escapeHtml(instrument.nameZh + ' (' + instrument.name + ')') + '</option>').join('') + '</optgroup>').join('') + '</select></div></section>'
     + '<section class="panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow">03 · MUSIC</p><h2 id="music-heading">' + t.basicTitle + '</h2></div></div><div class="control-grid"><div class="tempo-control"><div class="label-line"><label for="tempo-number">' + t.tempo + '</label><span>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + '</span></div><div class="tempo-inputs"><input id="tempo-range" type="range" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><input id="tempo-number" class="number-input" type="number" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><span>BPM</span></div><small class="tempo-feel" id="tempo-feel">' + tempoFeelLabel(configuration) + '</small></div>'
@@ -390,6 +397,9 @@ function handleClick(event: MouseEvent): void {
   if (action === 'preview-audio') { togglePreview(button, message => notify(message));
   } else if (action === 'select-style') {
     appState.configuration.styleId = id; appState.variations = []; persist(); render();
+  } else if (action === 'apply-midnight') {
+    const configuration = createMidnightConfiguration(id);
+    if (configuration) { appState.configuration = configuration; appState.variations = []; persist(); render(); notify(t.midnightApplied); }
   } else if (action === 'apply-recommendation') {
     appState.configuration = recommendConfiguration(appState.configuration.styleId); appState.variations = []; persist(); render(); notify(t.recommendedApplied);
   } else if (action === 'option-view') {
@@ -490,6 +500,10 @@ function handleChange(event: Event): void {
     }
     else if (field === 'prominence') part.prominence = Number(target.value);
     else if (field === 'behaviour') part.behaviour = INSTRUMENT_BY_ID.get(part.instrumentId)?.behaviours[Number(target.value)] ?? '';
+    else if (field === 'timbreId' && part.instrumentId === 'piano') {
+      if (target.value === 'felt') part.timbreId = 'felt'; else delete part.timbreId;
+      persist(); render(); return;
+    }
     persist();
     target.closest('.instrument-row')?.classList.toggle('is-disabled', !part.enabled);
     if (field === 'behaviour' && part) { const instrument = INSTRUMENT_BY_ID.get(part.instrumentId); const preview = target.closest('.instrument-row')?.querySelector<HTMLButtonElement>('[data-preview-category="behaviour"]'); if (preview && instrument) { const label = instrumentBehaviourLabelZhHK(part.behaviour); preview.dataset.previewKey = instrument.id + '::' + part.behaviour; preview.dataset.previewName = instrument.nameZh + ' · ' + label; preview.setAttribute('aria-label', (preview.dataset.previewIdle ?? t.preview) + ' ' + instrument.nameZh + ' · ' + label); } }

@@ -5,6 +5,24 @@ import { recommendConfiguration } from './recommendation-engine';
 import { STYLE_GUIDANCE_MATRIX, analyzeMusicalGuidance, applyOptimizations, guidanceLevel, suggestOptimizations } from './musical-guidance';
 
 describe('genre-aware jazz guidance and explicit-only optimizations', () => {
+  it.each(['ambient-pads', 'synth', 'rhodes', 'jazz-electric-guitar', 'electric-bass', 'distorted-guitar', 'hammond-organ'])('detects %s versus Acoustic and electronic exclusions without silently changing settings', id => {
+    const cfg = recommendConfiguration('cozy-jazz');
+    cfg.instruments = [{ instrumentId: id, enabled: true, role: 'texture', prominence: 25, behaviour: '' }];
+    cfg.productionIds = ['acoustic', 'warm'];
+    cfg.constraintIds = ['electronic', 'busy-fills'];
+    const before = JSON.stringify(cfg);
+    expect(guidanceLevel(cfg, 'productionIds', 'acoustic')).toBe('caution');
+    expect(analyzeMusicalGuidance(cfg).map(x => x.id)).toEqual(expect.arrayContaining(['acoustic-with-electronic', 'electronic-exclusion-conflict']));
+    const choices = suggestOptimizations(cfg);
+    expect(JSON.stringify(cfg)).toBe(before);
+    const updated = applyOptimizations(cfg, choices);
+    expect(updated.constraintIds).toEqual(['busy-fills']);
+    expect(updated.productionIds).toEqual(['warm']);
+    expect(updated.instruments).toEqual(cfg.instruments);
+    expect(JSON.stringify(cfg)).toBe(before);
+    cfg.instruments[0]!.enabled = false;
+    expect(analyzeMusicalGuidance(cfg).some(x => x.id.includes('electronic'))).toBe(false);
+  });
   it('covers the entire 38-style catalog with valid recommendations', () => {
     expect(Object.keys(STYLE_GUIDANCE_MATRIX)).toHaveLength(JAZZ_STYLES.length);
     for (const style of JAZZ_STYLES) {

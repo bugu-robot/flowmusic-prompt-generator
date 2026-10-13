@@ -9,6 +9,28 @@ import { generateVariations } from './variation-engine';
 import { normalizeConfiguration } from '../storage/local-storage';
 
 describe('Suno Simple and smart prompt outputs', () => {
+  it('keeps Cool and Swing-family Smart interpretations faithful to all selectable grooves', () => {
+    for (const style of JAZZ_STYLES.filter(x => ['cool', 'swing'].includes(x.family))) {
+      for (const groove of style.grooves) {
+        const cfg = recommendConfiguration(style.id);
+        cfg.grooveId = groove.id;
+        const before = JSON.stringify(cfg);
+        for (const provider of ['flow', 'suno'] as const) {
+          for (const strength of ['conservative', 'balanced', 'creative'] as const) {
+            const smart = generateSmartPrompts(cfg, provider, strength);
+            const variant = smart.prompts[1]!;
+            const base = provider === 'flow' ? compilePrompt(cfg) : compileSunoSimple(cfg);
+            expect(variant.prompt.replace(' ' + variant.intent, '')).toBe(base);
+            if (!/swing/i.test(groove.prompt)) {
+              expect(smart.prompts[1]!.intent).not.toMatch(/swing/i);
+              expect(smart.prompts[1]!.intentZh).not.toMatch(/swing/i);
+            }
+          }
+        }
+        expect(JSON.stringify(cfg)).toBe(before);
+      }
+    }
+  });
   it('uses exactly four English headings aligned to the four Chinese reference sections across all styles', () => {
     const titles = [
       'STYLE & GROOVE',

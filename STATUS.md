@@ -1,5 +1,16 @@
 # Project Status
 
+## Midnight Collection / Ambient / Felt and two P2 fixes (2026-10-13)
+
+- Base: production `main` at `c66b939`; branch: `feat/midnight-ambient-collection`. Two P2 corrections are in `0e2df31`: Cool/Swing Smart wording now follows the selected groove in English and Traditional Chinese; shared sound-source metadata detects Ambient Pads and other electric/electronic parts conflicting with Acoustic or the electronic-instrument exclusion. Repairs remain explicit and preserve the selected ensemble.
+- Added Ambient Jazz as a modern descriptor (39 options = 38 fixed styles + Custom), shared slow-harmonic-change guidance, three curated valid ensembles and a percussion-free default.
+- Added five explicitly applied built-in Midnight profiles: Midnight Ambient 58 BPM, Blue City Lounge 72 BPM, Rainy Night Mellow 62 BPM, Silent Minimal 50 BPM and Moonlit Guitar 64 BPM. User-owned presets are not overwritten; profiles remain editable and export using v1 JSON.
+- Added optional piano-only Felt timbre with normalization, both English providers, Chinese interpretation, reload/import/export, copied-prompt provenance and piano-containing variations. The UI clearly says current piano previews are ordinary acoustic demonstrations, not dedicated Felt recordings.
+- Updated `AGENTS.md`, specification, architecture decisions and README to document the maintenance rules.
+- Clean-install local verification on Node.js 24.19.0: `npm ci`, typecheck/lint, 330/330 Vitest tests across 18 suites, normal and Pages production builds and `npm audit` (0 vulnerabilities) PASS. Both build outputs contain the manifest, worker, Apple touch icon and all manifest icons; the Pages base remains `/flowmusic-prompt-generator/`. Nine real Chromium interaction groups PASS (five profiles × both providers, straight groove, Felt toggle/reload/copy, original user presets, visible explicit conflict repair, desktop/mobile layout and no uncaught page errors).
+- Committed-audio verification PASS: 242/242 decoded assets and SHA-256 checks, 32 instrument tones, 146 behaviour pairs and 64 grooves. Similarity audit PASS: 0 invalid collisions; existing eight percussion-identity regressions pass. No MP3 assets were changed.
+- Implementation is committed locally in `f57e886` (following P2 commit `0e2df31`). On 2026-10-14 the user explicitly approved uploading this branch to `bugu-robot/flowmusic-prompt-generator` and merging after successful verification. PR Actions results and the resulting merge/deployment references are tracked in the PR description and final handoff. Real iPhone Safari/PWA and generated Suno listening remain manual UAT.
+
 ## PR #6 source-intent equivalence correction — final verification (2026-10-07)
 
 - Continued `fix/audio-preview-fidelity` from reviewed head `ac344985816b1b498d61dc2a7dbe0344f82b167e`. Prompt generation, musical option catalogs, recommendations, compatibility, variations and product UI are unchanged.

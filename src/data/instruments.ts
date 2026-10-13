@@ -38,3 +38,15 @@ export const INSTRUMENTS: Instrument[] = [
 ];
 
 export const INSTRUMENT_BY_ID = new Map(INSTRUMENTS.map((instrument) => [instrument.id, instrument]));
+
+// Metadata is shared by advisory rules; never infer an electronic source from
+// a playing role (Ambient Pads deliberately have the texture category).
+const ELECTRIC_IDS = new Set(['jazz-electric-guitar', 'distorted-guitar', 'rhodes', 'hammond-organ', 'electric-bass']);
+for (const instrument of INSTRUMENTS) {
+  if (ELECTRIC_IDS.has(instrument.id)) instrument.soundSource = 'electric';
+  if (instrument.id === 'synth' || instrument.id === 'ambient-pads') instrument.soundSource = 'electronic';
+}
+
+export function isNonAcousticInstrument(id: string): boolean {
+  return INSTRUMENT_BY_ID.get(id)?.soundSource !== undefined;
+}

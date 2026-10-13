@@ -388,3 +388,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .feedback-source select{max-width:100%;width:100%;padding:8px;border:1px solid #a6b9b3;border-radius:8px}
 .chip:focus-visible,.option-view-switch button:focus-visible{outline:3px solid #31748d;outline-offset:3px}
 @media(pointer:coarse){.option-view-switch button{min-height:42px}.chips button{min-height:42px}}
+.midnight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.midnight-card { min-width: 0; padding: 16px; border: 1px solid var(--line, #ddd); border-radius: 14px; }
+.midnight-card h3 { margin: 0 0 6px; }
+.midnight-card p { font-size: 13px; line-height: 1.6; }
+.midnight-card .button { min-height: 44px; width: 100%; white-space: normal; }
+.piano-timbre { display: grid; gap: 6px; margin: 12px 0; }
+.felt-preview-note { margin: 8px 0 12px; }
+@media (max-width: 640px) { .midnight-grid { grid-template-columns: 1fr; } }

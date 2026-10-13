@@ -26,10 +26,11 @@ export interface SmartPromptResult {
 // a single member of MusicConfiguration. Phrases describe existing roles only;
 // there is no new instrument, metre, tempo, style, harmony, energy or scene.
 const FAMILY_FOCUSES: Record<string, readonly [string, string, string]> = {
+  ambient: ['Let a few clear jazz motifs emerge gently between generous pauses.', 'Shape the selected sparse pulse through quiet note placement, not additional layers.', 'Let the existing jazz chord colors linger with open spacing and slow connections.'],
   cozy: ['Shape understated motifs with carefully spaced phrase endings.', 'Let the chosen gentle groove breathe through understated rhythmic articulation.', 'Use tasteful voicing spacing and subtle tonal colour in the existing harmony.'],
   bossa: ['Shape lyrical phrasing around the specified bossa-inspired groove.', 'Make the chosen bossa-inspired accompaniment feel clearly interlocked with the selected groove.', 'Bring out the gentle extended-chord colours without crowding the bossa groove.'],
-  cool: ['Make concise, thoughtful melodic gestures that leave room for each specified part.', 'Express the restrained swing articulation with precisely placed accents.', 'Give the existing harmonic voicings airy, carefully balanced spacing.'],
-  swing: ['Give the selected swing pulse a graceful, clearly shaped theme.', 'Focus on the articulation and momentum of the specified swing groove.', 'Build harmonic lift through voicing and phrase placement rather than new parts.'],
+  cool: ['Make concise, thoughtful melodic gestures that leave room for each specified part.', 'Express the explicitly selected groove with restrained articulation and precisely placed accents.', 'Give the existing harmonic voicings airy, carefully balanced spacing.'],
+  swing: ['Give the selected pulse a graceful, clearly shaped theme.', 'Focus on the articulation and momentum of the explicitly selected groove.', 'Build harmonic lift through voicing and phrase placement rather than new parts.'],
   ballad: ['Let the melody unfold with expressive, sustained lyrical contours.', 'Shape the existing gentle pulse with attentive note placement.', 'Give the selected harmonies warm resonance and carefully connected voicings.'],
   modal: ['Develop melodic motifs around the established modal centre.', 'Emphasize the time feel while allowing sustained modal passages to breathe.', 'Explore voicing spacing over the existing modal pedal and harmonic rhythm.'],
   chamber: ['Shape the existing parts as a nuanced chamber-jazz melodic dialogue.', 'Use precisely balanced rhythmic interaction between the selected chamber voices.', 'Clarify the written counterpoint and open harmonic space without extra voices.'],

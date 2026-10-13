@@ -9,6 +9,12 @@
 - Style changes must not silently replace current musical settings. Recommendation application must stay explicit.
 - Keep compatibility advisory and expose the score factors.
 - Use curated style-specific variations; do not add random instrument combinations.
+- Ambient Jazz is a `modern-descriptor` with sparse jazz phrasing and slow harmonic changes, not a historical genre or a synonym for Noir/Chamber Jazz. Its default is percussion-free; its curated ensembles must retain valid supported roles.
+- Keep Midnight Collection definitions in `src/data/midnight-collection.ts`, separate from user-owned local presets. Apply only after an explicit user click, clone the configuration, and never overwrite saved presets or apply a collection merely on style selection.
+- Treat Felt as an optional piano-only `InstrumentPart.timbreId = 'felt'`. Omission means the legacy acoustic piano. Normalize unknown/wrong-instrument timbres away without changing preset JSON version 1. Preserve Felt in both providers, Chinese interpretation, copied-prompt/feedback snapshots, reload and piano-containing ensemble variations.
+- Do not advertise the existing acoustic-piano audio as a dedicated Felt sample. Keep the visible approximation note unless a genuine separately verified Felt preview is added under an explicitly authorized scope.
+- Smart A/B/C must follow the actual selected groove, including straight/open alternatives within Cool and Swing families. Never force Swing from the family name; keep English intent and Traditional Chinese interpretation aligned.
+- Use shared instrument sound-source metadata for Acoustic/electronic-exclusion advisories, including Ambient Pads despite their texture role. Conflict repair must be explicit; preserve selected instruments and unrelated restrictions.
 - Keep every JazzStyle reference, default recommendation and variation recipe valid against the shared data catalogs; extend the referential-integrity tests when catalogs change.
 - Never mark a style's own recommended instruments unusual. Keep the zero-overlap and compatibility regression guards for every built-in style.
 - V1 is always instrumental. Do not expose optional vocals/scat controls. Constraint wording must contain only the selected restrictions and must preserve all selected items when grouping.
@@ -19,6 +25,7 @@
 - Preserve the build-derived service-worker cache identity, old-cache cleanup and user-controlled update action. Keep the template in scripts/service-worker.template.js and emitted worker in dist/sw.js.
 - Use Node.js 24 LTS in CI (Node.js 22.13+ is also supported locally). Keep the lint/test toolchain supported; triage npm audit findings before dependency changes and do not use audit fix --force blindly.
 - Before proposing completion, run npm ci, npm run typecheck, npm run lint, npm test, npm run build, npm run build -- --mode pages and npm audit. Update STATUS.md with the actual results. Inspect the actual PR Actions logs for supported engines, all checks and successful artifact upload.
+- Also run committed-audio verification and the real Chromium E2E suite after collection/timbre changes. Cover every built-in Midnight profile, both providers, Felt toggle/reload/provenance, existing user presets, visible conflict repair and mobile overflow. Chromium mobile viewport does not replace iPhone Safari or generated-audio listening UAT.
 - Inspect both normal and Pages build outputs for manifest, service-worker, Apple touch icon and all manifest-linked PNG icons. Do not claim browser install/offline verification without manual UAT.
 - Preserve the GitHub Pages base path /flowmusic-prompt-generator/; the Pages workflow must remain static.
 - Keep PR and production workflow concurrency groups separate. Do not merge Draft PR #1 during this correction pass.

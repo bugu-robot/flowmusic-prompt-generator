@@ -9,6 +9,7 @@ interface StyleSeed {
   family: string;
   descriptionZh: string;
   promptStyle?: string;
+  sunoStyle?: string;
   meters?: string[];
   tempo: JazzStyle['tempo'];
   groove: [string, string][];
@@ -809,6 +810,47 @@ export const JAZZ_STYLES: JazzStyle[] = [
       ] },
     ],
     compatibleStyles: ['nordic-chamber', 'cool-jazz', 'modal-jazz'],
+  }),
+  makeStyle({
+    id: 'ambient-jazz', name: 'Ambient Jazz', nameZh: '空靈留白、緩慢和聲的氛圍爵士', classification: 'modern-descriptor', family: 'ambient',
+    descriptionZh: 'Jazz 與 Ambient 空間感的現代融合描述，並非正式歷史流派；以低密度旋律、慢速和聲變化和安靜小編制為核心。',
+    promptStyle: 'Spacious Ambient Jazz with restrained jazz phrasing and gently sustained atmospheric harmony',
+    sunoStyle: 'Ambient Jazz with spacious jazz phrasing and gently sustained atmospheric harmony',
+    tempo: { min: 45, max: 78, default: 58 },
+    groove: [['open', 'spacious, lightly floating phrasing'], ['soft-straight', 'relaxed straight-eighth feel']],
+    tonalities: [['warm-major', 'warm major tonality'], ['relative-minor', 'warm major tonality with occasional relative-minor colors'], ['modal', 'subtle modal colors']],
+    harmony: ['maj7', 'min7', 'maj9', 'min9', 'add9', 'sus', 'modal'],
+    harmonyGuidance: 'Let the selected chord colors linger with slow harmonic changes and generous space; keep jazz voicings audible without dense comping.',
+    lead: ['rhodes', 'piano', 'jazz-electric-guitar'], response: [],
+    harmonyInstruments: ['rhodes', 'piano', 'nylon-guitar', 'vibraphone'], bass: ['upright-bass', 'electric-bass'], rhythm: [],
+    recommendedParts: [
+      { instrumentId: 'rhodes', role: 'lead', prominence: 65, behaviour: 'a mellow melodic line' },
+      { instrumentId: 'upright-bass', role: 'bass', prominence: 38, behaviour: 'a simple, warm and restrained foundation' },
+      { instrumentId: 'vibraphone', role: 'texture', prominence: 18, behaviour: 'soft shimmering chord colours' },
+    ],
+    variations: [
+      { label: 'A', lead: 'rhodes', bass: 'upright-bass', ensemble: [
+        { instrumentId: 'rhodes', role: 'lead', prominence: 65, behaviour: 'a mellow melodic line' },
+        { instrumentId: 'piano', role: 'harmony', prominence: 22, behaviour: 'soft, spacious chord voicings' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 38, behaviour: 'a simple, warm and restrained foundation' },
+        { instrumentId: 'vibraphone', role: 'texture', prominence: 18, behaviour: 'soft shimmering chord colours' },
+      ] },
+      { label: 'B', lead: 'piano', bass: 'upright-bass', ensemble: [
+        { instrumentId: 'piano', role: 'lead', prominence: 65, behaviour: 'understated melodic phrases' },
+        { instrumentId: 'nylon-guitar', role: 'harmony', prominence: 22, behaviour: 'soft chordal support with a light touch' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 38, behaviour: 'a simple, warm and restrained foundation' },
+      ] },
+      { label: 'C', lead: 'jazz-electric-guitar', bass: 'upright-bass', ensemble: [
+        { instrumentId: 'jazz-electric-guitar', role: 'lead', prominence: 65, behaviour: 'rounded single-note phrases' },
+        { instrumentId: 'rhodes', role: 'harmony', prominence: 22, behaviour: 'subtle sustained harmonic colour' },
+        { instrumentId: 'upright-bass', role: 'bass', prominence: 38, behaviour: 'a simple, warm and restrained foundation' },
+      ] },
+    ],
+    moods: ['calm', 'dreamy', 'peaceful', 'reflective'], scenes: ['late-night', 'moonlight', 'city-night'],
+    melodyDensity: 16, improvisation: 10, energy: 16, dynamics: 'very-stable', arrangement: 'continuous',
+    production: ['warm', 'spacious', 'room', 'soft-transients'],
+    constraints: ['flashy-solos', 'busy-fills', 'aggressive-percussion', 'dramatic-climax', 'large-crescendos', 'dense-arrangement'],
+    compatibleStyles: ['cool-jazz', 'nordic-chamber', 'jazz-ballad', 'cozy-jazz'],
   }),
   makeStyle({
     id: 'custom', name: 'Custom', nameZh: '自訂風格描述', classification: 'custom', family: 'custom',

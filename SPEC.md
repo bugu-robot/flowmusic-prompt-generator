@@ -20,6 +20,12 @@ MusicConfiguration is the complete editable setup. Presets are versioned JSON ob
 
 ## Jazz-style classifications
 
+Ambient Jazz uses `modern-descriptor` and supplies a provider-safe optional `sunoStyle` opening and shared slow-harmonic-change guidance. Midnight Collection is typed reusable data, separate from user storage, with explicit full-configuration application and defensive cloning. The five profiles differ in groove, ensemble, tempo, density and dynamics, not just labels.
+
+Piano-only `InstrumentPart.timbreId?: 'felt'` is backward-compatible with the existing v1 configuration and preset format. Absence means ordinary acoustic piano; unsupported values or values attached to another instrument are omitted during normalization. Both English compilers and the Chinese reading use the same timbre data. Copied-prompt and feedback snapshots preserve it through normal configuration normalization. Curated variations retain Felt when the selected piano remains present. Current audio previews retain their original acoustic-piano identity with a visible approximation disclaimer.
+
+Instrument sound-source metadata distinguishes electric/electronic instruments from acoustic parts independently of their role/category; Ambient Pads are electronic even with a texture role. Acoustic/exclusion conflicts are advisory and must not silently rewrite the ensemble or restrictions. Smart rhythmic interpretation follows the actual selected groove rather than assuming Swing from a style family.
+
 - historical-style: a named historical or established Jazz style.
 - historical-derived-style: a recognized hybrid or later style rooted in Jazz practice.
 - modern-descriptor: a mood or tempo description, not a claim of a formal historical genre.
