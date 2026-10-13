@@ -1,4 +1,5 @@
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
+import { isNonAcousticInstrument } from '../data/instruments';
 import type { MusicConfiguration } from '../models/types';
 
 export type GuidanceLevel = 'recommended' | 'exploratory' | 'caution';
@@ -12,7 +13,7 @@ export interface OptimizationSuggestion {
   id: string;
   label: string;
   reason: string;
-  changes: Partial<Pick<MusicConfiguration, 'moodIds' | 'productionIds' | 'energy'>>;
+  changes: Partial<Pick<MusicConfiguration, 'moodIds' | 'productionIds' | 'constraintIds' | 'energy'>>;
 }
 
 // Curated style seeds already contain the recommended Feel and Recording IDs
@@ -27,7 +28,7 @@ export const STYLE_GUIDANCE_MATRIX = Object.fromEntries(
 
 export function guidanceLevel(config: MusicConfiguration, group: GuidanceGroup, id: string): GuidanceLevel {
   const active = config.instruments.filter(part => part.enabled);
-  const electronic = active.some(part => ['synth', 'distorted-guitar'].includes(part.instrumentId));
+  const electronic = active.some(part => isNonAcousticInstrument(part.instrumentId));
   const upright = active.some(part => part.role === 'bass' && part.instrumentId === 'upright-bass');
   if (group === 'productionIds') {
     if (id === 'round-bass' && !upright) return 'caution';
@@ -49,8 +50,11 @@ export function analyzeMusicalGuidance(config: MusicConfiguration): GuidanceIssu
       result.push({ id: 'round-bass-mismatch', level: 'caution', message: 'Round Bass 在 Suno Prompt 中指明 Upright Bass，但目前低音角色沒有 Upright Bass。請移除這個 Recording 選項，避免暗示未選樂器。' });
     }
   }
-  if (config.productionIds.includes('acoustic') && active.some(part => ['synth', 'distorted-guitar'].includes(part.instrumentId))) {
-    result.push({ id: 'acoustic-with-electronic', level: 'exploratory', message: 'Acoustic 與合成／失真樂器屬實驗性混合；若希望純原聲，可移除 Acoustic 或電子音色其中一方。' });
+  if (config.constraintIds.includes('electronic') && active.some(part => isNonAcousticInstrument(part.instrumentId))) {
+    result.push({ id: 'electronic-exclusion-conflict', level: 'caution', message: '已選電聲／電子樂器，同時限制「電子樂器」；Prompt 會有互相矛盾的要求。可明確移除此限制，或自行停用相關樂器。' });
+  }
+  if (config.productionIds.includes('acoustic') && active.some(part => isNonAcousticInstrument(part.instrumentId))) {
+    result.push({ id: 'acoustic-with-electronic', level: 'exploratory', message: 'Acoustic 與電聲／電子樂器屬實驗性混合；若希望純原聲，可移除 Acoustic 或電聲／電子音色其中一方。' });
   }
   if (config.energy >= 70 && config.moodIds.some(id => ['peaceful', 'calm', 'reflective'].includes(id))) {
     result.push({ id: 'high-energy-calm-mood', level: 'caution', message: '高 Energy 與平靜／沉思 Feel 可能令音樂方向不一致；可考慮降低 Energy。' });
@@ -98,6 +102,13 @@ export function suggestOptimizations(config: MusicConfiguration): OptimizationSu
       changes: { productionIds: config.productionIds.filter(id => id !== 'acoustic') },
     });
   }
+  if (issues.has('electronic-exclusion-conflict')) {
+    suggestions.push({
+      id: 'remove-electronic-exclusion', label: '移除衝突的電子樂器限制',
+      reason: '保留已選電聲／電子樂器；只在明確套用後移除相反的限制。',
+      changes: { constraintIds: config.constraintIds.filter(id => id !== 'electronic') },
+    });
+  }
   return suggestions;
 }
 
@@ -111,5 +122,7 @@ export function applyOptimizations(config: MusicConfiguration, suggestions: read
       ? current.moodIds.filter(id => suggestion.changes.moodIds!.includes(id)) : current.moodIds,
     productionIds: suggestion.changes.productionIds
       ? current.productionIds.filter(id => suggestion.changes.productionIds!.includes(id)) : current.productionIds,
-  }), { ...config, moodIds: [...config.moodIds], productionIds: [...config.productionIds], instruments: config.instruments.map(part => ({ ...part })) });
+    constraintIds: suggestion.changes.constraintIds
+      ? current.constraintIds.filter(id => suggestion.changes.constraintIds!.includes(id)) : current.constraintIds,
+  }), { ...config, moodIds: [...config.moodIds], productionIds: [...config.productionIds], constraintIds: [...config.constraintIds], instruments: config.instruments.map(part => ({ ...part })) });
 }

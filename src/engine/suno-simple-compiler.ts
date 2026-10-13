@@ -1,5 +1,6 @@
 import { CONSTRAINTS, HARMONY_BY_ID, MOODS, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { instrumentWording } from '../data/piano-timbres';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { trackDurationPrompt } from '../data/track-duration';
 import { getStyle, recommendConfiguration } from './recommendation-engine';
@@ -43,7 +44,7 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const style = getStyle(config.styleId);
   const opening = style.id === 'custom'
     ? (english(config.customStyleName) && clean(config.customStyleName) ? clean(config.customStyleName) : 'user-defined jazz')
-    : style.name;
+    : style.sunoStyle ?? style.name;
   const influence = config.secondaryStyleId ? ' with subtle ' + getStyle(config.secondaryStyleId).name + ' influence' : '';
   const groove = style.grooves.find(g => g.id === config.grooveId)
     ?? JAZZ_STYLES.flatMap(s => s.grooves).find(g => g.id === config.grooveId);
@@ -56,10 +57,10 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
     ? clean(config.customSceneName) : SCENES.find(x => x.id === config.sceneId)?.prompt ?? 'a quiet café';
 
   const active = config.instruments.filter(part => part.enabled && INSTRUMENT_BY_ID.has(part.instrumentId));
-  const names = [...new Set(active.map(part => INSTRUMENT_BY_ID.get(part.instrumentId)!.wording))];
+  const names = [...new Set(active.map(instrumentWording))];
   const primaryLead = active.filter(part => part.role === 'lead').sort((a, b) => b.prominence - a.prominence)[0];
   const parts = active.map(part => {
-    const name = INSTRUMENT_BY_ID.get(part.instrumentId)!.wording;
+    const name = instrumentWording(part);
     const behaviour = clean(part.behaviour);
     // Single-foreground mode alternates lead turns rather than reassigning any selected role.
     const alternateLead = part.role === 'lead' && part !== primaryLead && config.foregroundRule === 'single';

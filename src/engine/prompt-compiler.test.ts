@@ -376,8 +376,8 @@ describe('deterministic English prompt compiler', () => {
 
   it('checks every fixed style default for unique supported parts, deterministic English and instrumental output', () => {
     const fixedStyles = JAZZ_STYLES.filter((style) => style.classification !== 'custom');
-    expect(fixedStyles).toHaveLength(37);
-    expect(JAZZ_STYLES).toHaveLength(38);
+    expect(fixedStyles).toHaveLength(38);
+    expect(JAZZ_STYLES).toHaveLength(39);
     for (const style of fixedStyles) {
       const configuration = recommendConfiguration(style.id);
       const ids = configuration.instruments.map((part) => part.instrumentId);

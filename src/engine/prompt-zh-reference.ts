@@ -1,6 +1,7 @@
 import type { MusicConfiguration } from '../models/types';
 import { STYLE_BY_ID, JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { instrumentNameZh } from '../data/piano-timbres';
 import { GROOVE_ZH_HK } from '../i18n/groove-zh-HK';
 import { instrumentBehaviourLabelZhHK } from '../i18n/instrument-behaviour-zh-HK';
 import { SCENES, MOODS, HARMONIES, TONALITIES, PRODUCTION, CONSTRAINTS } from '../data/options';
@@ -79,7 +80,7 @@ export function describePromptZh(
     if (!ins) return '';
     const prominence = part.prominence < 35 ? '柔和靠後' : part.prominence < 65 ? '中等輕聲' : part.prominence <= 82 ? '清晰前景' : '明顯突出';
     const behaviour = instrumentBehaviourLabelZhHK(part.behaviour);
-    return ins.nameZh + '（' + ROLE_ZH[part.role] + '、' + prominence + '）：' + behaviour;
+    return instrumentNameZh(part) + '（' + ROLE_ZH[part.role] + '、' + prominence + '）：' + behaviour;
   }).filter(Boolean);
   const ensemble = '【樂器與分工】'
     + (instrumentParts.length ? '只使用所選樂器：' + instrumentParts.join('；') + '。' : '沒有選定樂器；不自行加入其他樂器。');

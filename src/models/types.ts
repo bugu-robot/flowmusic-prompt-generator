@@ -25,6 +25,7 @@ export interface Instrument {
   name: string;
   nameZh: string;
   category: InstrumentCategory;
+  soundSource?: 'electric' | 'electronic';
   roles: InstrumentRole[];
   families: string[];
   avoidFamilies?: string[];
@@ -38,6 +39,8 @@ export interface InstrumentPart {
   role: InstrumentRole;
   prominence: number;
   behaviour: string;
+  /** Optional piano-only timbre; absent means the legacy acoustic piano. */
+  timbreId?: 'felt';
 }
 
 export interface VariationRecipe {
@@ -58,6 +61,7 @@ export interface JazzStyle {
   family: string;
   descriptionZh: string;
   promptStyle?: string;
+  sunoStyle?: string;
   tempo: { min: number; max: number; default: number };
   meters: string[];
   grooves: { id: string; label: string; prompt: string }[];

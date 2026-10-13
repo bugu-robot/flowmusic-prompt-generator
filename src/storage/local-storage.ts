@@ -1,5 +1,6 @@
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { normalizePianoTimbre } from '../data/piano-timbres';
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { normalizeTrackDurationId } from '../data/track-duration';
 import type { InstrumentPart, MusicConfiguration, UserPreset } from '../models/types';
@@ -59,6 +60,7 @@ function normalizePart(value: unknown): InstrumentPart | undefined {
       ? Math.max(0, Math.min(100, value.prominence))
       : 50,
     behaviour,
+    ...(normalizePianoTimbre(value.instrumentId, value.timbreId) ? { timbreId: 'felt' as const } : {}),
   };
 }
 

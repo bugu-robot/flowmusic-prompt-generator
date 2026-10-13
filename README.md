@@ -71,7 +71,23 @@ and uses no network translation, LLM, or additional API subscription.
 - Local presets with rename, duplicate, delete, JSON import and export.
 - Installable PWA with an offline shell and local-only prompt generation.
 
-The catalog has 38 options: 37 fixed built-in styles plus Custom. The 12 expanded styles are Lo-fi Jazz / Chill Jazz, Acid Jazz, Big Band Jazz, Samba Jazz, Jazz Waltz, Piano Jazz / Café Piano Jazz, Contemporary Jazz, Free Jazz / Avant-Garde Jazz, Jazz-Hop / Hip-Hop Jazz, Neo-Soul Jazz, Dark Jazz / Noir Jazz, and Third Stream Jazz.
+The catalog has 39 options: 38 fixed built-in styles plus Custom. The 12 previously expanded styles are Lo-fi Jazz / Chill Jazz, Acid Jazz, Big Band Jazz, Samba Jazz, Jazz Waltz, Piano Jazz / Café Piano Jazz, Contemporary Jazz, Free Jazz / Avant-Garde Jazz, Jazz-Hop / Hip-Hop Jazz, Neo-Soul Jazz, Dark Jazz / Noir Jazz, and Third Stream Jazz. Ambient Jazz is an additional clearly labelled modern descriptor with sparse jazz phrasing, slow harmonic changes and a percussion-free default.
+
+## Midnight Collection and Felt Piano
+
+Five built-in profiles appear separately from device-only user presets. Applying a profile explicitly replaces the current editable setup, never overwrites saved presets, and does not happen merely by selecting a Jazz style. All profiles remain editable and can be saved/exported using the existing version-1 preset format.
+
+| Profile | BPM | Core sound |
+| --- | --- | --- |
+| Midnight Ambient | 58 | Rhodes, sparse upright bass, tiny vibraphone texture, no percussion |
+| Blue City Lounge | 72 | Clean electric-guitar lead, Rhodes chords, electric bass, very soft brushes; straight eighths |
+| Rainy Night Mellow | 62 | Felt-piano lead, quiet nylon-guitar chords, upright bass; rubato-inspired, no drums |
+| Silent Minimal | 50 | Felt piano and very quiet upright bass; two voices, most space, no drums |
+| Moonlit Guitar | 64 | Nylon-guitar lead, quiet Rhodes, upright bass and tiny shaker; straight pulse, not forced Bossa |
+
+Piano offers **Acoustic / Felt** timbre choices. Felt is an optional piano-only field: it survives reload, preset import/export, Chinese interpretation, both English providers, Smart A/B/C, copied-prompt/feedback provenance and piano-containing curated variations. Older configurations remain acoustic without migration. The existing piano previews are **ordinary acoustic-piano demonstrations, not dedicated Felt recordings**; a visible note identifies this limitation.
+
+Cool/Swing-family Smart interpretations now respect the selected groove instead of imposing Swing. Advisory checks use shared sound-source metadata, including Ambient Pads, and warn when enabled electric/electronic parts contradict Acoustic or an electronic-instrument exclusion. Repairs require explicit application and retain the selected ensemble.
 
 ## Flow Music / Suno Simple and Smart A/B/C prompts
 
@@ -171,7 +187,7 @@ The style and instrument catalogs contain musical recommendations. Each style ca
 All npm packages are development tools, not runtime services. The shipped bundle contains only the browser application; security audit findings in test/build tools still matter because those tools run with developer or CI permissions. See STATUS.md for the audit triage and verification results.
 
 ## Genre-aware guidance, exact Flow omissions, and local feedback
-- Derived guidance matrix uses the recommended Feel and Recording seeds of all 38 available styles (including Custom). It is advisory, not a creative veto.
+- Derived guidance matrix uses the recommended Feel and Recording seeds of all 39 available styles (including Custom). It is advisory, not a creative veto.
 - Feel/Recording offer recommended or all-option views; already-selected unusual choices stay visible. Optional optimizations are deterministic, reviewable, apply only after a click and do not mutate saved presets.
 - The Flow preview explicitly lists names of values that its unchanged compiler omits, in actual user selection order.
 - Listening feedback records five manually assigned 1–5 ratings, an optional note, a configuration snapshot, provider, and date. It stays in a separate browser-local key, is capped at 100 entries, and is never sent to an API.

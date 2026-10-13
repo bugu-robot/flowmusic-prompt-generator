@@ -1,4 +1,5 @@
 import { INSTRUMENT_BY_ID } from '../data/instruments';
+import { normalizePianoTimbre } from '../data/piano-timbres';
 import { getStyle } from './recommendation-engine';
 import type { InstrumentPart, MusicConfiguration } from '../models/types';
 
@@ -42,6 +43,9 @@ export function generateVariations(configuration: MusicConfiguration): MusicConf
   const style = getStyle(configuration.styleId);
   const recipes = style.variations;
   if (!recipes.length) return [];
+  const pianoTimbre = configuration.instruments.find(part => part.instrumentId === 'piano')?.timbreId;
+  const preserveTimbre = (part: InstrumentPart): InstrumentPart => normalizePianoTimbre(part.instrumentId, pianoTimbre)
+    ? { ...part, timbreId: 'felt' } : part;
   return recipes.map((recipe) => {
     if (recipe.ensemble) {
       const used = new Set<string>();
@@ -51,7 +55,7 @@ export function generateVariations(configuration: MusicConfiguration): MusicConf
         used.add(part.instrumentId);
         return [{ ...part, enabled: true }];
       });
-      return { ...configuration, instruments };
+      return { ...configuration, instruments: instruments.map(preserveTimbre) };
     }
 
     const parts: InstrumentPart[] = [];
@@ -68,6 +72,6 @@ export function generateVariations(configuration: MusicConfiguration): MusicConf
     add(recipe.harmony, style.harmonyInstruments, 'harmony', 42);
     add(recipe.bass, style.bass, 'bass', 70);
     add(recipe.rhythm, style.rhythm, 'rhythm', 36);
-    return { ...configuration, instruments: parts };
+    return { ...configuration, instruments: parts.map(preserveTimbre) };
   });
 }

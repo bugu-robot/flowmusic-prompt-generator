@@ -1,5 +1,13 @@
 # Architecture decisions
 
+## D-013 — Explicit Midnight Collection and piano-only timbre
+
+The user-authorized 2026-10-13 scope adds one modern Ambient Jazz descriptor and five full-configuration Midnight presets, rather than five overlapping genre names. Built-in collection data remains separate from device-only user presets; explicit application clones an editable snapshot without overwriting stored presets.
+
+Felt is an optional piano timbre, not a duplicated instrument or renamed audio asset. Shared wording drives both providers and Chinese interpretation. The v1 preset format stays compatible by treating an omitted field as legacy acoustic piano and rejecting unrelated or unsupported timbre values. The UI identifies ordinary-piano previews honestly until a separately authorized, verified Felt recording exists.
+
+Smart intent must respect selected groove data; electronic consistency uses shared sound-source metadata, not category or role inference. Repairs are suggestions applied only after an explicit user action.
+
 ## D-001 — No inference API
 
 Prompt generation, recommendations, compatibility and variations use deterministic local rules. No OpenAI, Gemini, Claude or paid inference service is part of the application.

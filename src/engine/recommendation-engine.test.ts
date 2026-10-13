@@ -6,8 +6,8 @@ import { recommendConfiguration } from './recommendation-engine';
 
 describe('Jazz style data and recommendations', () => {
   it('loads the complete initial style catalog and every entry has type-safe recommendations', () => {
-    expect(JAZZ_STYLES).toHaveLength(38);
-    expect(JAZZ_STYLES.filter((style) => style.classification !== 'custom')).toHaveLength(37);
+    expect(JAZZ_STYLES).toHaveLength(39);
+    expect(JAZZ_STYLES.filter((style) => style.classification !== 'custom')).toHaveLength(38);
     expect(JAZZ_STYLES.filter((style) => style.classification === 'custom')).toHaveLength(1);
     for (const style of JAZZ_STYLES) {
       expect(style.tempo.min).toBeLessThan(style.tempo.max);
