@@ -1,6 +1,7 @@
 /* global process, setTimeout, fetch, console, localStorage, document */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const origin='http://127.0.0.1:4173';
@@ -110,8 +111,8 @@ try{
   await page.locator('#preset-name').fill('Existing preset before Midnight');
   await page.locator('[data-action="save-preset"]').click();
   const existingPresets=await page.evaluate(()=>localStorage.getItem('flowmusic.promptGenerator.presets.v1'));
-  const profiles=[['midnight-ambient',58],['blue-city-lounge',72],['rainy-night-mellow',62],['silent-minimal',50],['moonlit-guitar',64]];
-  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),5);
+  const profiles=[['midnight-ambient',58],['blue-city-lounge',72],['rainy-night-mellow',62],['silent-minimal',50],['moonlit-guitar',64],['slow-piano-trio',66],['late-night-saxophone',62],['warm-acoustic-cafe',68],['coastal-slow-bossa',64]];
+  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),profiles.length);
   for(const [id,tempo] of profiles) {
     await page.locator('[data-action="apply-midnight"][data-id="'+id+'"]').click();
     assert.equal(Number(await page.locator('#tempo-number').inputValue()),tempo);
@@ -126,9 +127,39 @@ try{
         assert.doesNotMatch(b,/\bswing\b/i);
       }
       if(id==='rainy-night-mellow'||id==='silent-minimal')assert.match(prompt,/soft felt piano/i);
+      if(id==='warm-acoustic-cafe'||id==='coastal-slow-bossa') {
+        const liveConfig=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+        assert.equal(liveConfig.secondaryStyleId,undefined);
+        assert.deepEqual(liveConfig.harmonyIds,['maj7','min7','sixth','add9']);
+        assert.deepEqual(liveConfig.instruments.map(part=>[part.instrumentId,part.role]),id==='warm-acoustic-cafe'
+          ? [['piano','lead'],['nylon-guitar','harmony'],['upright-bass','bass'],['brush-drums','rhythm']]
+          : [['nylon-guitar','lead'],['piano','harmony'],['upright-bass','bass'],['soft-shaker','rhythm']]);
+        for(const output of ['#prompt-output','#smart-output-A','#smart-output-B','#smart-output-C']) {
+          const text=await page.locator(output).inputValue();
+          assert.match(text,new RegExp(tempo+' BPM(?:,| in) 4/4'));
+          assert.match(text,/major 7th, minor 7th, 6th, (?:and )?occasional add9/);
+          assert.match(text,/generous breathing space/);
+          assert.doesNotMatch(text,/\b(?:swing|Felt|Rhodes|Cool Jazz)\b/i);
+          if(id==='warm-acoustic-cafe') {
+            assert.match(text,/soft straight-eighth groove/);
+            assert.match(text,/very soft brush drums/i);
+          } else {
+            assert.match(text,/gently syncopated melody/);
+            assert.match(text,/very soft shaker/i);
+            assert.match(text,/relaxed, warm, peaceful/);
+            assert.doesNotMatch(text,/\bdrums\b/i);
+          }
+        }
+        await page.locator('#prompt-view').selectOption('both');
+        const zh=await page.locator('.preview-card .prompt-zh-prose').innerText();
+        assert.match(zh,/旋律密度低/);
+        assert.match(zh,/非常柔和而穩定/);
+        if(id==='coastal-slow-bossa')assert.match(zh,/放鬆 Relaxed/);
+        await page.locator('#prompt-view').selectOption('en');
+      }
     }
   }
-  console.log('PASS: all five Midnight profiles, both providers, straight groove and existing user presets');
+  console.log('PASS: all nine built-in profiles, both providers, Café Smart A/B/C, Chinese and existing user presets');
 
   // Felt is piano-only, survives reload and successful copy, and is explicitly
   // not advertised as a dedicated audio preview.
@@ -166,15 +197,54 @@ try{
 
   await page.setViewportSize({width:390,height:844});
   await page.locator('[data-action="apply-midnight"][data-id="silent-minimal"]').click();
-  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),5);
+  assert.equal(await page.locator('[data-action="apply-midnight"]').count(),profiles.length);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
   await page.locator('#toast.is-visible').waitFor({state:'hidden'});
   await page.locator('.midnight-collection').screenshot({path:'.artifacts/midnight-collection-mobile.png'});
   await page.setViewportSize({width:1280,height:850});
   await page.locator('.midnight-collection').screenshot({path:'.artifacts/midnight-collection-desktop.png'});
   console.log('PASS: Midnight cards and Felt controls at mobile width without horizontal overflow');
+
+  // Exercise the real preset download/import and saved-configuration reload.
+  for(const id of ['warm-acoustic-cafe','coastal-slow-bossa']) {
+    await page.locator('[data-action="apply-midnight"][data-id="'+id+'"]').click();
+    const configuration=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+    await page.locator('#preset-name').fill('E2E '+id);
+    await page.locator('[data-action="save-preset"]').click();
+    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.presets.v1')));
+    assert.deepEqual(saved[0],JSON.parse(existingPresets)[0]);
+    const savedId=saved.at(-1).id;
+    const downloadReady=page.waitForEvent('download');
+    await page.locator('[data-action="export-preset"][data-id="'+savedId+'"]').click();
+    const download=await downloadReady;
+    const path=await download.path();
+    assert.ok(path);
+    const exported=JSON.parse(await readFile(path,'utf8'));
+    assert.equal(exported.version,1);
+    assert.deepEqual(exported.preset.configuration,configuration);
+    await page.reload({waitUntil:'networkidle'});
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1'))),configuration);
+    // Selecting a style alone retains all current musical controls.
+    await page.locator('[data-action="select-style"][data-id="jazz-fusion"]').click();
+    const retained=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+    assert.deepEqual({...retained,styleId:configuration.styleId},configuration);
+    await page.locator('[data-action="load-preset"][data-id="'+savedId+'"]').click();
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1'))),configuration);
+    await page.locator('#preset-file').setInputFiles(path);
+    await page.waitForFunction(expected=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.presets.v1')).length===expected,saved.length+1);
+    const importedId=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.presets.v1')).at(-1).id);
+    await page.locator('[data-action="select-style"][data-id="jazz-fusion"]').click();
+    await page.locator('[data-action="load-preset"][data-id="'+importedId+'"]').click();
+    const restored=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+    assert.deepEqual(restored,configuration);
+    if(id==='coastal-slow-bossa')assert.doesNotMatch(await page.locator('#prompt-output').inputValue(),/Cool Jazz/);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    await page.setViewportSize({width:1280,height:850});
+  }
+  console.log('PASS: both Café presets export/import v1, reload, explicit-only application and mobile width');
   assert.deepEqual(errors,[]);
-  console.log('PASS: 9 Chromium browser E2E groups, no uncaught page errors');
+  console.log('PASS: complete Chromium browser E2E suite, no uncaught page errors');
 } finally {
   await browser?.close();
   server.kill('SIGTERM');

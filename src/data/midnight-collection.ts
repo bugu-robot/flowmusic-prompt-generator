@@ -124,10 +124,42 @@ export const MIDNIGHT_COLLECTION: readonly CollectionPreset[] = [
       moodIds: ['nostalgic', 'reflective', 'intimate'], harmonyIds: ['maj7', 'min7', 'min9', 'add9'],
       productionIds: ['warm', 'intimate', 'room', 'soft-transients'],
       instruments: [
-        part('tenor-sax', 'lead', 62, 'warm, restrained lyrical phrases with generous pauses'),
+        part('tenor-sax', 'lead', 62, 'warm, breathy phrases'),
         part('piano', 'harmony', 30, 'soft, spacious chord voicings'),
         part('upright-bass', 'bass', 38, 'a simple, warm and restrained foundation'),
         part('brush-drums', 'rhythm', 12, 'a feather-light brushed pulse'),
+      ],
+    }),
+  },
+  {
+    id: 'warm-acoustic-cafe', name: 'Warm Acoustic Café', nameZh: '溫暖原聲咖啡館',
+    descriptionZh: 'Cozy Jazz · 68 BPM · 4/4 · 原聲鋼琴主奏、尼龍結他和聲、低音大提琴與極輕刷鼓；柔和平直八分音符、低旋律密度，溫暖、溫馨而平靜，適合放鬆咖啡館爵士樂。',
+    configuration: configuration('cozy-jazz', {
+      tempo: 68, meter: '4/4', grooveId: 'soft-straight', tonalityId: 'warm-major', sceneId: 'quiet-cafe',
+      energy: 20, melodyDensity: 20, improvisation: 12,
+      moodIds: ['warm', 'cozy', 'peaceful'], harmonyIds: ['maj7', 'min7', 'sixth', 'add9'],
+      productionIds: ['warm', 'intimate', 'acoustic', 'room', 'soft-transients'],
+      instruments: [
+        part('piano', 'lead', 65, 'understated melodic phrases'),
+        part('nylon-guitar', 'harmony', 28, 'soft chordal support with a light touch'),
+        part('upright-bass', 'bass', 35, 'a simple, warm and restrained foundation'),
+        part('brush-drums', 'rhythm', 12, 'a feather-light brushed pulse'),
+      ],
+    }),
+  },
+  {
+    id: 'coastal-slow-bossa', name: 'Coastal Slow Bossa', nameZh: '海邊慢板 Bossa',
+    descriptionZh: 'Slow Bossa Jazz · 64 BPM · 4/4 · 尼龍結他主奏、輕柔原聲鋼琴和聲、低音大提琴與極輕沙槌；柔和慢速 Bossa、輕微切分與充足旋律留白，放鬆、溫暖而平靜，適合海邊咖啡館。',
+    configuration: configuration('slow-bossa', {
+      tempo: 64, meter: '4/4', grooveId: 'slow-bossa', tonalityId: 'warm-major', sceneId: 'seaside-cafe',
+      energy: 18, melodyDensity: 18, improvisation: 12,
+      moodIds: ['relaxed', 'warm', 'peaceful'], harmonyIds: ['maj7', 'min7', 'sixth', 'add9'],
+      productionIds: ['warm', 'acoustic', 'spacious', 'room', 'soft-transients'],
+      instruments: [
+        part('nylon-guitar', 'lead', 65, 'a relaxed, gently syncopated melody'),
+        part('piano', 'harmony', 25, 'soft, spacious chord voicings'),
+        part('upright-bass', 'bass', 35, 'a simple, warm and restrained foundation'),
+        part('soft-shaker', 'rhythm', 12, 'a barely noticeable bossa pulse'),
       ],
     }),
   },
