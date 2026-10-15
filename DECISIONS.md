@@ -1,5 +1,11 @@
 # Architecture decisions
 
+## D-014 — Café presets reuse the existing explicit collection
+
+Warm Acoustic Café and Coastal Slow Bossa are configuration snapshots of the existing Cozy Jazz and Slow Bossa Jazz styles, not new genres. Keep their definitions in the existing collection module and use its explicit application and defensive cloning. The broader built-in-preset UI heading covers both café and night profiles without renaming stored IDs, changing JSON v1 or modifying user presets. Relaxed is an additive shared mood option. Existing acoustic-piano, guitar, bass, brush and shaker catalog entries and audio assets are reused.
+
+Both compilers must treat an absent optional secondary style as absent after normalization, rather than restore an unselected recommendation. Existing recommended configurations with an explicit influence remain unchanged. Main `47c12cc` catalog, default-prompt and seven-preset fingerprints guard preservation. Its Late Night Saxophone contained an unsupported behavior string which normalization already replaced with `warm, breathy phrases`; the collection now stores that same valid value so edits and reload agree without changing emitted prompts or existing persisted configurations.
+
 ## D-013 — Explicit Midnight Collection and piano-only timbre
 
 The user-authorized 2026-10-13 scope adds one modern Ambient Jazz descriptor and five full-configuration Midnight presets, rather than five overlapping genre names. Built-in collection data remains separate from device-only user presets; explicit application clones an editable snapshot without overwriting stored presets.

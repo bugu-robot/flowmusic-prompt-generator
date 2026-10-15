@@ -70,11 +70,12 @@ describe('Ambient Jazz and the explicit Midnight Collection', () => {
     expect(JSON.stringify(createMidnightConfiguration(id))).toBe(frozen);
   });
 
-  it('provides five musical identities instead of relabeling the same setup', () => {
-    expect(MIDNIGHT_COLLECTION).toHaveLength(5);
+  it('provides nine musical identities instead of relabeling the same setup', () => {
+    expect(MIDNIGHT_COLLECTION).toHaveLength(9);
+    expect(new Set(MIDNIGHT_COLLECTION.map(x => x.id)).size).toBe(9);
     const identities = MIDNIGHT_COLLECTION.map(x => JSON.stringify({ tempo: x.configuration.tempo,
       groove: x.configuration.grooveId, density: x.configuration.melodyDensity, parts: x.configuration.instruments }));
-    expect(new Set(identities).size).toBe(5);
+    expect(new Set(identities).size).toBe(9);
     for (const id of ['midnight-ambient', 'rainy-night-mellow', 'silent-minimal']) {
       expect(createMidnightConfiguration(id)!.instruments.some(x => INSTRUMENT_BY_ID.get(x.instrumentId)?.category === 'percussion')).toBe(false);
     }

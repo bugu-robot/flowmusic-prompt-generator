@@ -73,9 +73,9 @@ and uses no network translation, LLM, or additional API subscription.
 
 The catalog has 39 options: 38 fixed built-in styles plus Custom. The 12 previously expanded styles are Lo-fi Jazz / Chill Jazz, Acid Jazz, Big Band Jazz, Samba Jazz, Jazz Waltz, Piano Jazz / Café Piano Jazz, Contemporary Jazz, Free Jazz / Avant-Garde Jazz, Jazz-Hop / Hip-Hop Jazz, Neo-Soul Jazz, Dark Jazz / Noir Jazz, and Third Stream Jazz. Ambient Jazz is an additional clearly labelled modern descriptor with sparse jazz phrasing, slow harmonic changes and a percussion-free default.
 
-## Midnight Collection and Felt Piano
+## Built-in music presets and Felt Piano
 
-Five built-in profiles appear separately from device-only user presets. Applying a profile explicitly replaces the current editable setup, never overwrites saved presets, and does not happen merely by selecting a Jazz style. All profiles remain editable and can be saved/exported using the existing version-1 preset format.
+Nine built-in profiles appear separately from device-only user presets. They use the existing typed collection in `src/data/midnight-collection.ts`, now displayed as **內建音樂預設** to include café and coastal settings alongside the original Midnight profiles. Applying a profile explicitly replaces the current editable setup, never overwrites saved presets, and does not happen merely by selecting a Jazz style. All profiles remain editable and work with Flow Music, Suno Simple, Smart A/B/C, Traditional Chinese interpretation and the existing version-1 preset import/export format.
 
 | Profile | BPM | Core sound |
 | --- | --- | --- |
@@ -84,6 +84,12 @@ Five built-in profiles appear separately from device-only user presets. Applying
 | Rainy Night Mellow | 62 | Felt-piano lead, quiet nylon-guitar chords, upright bass; rubato-inspired, no drums |
 | Silent Minimal | 50 | Felt piano and very quiet upright bass; two voices, most space, no drums |
 | Moonlit Guitar | 64 | Nylon-guitar lead, quiet Rhodes, upright bass and tiny shaker; straight pulse, not forced Bossa |
+| Slow Piano Trio | 66 | Acoustic-piano lead, upright bass and very soft brushes; soft Swing for reading |
+| Late Night Saxophone | 62 | Tenor-sax lead, quiet acoustic-piano chords, upright bass and very soft brushes; restrained ballad |
+| Warm Acoustic Café | 68 | Cozy Jazz in 4/4, soft straight eighths; acoustic-piano lead, nylon-guitar harmony, upright bass, very soft brushes; warm, cozy, peaceful |
+| Coastal Slow Bossa | 64 | Slow Bossa Jazz in 4/4, gentle syncopation; nylon-guitar lead, soft acoustic-piano harmony, upright bass, very soft shaker; relaxed, warm, peaceful |
+
+Both café presets use maj7, min7, 6th and add9 harmony, low melody density, generous breathing space and very soft steady dynamics. **Relaxed / 放鬆** is an additional Feel option. Acoustic Piano uses the existing piano instrument without Felt; no new instruments or audio samples are introduced. Coastal Slow Bossa has no secondary style: both compilers respect the absence of an influence after reload instead of restoring the Slow Bossa recommendation's optional Cool Jazz influence. Airy Morning Jazz is not included.
 
 Piano offers **Acoustic / Felt** timbre choices. Felt is an optional piano-only field: it survives reload, preset import/export, Chinese interpretation, both English providers, Smart A/B/C, copied-prompt/feedback provenance and piano-containing curated variations. Older configurations remain acoustic without migration. The existing piano previews are **ordinary acoustic-piano demonstrations, not dedicated Felt recordings**; a visible note identifies this limitation.
 

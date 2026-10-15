@@ -42,6 +42,7 @@ export const MOODS: LabeledOption[] = [
   { id: 'playful', label: '俏皮 Playful', prompt: 'playful' },
   { id: 'sophisticated', label: '精緻 Sophisticated', prompt: 'sophisticated' },
   { id: 'mysterious', label: '神秘 Mysterious', prompt: 'mysterious' },
+  { id: 'relaxed', label: '放鬆 Relaxed', prompt: 'relaxed' },
 ];
 
 export const SCENES: LabeledOption[] = [

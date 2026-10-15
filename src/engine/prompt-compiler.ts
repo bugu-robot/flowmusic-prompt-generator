@@ -169,7 +169,9 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const recommendation = recommendConfiguration(normalized?.styleId ?? 'cozy-jazz');
   const hasExplicitInstrumentList = typeof input === 'object' && input !== null && Array.isArray(input.instruments);
   const configuration = normalized
-    ? { ...recommendation, ...normalized, instruments: hasExplicitInstrumentList ? normalized.instruments : recommendation.instruments }
+    // An omitted optional influence means none, including after JSON reload.
+    // Do not restore a style recommendation over the user's saved selection.
+    ? { ...recommendation, ...normalized, secondaryStyleId: normalized.secondaryStyleId, instruments: hasExplicitInstrumentList ? normalized.instruments : recommendation.instruments }
     : recommendation;
   const style = getStyle(configuration.styleId);
   const influence = configuration.secondaryStyleId ? getStyle(configuration.secondaryStyleId).name : '';

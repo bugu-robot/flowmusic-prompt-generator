@@ -39,7 +39,8 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const recommended = recommendConfiguration(normalized?.styleId ?? 'cozy-jazz');
   const explicitParts = typeof input === 'object' && input !== null && Array.isArray(input.instruments);
   const config = normalized
-    ? { ...recommended, ...normalized, instruments: explicitParts ? normalized.instruments : recommended.instruments }
+    // Keep an explicitly absent influence absent after normalization/reload.
+    ? { ...recommended, ...normalized, secondaryStyleId: normalized.secondaryStyleId, instruments: explicitParts ? normalized.instruments : recommended.instruments }
     : recommended;
   const style = getStyle(config.styleId);
   const opening = style.id === 'custom'
