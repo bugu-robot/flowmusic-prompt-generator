@@ -202,3 +202,11 @@ All npm packages are development tools, not runtime services. The shipped bundle
 ## Browser E2E (PR only)
 
 `.github/workflows/browser-e2e.yml` runs actual headless Chromium and a production Pages preview using a pinned test-only Playwright install (no package-lock update). It asserts Suno default, successful clipboard-to-snapshot capture (Main and Smart B), Flow chip disabling/deselection/provider switching and omitted options, provenance of ratings across configuration edits and reload, and mobile-viewport visible statuses/accessibility labels. This is browser automation, **not** iOS Safari verification. Physical iPhone UAT is still required. No production deployment is performed by any PR workflow.
+
+## Opening / Intro Variation and duration
+
+New configurations default to Auto Rotate and a 7–8 minute target. The MUSIC section offers Chord Opening, Bass First, Melodic Pickup, Gentle Arpeggio, Mid-Phrase Opening and Original / No Variation. New Opening advances a persisted deterministic seed without altering musical settings; normal renders, language changes and copies are stable. Smart reroll uses the existing seed with compatible A/B/C opening offsets, and each Chinese reading describes the actual English opening.
+
+Openings only use enabled, role-supported parts. Missing chord/bass/lead roles fall back to another available approach; an empty ensemble adds no intro. Sparse and style-specific accompaniment remains intact after the entrance. Instructions are added inside existing performance paragraphs, preserving compiler paragraph formats.
+
+Optional `openingMode` and `openingSeed` remain in JSON v1 and exact copied/feedback snapshots. Legacy files without these fields use the original behavior; built-in presets keep their existing 4–5 minute targets and original openings. Existing explicit durations remain unchanged. Missing legacy durations retain their prior 4–5 minute interpretation; invalid durations normalize safely. New configurations use 7–8, and all previous choices remain available. These are musical instructions and approximate duration targets, not guarantees that Suno/Flow will produce different intros or the requested length. Listening and iPhone Safari UAT remain manual.

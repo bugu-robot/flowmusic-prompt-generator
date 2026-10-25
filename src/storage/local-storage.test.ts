@@ -35,7 +35,7 @@ describe('local preset serialization', () => {
       expect(normalized?.trackDurationId).toBe(id);
     }
     for (const value of [null, 5, [], ['4-5'], '<script>', '100-200', '0-0']) {
-      expect(normalizeConfiguration({ ...recommendConfiguration('cozy-jazz'), trackDurationId: value })?.trackDurationId).toBe('4-5');
+      expect(normalizeConfiguration({ ...recommendConfiguration('cozy-jazz'), trackDurationId: value })?.trackDurationId).toBe(value === null ? '4-5' : '7-8');
     }
     const storage = new MemoryStorage();
     const configuration = { ...recommendConfiguration('slow-bossa'), trackDurationId: '8-10' as const };

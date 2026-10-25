@@ -1,5 +1,17 @@
 # Project Status
 
+## Opening variation / 7–8 minute defaults (2026-10-25)
+
+- Base main: `1bac86c87ce25109706a28a7258d2710ca74cfe3`; branch `feat/opening-variation-duration`. New Draft PR only; no merge or deploy.
+- Added MUSIC Opening / Intro Variation: Auto Rotate, Chord Opening, Bass First, Melodic Pickup, Gentle Arpeggio, Mid-Phrase Opening, Original. A shared typed planner selects only enabled, role-supported parts, with compatible fallbacks and no invented ensemble. English performance paragraphs and Chinese readings share the resolved approach.
+- New Opening advances a persisted deterministic seed. Renders, language views and copying are stable. Smart A/B/C use compatible offsets and the existing reroll seed. Exact snapshots retain the original configuration plus separate `resolvedOpeningSeed`, Smart seed and original copied text; feedback remains linked to that immutable snapshot.
+- New recommendations default to Auto Rotate/seed 0 and duration `7-8`. All eight old duration choices remain. Explicit saved durations and built-in profiles are unchanged; legacy opening omission means Original. Missing legacy duration retains 4-5; invalid duration values safely fall back to the new catalogue default. JSON v1 remains compatible.
+- Existing golden tests now explicitly use their legacy inputs (4-5, no opening fields), keeping all prior hashes instead of updating expected output to conceal changes. New regression coverage checks every mode across all 39 styles, both providers, auto/manual rerolls, A/B/C diversity, missing/disabled/invalid-role ensembles, all nine durations, v1 persistence and exact snapshot/feedback replay.
+- Local Node.js 24.22.1: clean `npm ci`, typecheck, ESLint and 369/369 Vitest tests in 20 suites PASS. Normal and Pages production builds PASS; checked both manifests, service workers, Apple/all manifest icons, distinct cache identities and Pages base path. Real Chromium E2E PASS, including all prior nine presets, both providers, opening selector/button, stable render/view/copy, Smart reroll, actual v1 download/import, reload, explicit saved duration and snapshot metadata. No uncaught page errors.
+- Audit's two newly reported moderate Vitest mocker advisories (`GHSA-qxg6-89mg-rqv8`, `GHSA-xp26-3454-mjgp`) required the minimal 4.1.11 to 4.1.12 patch update and matching Vitest transitive packages. Clean install and full regression suite passed; `npm audit` now reports 0 vulnerabilities. No runtime dependencies added.
+- Committed-audio verification: 242/242 assets decoded and SHA-256 checked, 32 tones, 146 behavior pairs and 64 grooves. Audio assets, instruments/styles/recording catalogs and production workflows unchanged. GitHub Actions results and artifact uploads will be recorded in the PR description after upload.
+- Limits: prompts cannot guarantee model output length or non-repetition. Main opening mode/seed persist; Smart reroll retains its existing session-local lifecycle, with exact copied provenance saved. iPhone Safari installation/offline and actual generated-audio listening remain manual UAT. Older app versions can ignore new optional fields or unsupported duration IDs; use the updated app for the new settings.
+
 ## Warm Acoustic Café / Coastal Slow Bossa (2026-10-15)
 
 - Base: latest production `main` at `47c12cc03c4c230a7d9e0d90e041cc5555c394dc`; branch: `feat/warm-acoustic-coastal-bossa-presets`. Scope is a new Draft PR only; no merge or deployment is authorized.

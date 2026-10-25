@@ -1,3 +1,4 @@
+import { resolveOpening } from '../data/opening-variation';
 import { CONSTRAINTS, HARMONY_BY_ID, MOODS, OPTION_BY_ID, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { instrumentWording } from '../data/piano-timbres';
@@ -171,7 +172,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
   const configuration = normalized
     // An omitted optional influence means none, including after JSON reload.
     // Do not restore a style recommendation over the user's saved selection.
-    ? { ...recommendation, ...normalized, secondaryStyleId: normalized.secondaryStyleId, instruments: hasExplicitInstrumentList ? normalized.instruments : recommendation.instruments }
+    ? { ...recommendation, ...normalized, secondaryStyleId: normalized.secondaryStyleId, openingMode: normalized.openingMode, openingSeed: normalized.openingSeed, instruments: hasExplicitInstrumentList ? normalized.instruments : recommendation.instruments }
     : recommendation;
   const style = getStyle(configuration.styleId);
   const influence = configuration.secondaryStyleId ? getStyle(configuration.secondaryStyleId).name : '';
@@ -242,7 +243,7 @@ export function compilePrompt(input: MusicConfiguration | Partial<MusicConfigura
     sceneSentence,
     instrumentSentences.join('\n\n'),
     harmonySentence,
-    melody,
+    melody + (resolveOpening(configuration).instruction ? ' ' + resolveOpening(configuration).instruction : ''),
     dynamics,
     arrangement,
     trackDurationPrompt(configuration.trackDurationId),

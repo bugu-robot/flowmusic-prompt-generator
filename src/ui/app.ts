@@ -1,3 +1,4 @@
+import { OPENING_MODES, resolveOpening, normalizeOpeningSeed } from '../data/opening-variation';
 import { CONSTRAINTS, HARMONIES, MOODS, PRODUCTION, SCENES, ROLES, TONALITIES } from '../data/options';
 import { INSTRUMENTS, INSTRUMENT_BY_ID } from '../data/instruments';
 import { MIDNIGHT_COLLECTION, createMidnightConfiguration } from '../data/midnight-collection';
@@ -210,7 +211,7 @@ function renderSmartPrompts(): string {
       ? '<p class="smart-intent-zh" lang="zh-HK">' + escapeHtml(p.intentZh) + '</p>' : '';
     return '<article class="smart-prompt-card"><h3>Prompt ' + p.id + ' · ' + escapeHtml(p.labelZh) + '</h3>'
       + englishDescription + chineseDescription
-      + renderPromptReading('smart-output-' + p.id, p.prompt, describePromptZh(appState.configuration, p.intentZh, i))
+      + renderPromptReading('smart-output-' + p.id, p.prompt, describePromptZh(appState.configuration, p.intentZh, i, p.openingZh))
       + '<button class="button button-secondary" type="button" data-action="copy-smart" data-id="' + p.id + '">' + t.smartCopy + '</button></article>';
   }).join('') + '</div>';
 }
@@ -268,6 +269,7 @@ function render(): void {
     + '<div class="add-instrument-row"><label for="instrument-picker">' + t.addInstrument + '</label><select id="instrument-picker"><option value="">' + t.chooseInstrument + '</option>' + categories.map((category) => '<optgroup label="' + escapeHtml(categoryLabels[category] ?? category) + '">' + INSTRUMENTS.filter((item) => item.category === category && !configuration.instruments.some((part) => part.instrumentId === item.id)).map((instrument) => '<option value="' + escapeHtml(instrument.id) + '">' + escapeHtml(instrument.nameZh + ' (' + instrument.name + ')') + '</option>').join('') + '</optgroup>').join('') + '</select></div></section>'
     + '<section class="panel" aria-labelledby="music-heading"><div class="panel-heading"><div><p class="eyebrow">03 · MUSIC</p><h2 id="music-heading">' + t.basicTitle + '</h2></div></div><div class="control-grid"><div class="tempo-control"><div class="label-line"><label for="tempo-number">' + t.tempo + '</label><span>' + t.tempoRange + ' ' + style.tempo.min + '–' + style.tempo.max + '</span></div><div class="tempo-inputs"><input id="tempo-range" type="range" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><input id="tempo-number" class="number-input" type="number" min="20" max="400" value="' + configuration.tempo + '" data-field="tempo" aria-label="' + t.tempo + '"><span>BPM</span></div><small class="tempo-feel" id="tempo-feel">' + tempoFeelLabel(configuration) + '</small></div>'
 
+    + '<div class="full-field"><label><span>' + t.openingTitle + '</span><select id="opening-mode" data-field="openingMode">' + selectOptions([...OPENING_MODES], configuration.openingMode ?? 'original') + '</select></label><button type="button" class="button button-secondary" data-action="new-opening"' + (!configuration.openingMode || configuration.openingMode === 'original' ? ' disabled' : '') + '>' + t.openingNew + '</button><p id="opening-description" role="status" aria-live="polite">' + escapeHtml(resolveOpening(configuration).descriptionZh) + '</p><small>' + t.openingHint + '</small></div>'
     + '<label><span>' + t.trackDuration + '</span><select data-field="trackDurationId">' + selectOptions(TRACK_DURATION_OPTIONS, configuration.trackDurationId) + '</select><small>' + t.trackDurationHint + '</small></label>'
     + '<div class="groove-control"><label><span>' + t.groove + '</span><select data-field="grooveId">' + selectOptions(grooveOptions, configuration.grooveId) + '</select></label>' + previewControl('groove', configuration.grooveId, grooveOptions.find(item => item.id === configuration.grooveId)?.label ?? configuration.grooveId) + '</div><label><span>' + t.energy + '</span><div class="range-labels"><small>' + t.energyLow + '</small><small>' + t.energyHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.energy + '" data-field="energy" aria-label="' + t.energy + '"></label>'
     + '<label><span>' + t.melodyDensity + '</span><div class="range-labels"><small>' + t.densityLow + '</small><small>' + t.densityHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.melodyDensity + '" data-field="melodyDensity" aria-label="' + t.melodyDensity + '"></label><label><span>' + t.improvisation + '</span><div class="range-labels"><small>' + t.improvLow + '</small><small>' + t.improvHigh + '</small></div><input type="range" min="0" max="100" value="' + configuration.improvisation + '" data-field="improvisation" aria-label="' + t.improvisation + '"></label></div>'
@@ -317,6 +319,8 @@ function notify(message: string): void {
   appState.toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 2400);
 }
 function refreshDynamicAreas(): void {
+  const intro = document.querySelector<HTMLElement>('#opening-description');
+  if (intro) intro.textContent = resolveOpening(appState.configuration).descriptionZh;
   const output = document.querySelector<HTMLTextAreaElement>('#prompt-output');
   if (output) output.value = compileForProvider(appState.configuration);
   const zhText = document.querySelector<HTMLElement>('.preview-card .prompt-zh-prose');
@@ -342,6 +346,7 @@ function updateConfiguration(field: string, value: unknown): void {
   switch (field) {
     case 'tempo': current.tempo = Math.max(20, Math.min(400, Number(value) || 20)); break;
     case 'tempoFeelId': current.tempoFeelId = value as MusicConfiguration['tempoFeelId']; break;
+    case 'openingMode': current.openingMode = OPENING_MODES.find(item => item.id === value)?.id ?? 'original'; current.openingSeed = 0; render(); break;
     case 'trackDurationId': current.trackDurationId = normalizeTrackDurationId(value); break;
     case 'energy': current.energy = Number(value); break;
     case 'melodyDensity': current.melodyDensity = Number(value); break;
@@ -413,15 +418,18 @@ function handleClick(event: MouseEvent): void {
     const output=document.querySelector<HTMLTextAreaElement>('#'+targetId);
     if(output && navigator.clipboard?.writeText) {
       const exactText=output.value, frozenConfig=structuredClone(appState.configuration), frozenProvider=appState.provider;
+      const resolvedOpeningSeed = kind !== 'main' && frozenConfig.openingMode === 'auto' ? generateSmartPrompts(appState.configuration, appState.provider, appState.smartStrength, appState.smartSeed).prompts.find(p => p.id === kind)?.openingSeed : undefined;
       const frozenStrength=appState.smartStrength, frozenSeed=appState.smartSeed;
       navigator.clipboard.writeText(exactText).then(()=>{
         try{
-          savePromptSnapshot({provider:frozenProvider,kind,promptText:exactText,configuration:frozenConfig,
+          savePromptSnapshot({provider:frozenProvider,kind,promptText:exactText,configuration:frozenConfig, resolvedOpeningSeed,
             ...(kind==='main'?{}:{smartStrength:frozenStrength,smartSeed:frozenSeed})});
           refreshFeedbackPanel();notify('已複製並記錄精確 Prompt 供聆聽評分。');
         }catch{notify('已複製，但無法在本機保存 Prompt Snapshot。');}
       }).catch(()=>selectEnglishForManualCopy(targetId));
     } else if(output)selectEnglishForManualCopy(targetId);
+  } else if (action === 'new-opening') {
+    if (appState.configuration.openingMode && appState.configuration.openingMode !== 'original') { appState.configuration.openingSeed = normalizeOpeningSeed((appState.configuration.openingSeed ?? 0) + 1); persist(); refreshDynamicAreas(); }
   } else if (action === 'reroll-smart') { appState.smartSeed += 1; refreshDynamicAreas(); }
   else if (action === 'recompile') { refreshDynamicAreas(); notify(t.promptRefreshed); }
   else if (action === 'generate-variations') { appState.variations = generateVariations(appState.configuration); render(); }

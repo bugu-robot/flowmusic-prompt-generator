@@ -30,3 +30,5 @@
 - Preserve the GitHub Pages base path /flowmusic-prompt-generator/; the Pages workflow must remain static.
 - Keep PR and production workflow concurrency groups separate. Do not merge Draft PR #1 during this correction pass.
 - The next checkpoint after this final correctness pass is consolidated manual UAT. Do not resume feature development without a new explicit scope.
+
+- Opening variation uses persisted optional openingMode/openingSeed; omission means legacy Original. Do not inject Auto Rotate into old presets. New recommendations default to Auto Rotate and 7-8 minutes; existing built-in snapshots retain their prior duration/opening. Keep English and Chinese resolved openings aligned, and store the effective Smart opening seed separately as resolvedOpeningSeed in copied/feedback snapshots.

@@ -1,3 +1,4 @@
+import { resolveOpening, smartOpeningConfiguration } from '../data/opening-variation';
 import { getStyle } from './recommendation-engine';
 import { compilePrompt } from './prompt-compiler';
 import { compileSunoSimple } from './suno-simple-compiler';
@@ -10,6 +11,8 @@ import type { MusicConfiguration } from '../models/types';
 export type PromptProvider = 'flow' | 'suno';
 export type VariationStrength = 'conservative' | 'balanced' | 'creative';
 export interface SmartPrompt {
+  openingZh?: string;
+  openingSeed?: number;
   id: 'A' | 'B' | 'C';
   title: string;
   labelZh: string;
@@ -132,11 +135,13 @@ export function generateSmartPrompts(
       : detail;
     const intent = safeStyleFocus + ' ' + safeDetail + ' ' + continuity + ' ' + intensityText[strength];
     const intentZh = describeSmartIntentZh(style.family, index, detailIndex, continuityIndex, strength, override);
+    const openingConfig = smartOpeningConfiguration(configuration, safeSeed, index);
     return {
+      ...(configuration.openingMode && configuration.openingMode !== 'original' ? { openingZh: resolveOpening(openingConfig).descriptionZh, openingSeed: openingConfig.openingSeed } : {}),
       id, title: titles[index]!, labelZh: names[index]!, intent, intentZh,
       prompt: provider === 'suno'
-        ? compileSunoSimple(configuration, { target: focus, instruction: intent })
-        : compileFlowWithInterpretation(configuration, focus, intent),
+        ? compileSunoSimple(openingConfig, { target: focus, instruction: intent })
+        : compileFlowWithInterpretation(openingConfig, focus, intent),
     };
   });
   if (new Set(prompts.map(p => p.intent)).size !== 3) return { prompts: [], warning: '目前設定無法產生三個可區分的演奏方向。' };

@@ -34,9 +34,10 @@ export interface PromptSnapshot {
   configuration: MusicConfiguration;
   smartStrength?: 'conservative' | 'balanced' | 'creative';
   smartSeed?: number;
+  resolvedOpeningSeed?: number;
 }
 export type NewPromptSnapshot = Pick<PromptSnapshot,'provider'|'kind'|'promptText'|'configuration'> &
-  Pick<PromptSnapshot,'smartStrength'|'smartSeed'>;
+  Pick<PromptSnapshot,'smartStrength'|'smartSeed'|'resolvedOpeningSeed'>;
 function parseSnapshot(value: unknown): PromptSnapshot | undefined {
   if (!isRecord(value)) return undefined;
   const config = normalizeConfiguration(value.configuration);
@@ -48,6 +49,7 @@ function parseSnapshot(value: unknown): PromptSnapshot | undefined {
     kind: value.kind, promptText: value.promptText, configuration: config,
     ...(value.smartStrength === 'conservative' || value.smartStrength === 'balanced' || value.smartStrength === 'creative'
       ? {smartStrength: value.smartStrength} : {}),
+    ...(typeof value.resolvedOpeningSeed === 'number' && Number.isSafeInteger(value.resolvedOpeningSeed) && value.resolvedOpeningSeed >= 0 && value.resolvedOpeningSeed < 1000000 ? { resolvedOpeningSeed: value.resolvedOpeningSeed } : {}),
     ...(typeof value.smartSeed === 'number' && Number.isSafeInteger(value.smartSeed) && value.smartSeed >= 0
       ? {smartSeed: value.smartSeed} : {}),
   };

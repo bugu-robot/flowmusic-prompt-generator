@@ -6,12 +6,13 @@ export const TRACK_DURATIONS = [
   { id: '4-5', minMinutes: 4, maxMinutes: 5 },
   { id: '5-6', minMinutes: 5, maxMinutes: 6 },
   { id: '6-8', minMinutes: 6, maxMinutes: 8 },
+  { id: '7-8', minMinutes: 7, maxMinutes: 8 },
   { id: '8-10', minMinutes: 8, maxMinutes: 10 },
   { id: '10-12', minMinutes: 10, maxMinutes: 12 },
 ] as const;
 
 export type TrackDurationId = (typeof TRACK_DURATIONS)[number]['id'];
-export const DEFAULT_TRACK_DURATION: TrackDurationId = '4-5';
+export const DEFAULT_TRACK_DURATION: TrackDurationId = '7-8';
 
 export function normalizeTrackDurationId(value: unknown): TrackDurationId {
   return TRACK_DURATIONS.find((option) => option.id === value)?.id ?? DEFAULT_TRACK_DURATION;

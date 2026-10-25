@@ -1,3 +1,4 @@
+import { openingSettings } from '../data/opening-variation';
 import { JAZZ_STYLES, STYLE_BY_ID } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { normalizePianoTimbre } from '../data/piano-timbres';
@@ -84,7 +85,8 @@ export function normalizeConfiguration(value: unknown): MusicConfiguration | und
     styleId: value.styleId,
     tempo: Math.max(20, Math.min(400, Math.round(numeric('tempo', 80)))),
     tempoFeelId: enumOption<MusicConfiguration['tempoFeelId']>('tempoFeelId', ['auto', 'very-slow', 'very-relaxed', 'relaxed', 'moderate', 'brisk', 'fast'], 'auto'),
-    trackDurationId: normalizeTrackDurationId(value.trackDurationId),
+    trackDurationId: normalizeTrackDurationId(value.trackDurationId ?? '4-5'),
+    ...openingSettings(value),
     meter,
     customMeter: isValidMeter(value.customMeter) ? value.customMeter : '4/4',
     grooveId: grooveIds.has(stringValue('grooveId', 'open')) ? stringValue('grooveId', 'open') : 'open',
