@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { compilePrompt } from './prompt-compiler';
-import { recommendConfiguration } from './recommendation-engine';
+import { recommendConfiguration as newConfiguration } from './recommendation-engine';
 import { generateVariations } from './variation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
@@ -17,15 +17,21 @@ function withoutNewInstrumentRule(prompt: string): string {
   const suffix = ' ' + EXCLUSIVE_INSTRUMENT_SENTENCE;
   expect(prompt.endsWith(suffix)).toBe(true);
   const stripped = prompt.slice(0, -suffix.length);
-  const durationParagraph = '\n\n' + trackDurationPrompt(DEFAULT_TRACK_DURATION);
+  const durationParagraph = '\n\n' + trackDurationPrompt('4-5');
   expect(stripped.includes(durationParagraph)).toBe(true);
   return stripped.replace(durationParagraph, '');
 }
 
+function recommendConfiguration(styleId: string) {
+  const config = newConfiguration(styleId);
+  delete config.openingMode; delete config.openingSeed; config.trackDurationId = '4-5';
+  return config;
+}
+
 describe('deterministic English prompt compiler', () => {
-  it('targets 4–5 minutes by default for all styles and their variations', () => {
+  it('targets 7–8 minutes by default for all styles and their variations', () => {
     for (const style of JAZZ_STYLES) {
-      const recommended = recommendConfiguration(style.id);
+      const recommended = newConfiguration(style.id);
       expect(recommended.trackDurationId, style.id).toBe(DEFAULT_TRACK_DURATION);
       for (const configuration of [recommended, ...generateVariations(recommended)]) {
         const prompt = compilePrompt(configuration);
@@ -53,7 +59,7 @@ describe('deterministic English prompt compiler', () => {
     const config = recommendConfiguration('custom');
     const missing = compilePrompt({ ...config, trackDurationId: undefined } as Partial<MusicConfiguration>);
     const invalid = compilePrompt({ ...config, trackDurationId: '<script>10 hours</script>' } as unknown as Partial<MusicConfiguration>);
-    expect(missing).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
+    expect(missing).toContain(trackDurationPrompt('4-5'));
     expect(invalid).toContain(trackDurationPrompt(DEFAULT_TRACK_DURATION));
     expect(invalid).not.toContain('<script>');
   });
@@ -191,7 +197,7 @@ describe('deterministic English prompt compiler', () => {
 
   it('always restricts instrumentation for every style, variation and cleared ensemble', () => {
     for (const style of JAZZ_STYLES) {
-      const recommended = recommendConfiguration(style.id);
+      const recommended = newConfiguration(style.id);
       for (const configuration of [recommended, ...generateVariations(recommended)]) {
         const prompt = compilePrompt(configuration);
         expect(prompt.endsWith(EXCLUSIVE_INSTRUMENT_SENTENCE), style.id).toBe(true);

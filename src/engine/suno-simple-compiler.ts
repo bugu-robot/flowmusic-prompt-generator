@@ -1,3 +1,4 @@
+import { resolveOpening } from '../data/opening-variation';
 import { CONSTRAINTS, HARMONY_BY_ID, MOODS, PRODUCTION, SCENES, TONALITIES } from '../data/options';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { instrumentWording } from '../data/piano-timbres';
@@ -40,7 +41,7 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const explicitParts = typeof input === 'object' && input !== null && Array.isArray(input.instruments);
   const config = normalized
     // Keep an explicitly absent influence absent after normalization/reload.
-    ? { ...recommended, ...normalized, secondaryStyleId: normalized.secondaryStyleId, instruments: explicitParts ? normalized.instruments : recommended.instruments }
+    ? { ...recommended, ...normalized, secondaryStyleId: normalized.secondaryStyleId, openingMode: normalized.openingMode, openingSeed: normalized.openingSeed, instruments: explicitParts ? normalized.instruments : recommended.instruments }
     : recommended;
   const style = getStyle(config.styleId);
   const opening = style.id === 'custom'
@@ -121,7 +122,8 @@ export function compileSunoSimple(input: MusicConfiguration | Partial<MusicConfi
   const melodySentence = 'Melody: ' + density + ', ' + complexity + ' ' + phrases + ', '
     + breathing + ', ' + improvisation + ' improvisation and ' + energy + ' energy. '
     + (interpretation?.target === 'melody' ? interpretation.instruction + ' ' : '');
-  const musicParagraph = harmonySentence + melodySentence + interaction + ' '
+  const intro = resolveOpening(config).instruction;
+  const musicParagraph = harmonySentence + melodySentence + (intro ? intro + ' ' : '') + interaction + ' '
     + (dynamics ?? 'controlled dynamics') + ', ' + (structure ?? 'natural arrangement') + '.';
   const closing = (production.length ? 'Recording: ' + join(production) + '. ' : '')
     + trackDurationPrompt(config.trackDurationId) + ' No vocals or singing. '

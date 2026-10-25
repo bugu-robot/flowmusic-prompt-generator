@@ -96,6 +96,8 @@ export interface MusicConfiguration {
   styleId: string;
   tempo: number;
   tempoFeelId: 'auto' | 'very-slow' | 'very-relaxed' | 'relaxed' | 'moderate' | 'brisk' | 'fast';
+  openingMode?: import('../data/opening-variation').OpeningMode;
+  openingSeed?: number;
   trackDurationId: import('../data/track-duration').TrackDurationId;
   meter: string;
   customMeter?: string;

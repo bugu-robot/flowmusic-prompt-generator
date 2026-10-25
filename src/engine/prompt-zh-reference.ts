@@ -1,3 +1,4 @@
+import { resolveOpening } from '../data/opening-variation';
 import type { MusicConfiguration } from '../models/types';
 import { STYLE_BY_ID, JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
@@ -60,7 +61,7 @@ function customOrLabel(configValue: string | undefined, catalogId: string, catal
   return catalog.find(x => x.id === catalogId)?.label ?? custom;
 }
 export function describePromptZh(
-  config: MusicConfiguration, intentZh?: string, focusIndex?: number,
+  config: MusicConfiguration, intentZh?: string, focusIndex?: number, openingZh?: string,
 ): string {
   const style = STYLE_BY_ID.get(config.styleId) ?? STYLE_BY_ID.get('cozy-jazz')!;
   const secondary = config.secondaryStyleId ? STYLE_BY_ID.get(config.secondaryStyleId)?.nameZh : undefined;
@@ -105,5 +106,6 @@ export function describePromptZh(
     + '目標曲長約 ' + (duration ? duration.minMinutes + '–' + duration.maxMinutes : '4–5') + ' 分鐘，並自然結尾。'
     + '純音樂、沒有歌聲；不加入未選的樂器或額外敲擊樂。'
     + (avoid ? '避免：' + avoid + '。' : '');
-  return [heading, ensemble, musical, closing].join('\n\n');
+  const intro = config.openingMode && config.openingMode !== 'original' ? '【開場變化】' + (openingZh ?? resolveOpening(config).descriptionZh) : '';
+  return [heading, ensemble, musical + (intro ? '\n' + intro : ''), closing].join('\n\n');
 }

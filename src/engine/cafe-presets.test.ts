@@ -176,7 +176,9 @@ describe('Warm Acoustic Café and Coastal Slow Bossa built-in presets', () => {
 });
 
 const digest = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-function snapshot(configuration: MusicConfiguration) {
+function snapshot(input: MusicConfiguration) {
+  const configuration = structuredClone(input);
+  delete configuration.openingMode; delete configuration.openingSeed; configuration.trackDurationId = '4-5';
   return { configuration: normalizeConfiguration(configuration), flow: compilePrompt(configuration), suno: compileSunoSimple(configuration),
     zh: describePromptZh(normalizeConfiguration(configuration)!), smart: (['flow', 'suno'] as const).map(provider => generateSmartPrompts(configuration, provider)) };
 }

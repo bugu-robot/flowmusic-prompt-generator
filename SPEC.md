@@ -72,3 +72,7 @@ The application document and user-facing controls use Traditional Chinese for Ho
 ## Offline and deployment
 
 Vite builds static assets. The PWA manifest uses relative scope and start URL and includes install-size PNG icons, maskable PNG icons, an SVG icon and an Apple touch icon. A Vite build plugin hashes the app version, lockfile, source, public assets, HTML and service-worker template into a deterministic cache identity and emits `dist/sw.js`. The service worker precaches the app shell and manifest icons, removes prior FlowMusic caches on activation and waits for user action before activating an update. GitHub Pages builds with the repository path /flowmusic-prompt-generator/. There is no runtime server, cloud database or inference API.
+
+## Opening variation compatibility (2026-10-25)
+
+Opening planning is typed local data in `src/data/opening-variation.ts`. New recommendations use Auto Rotate/seed 0 and duration 7-8. Optional opening fields are absent on legacy configurations, which must retain byte-stable original compiler behavior. Built-in collection snapshots explicitly retain 4-5 and omit openings. JSON v1 remains compatible. Normalization must never inherit a new recommended opening over an absent legacy field. Smart A/B/C use compatible seed offsets; snapshots retain the selected configuration and store the effective opening seed as resolvedOpeningSeed along with the exact copied text and existing Smart provenance. No random number, network inference or extra instruments are involved.

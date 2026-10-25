@@ -16,6 +16,7 @@ function part(instrumentId: string, role: InstrumentPart['role'], prominence: nu
 function configuration(styleId: string, changes: Partial<MusicConfiguration>): MusicConfiguration {
   return {
     ...recommendConfiguration(styleId),
+    trackDurationId: '4-5', openingMode: undefined, openingSeed: undefined,
     moodIds: ['calm', 'intimate'], energy: 18, melodyDensity: 18, improvisation: 12,
     foregroundRule: 'single', phraseLength: 'short', breathingSpace: 'high', melodyComplexity: 'simple',
     dynamics: 'very-stable', structure: 'continuous', secondaryStyleId: undefined,

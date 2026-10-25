@@ -52,6 +52,7 @@ export function recommendConfiguration(styleId: string): MusicConfiguration {
     tempo: style.tempo.default,
     tempoFeelId: 'auto',
     trackDurationId: DEFAULT_TRACK_DURATION,
+    openingMode: 'auto', openingSeed: 0,
     meter: style.meters[0] ?? '4/4',
     customMeter: '4/4',
     grooveId: defaultGroove,

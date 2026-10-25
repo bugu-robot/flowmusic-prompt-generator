@@ -2,11 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { compilePrompt } from './prompt-compiler';
 import { compileSunoSimple } from './suno-simple-compiler';
 import { generateSmartPrompts } from './smart-prompt-planner';
-import { recommendConfiguration } from './recommendation-engine';
+import { recommendConfiguration as newConfiguration } from './recommendation-engine';
 import { JAZZ_STYLES } from '../data/jazz-styles';
 import { INSTRUMENT_BY_ID } from '../data/instruments';
 import { generateVariations } from './variation-engine';
 import { normalizeConfiguration } from '../storage/local-storage';
+
+function recommendConfiguration(styleId: string) {
+  const config = newConfiguration(styleId);
+  delete config.openingMode; delete config.openingSeed; config.trackDurationId = '4-5';
+  return config;
+}
 
 describe('Suno Simple and smart prompt outputs', () => {
   it('keeps Cool and Swing-family Smart interpretations faithful to all selectable grooves', () => {

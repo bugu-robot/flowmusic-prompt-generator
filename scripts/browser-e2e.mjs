@@ -243,6 +243,69 @@ try{
     await page.setViewportSize({width:1280,height:850});
   }
   console.log('PASS: both Café presets export/import v1, reload, explicit-only application and mobile width');
+  // New-user defaults and opening state are persisted, never generated on render.
+  await page.evaluate(()=>localStorage.clear());
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('#opening-mode').inputValue(),'auto');
+  assert.equal(await page.locator('[data-field="trackDurationId"]').inputValue(),'7-8');
+  const start=await page.locator('#prompt-output').inputValue();
+  assert.match(start,/Target a total track duration of approximately 7 to 8 minutes/);
+  assert.match(start,/Opening:/);
+  await page.locator('#prompt-view').selectOption('both');
+  assert.equal(await page.locator('#prompt-output').inputValue(),start);
+  assert.match(await page.locator('#opening-description').innerText(),/[\u3400-\u9fff]/u);
+  await page.locator('#prompt-view').selectOption('en');
+  await page.locator('[data-action="recompile"]').click();
+  assert.equal(await page.locator('#prompt-output').inputValue(),start);
+  const beforeOpening=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')??'null'));
+  await page.locator('[data-action="new-opening"]').click();
+  const nextOpening=await page.locator('#prompt-output').inputValue();
+  assert.notEqual(nextOpening,start);
+  const newConfig=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.configuration.v1')));
+  if(beforeOpening)assert.deepEqual({...newConfig,openingSeed:beforeOpening.openingSeed},beforeOpening);
+  const smartBefore=await page.locator('#smart-output-A').inputValue();
+  await page.locator('[data-action="reroll-smart"]').click();
+  assert.notEqual(await page.locator('#smart-output-A').inputValue(),smartBefore);
+  assert.equal(await page.locator('#prompt-output').inputValue(),nextOpening);
+  await page.locator('[data-action="copy-smart"][data-id="B"]').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.copiedPrompts.v1')??'[]').length===1);
+  const openingSnapshot=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.copiedPrompts.v1'))[0]);
+  assert.equal(openingSnapshot.promptText,await page.locator('#smart-output-B').inputValue());
+  assert.equal(openingSnapshot.configuration.openingMode,'auto');
+  assert.equal(openingSnapshot.configuration.openingSeed,newConfig.openingSeed);
+  assert.notEqual(openingSnapshot.resolvedOpeningSeed,newConfig.openingSeed);
+  for(const provider of ['flow','suno']) {
+    await page.locator('#prompt-provider').selectOption(provider);
+    for(const mode of ['chord','bass','pickup','arpeggio','mid-phrase','original','auto']) {
+      await page.locator('#opening-mode').selectOption(mode);
+      const output=await page.locator('#prompt-output').inputValue();
+      if(mode==='original')assert.doesNotMatch(output,/Opening:/);
+      else assert.match(output,/Opening:/);
+      assert.equal(await page.locator('[data-action="new-opening"]').isDisabled(),mode==='original');
+    }
+  }
+  await page.locator('[data-action="new-opening"]').click();
+  const savedOpening=await page.locator('#prompt-output').inputValue();
+  await page.locator('#preset-name').fill('Opening persisted');
+  await page.locator('[data-action="save-preset"]').click();
+  const openingPreset=await page.evaluate(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.presets.v1'))[0]);
+  const ready=page.waitForEvent('download');
+  await page.locator('[data-action="export-preset"][data-id="'+openingPreset.id+'"]').click();
+  const openingDownload=await ready;
+  const openingPath=await openingDownload.path();
+  const openingJson=JSON.parse(await readFile(openingPath,'utf8'));
+  assert.equal(openingJson.preset.configuration.openingSeed,openingPreset.configuration.openingSeed);
+  assert.equal(openingJson.preset.configuration.trackDurationId,'7-8');
+  await page.locator('#preset-file').setInputFiles(openingPath);
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('flowmusic.promptGenerator.presets.v1')).length===2);
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('#prompt-output').inputValue(),savedOpening);
+  assert.equal(await page.locator('#opening-mode').inputValue(),'auto');
+  await page.locator('[data-field="trackDurationId"]').selectOption('2-3');
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('[data-field="trackDurationId"]').inputValue(),'2-3');
+  assert.match(await page.locator('#prompt-output').inputValue(),/approximately 2 to 3 minutes/);
+  console.log('PASS: opening modes, new-opening, stable views/copy/rerenders, Smart rotation, snapshots, export/import/reload and new/retained duration');
   assert.deepEqual(errors,[]);
   console.log('PASS: complete Chromium browser E2E suite, no uncaught page errors');
 } finally {
